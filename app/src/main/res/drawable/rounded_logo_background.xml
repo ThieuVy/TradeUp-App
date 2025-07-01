@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Đặt màu nền cho logo (nếu cần), ví dụ: trong suốt -->
+    <solid android:color="@android:color/transparent" />
+
+    <!-- Bo góc cho toàn bộ hình, áp dụng bán kính 20dp cho cả 4 góc -->
+    <corners android:radius="20dp" />
+
+    <!-- Thêm viền (tùy chọn) nếu bạn muốn -->
+    <stroke
+        android:width="0dp" />
+
+</shape>

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/navigation_profile"
+    tools:ignore="InvalidNavigation">
+
+    <fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.example.testapptradeup.fragments.ProfileFragment"
+        android:label="Hồ sơ"
+        tools:layout="@layout/fragment_profile">
+        <action
+            android:id="@+id/action_profileFragment_to_myListingsFragment"
+            app:destination="@id/myListingsFragment" />
+
+        <!-- All actions originating from ProfileFragment are now nested here -->
+        <action
+            android:id="@+id/action_navigation_profile_to_editProfileFragment"
+            app:destination="@id/editProfileFragment" />
+        <action
+            android:id="@+id/action_profile_to_buy_orders"
+            app:destination="@+id/fragment_buy_orders" />
+        <action
+            android:id="@+id/action_profile_to_sell_orders"
+            app:destination="@+id/fragment_sell_orders" />
+        <action
+            android:id="@+id/action_profile_to_shipping_status"
+            app:destination="@+id/fragment_shipping_status" />
+        <action
+            android:id="@+id/action_profile_to_purchase_history"
+            app:destination="@+id/fragment_purchase_history" />
+        <action
+            android:id="@+id/action_profile_to_reviews"
+            app:destination="@+id/fragment_reviews" />
+        <action
+            android:id="@+id/action_profile_to_wallet"
+            app:destination="@+id/fragment_wallet" />
+        <action
+            android:id="@+id/action_profile_to_bank_account"
+            app:destination="@+id/fragment_bank_account" />
+        <action
+            android:id="@+id/action_profile_to_vouchers"
+            app:destination="@+id/fragment_vouchers" />
+        <action
+            android:id="@+id/action_profile_to_help_center"
+            app:destination="@+id/fragment_help_center" />
+        <action
+            android:id="@+id/action_profile_to_live_chat"
+            app:destination="@+id/fragment_live_chat" />
+        <action
+            android:id="@+id/action_profile_to_report_issue"
+            app:destination="@+id/fragment_report_issue" />
+        <action
+            android:id="@+id/action_profile_to_account_settings"
+            app:destination="@+id/fragment_account_settings" />
+        <action
+            android:id="@+id/action_profile_to_feedback"
+            app:destination="@+id/fragment_feedback" />
+        <action
+            android:id="@+id/action_profile_to_login"
+            app:destination="@+id/fragment_login" />
+        <action
+            android:id="@+id/action_profile_to_register"
+            app:destination="@+id/fragment_register" />
+        <action
+            android:id="@+id/action_navigation_profile_to_editProfileFragment2"
+            app:destination="@id/editProfileFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/myListingsFragment"
+        android:name="com.example.testapptradeup.fragments.MyListingsFragment"
+        android:label="Danh sách của tôi"
+        tools:layout="@layout/fragment_my_listings" />
+
+    <fragment
+        android:id="@+id/editProfileFragment"
+        android:name="com.example.testapptradeup.fragments.EditProfileFragment"
+        android:label="Chỉnh sửa hồ sơ"
+        tools:layout="@layout/fragment_edit_profile" >
+        <action
+            android:id="@+id/action_editProfileFragment_to_navigation_profile"
+            app:destination="@id/navigation_profile" />
+    </fragment>
+
+    <!-- Destination fragments (unchanged) -->
+    <fragment
+        android:id="@+id/fragment_notifications"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Thông báo" />
+    <fragment
+        android:id="@+id/fragment_buy_orders"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Đơn mua" />
+    <fragment
+        android:id="@+id/fragment_sell_orders"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Đơn bán" />
+    <fragment
+        android:id="@+id/fragment_shipping_status"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Tình trạng giao hàng" />
+    <fragment
+        android:id="@+id/fragment_purchase_history"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Lịch sử mua bán" />
+    <fragment
+        android:id="@+id/fragment_reviews"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Đánh giá" />
+    <fragment
+        android:id="@+id/fragment_wallet"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Ví" />
+    <fragment
+        android:id="@+id/fragment_bank_account"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Tài khoản ngân hàng" />
+    <fragment
+        android:id="@+id/fragment_vouchers"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Voucher" />
+    <fragment
+        android:id="@+id/fragment_help_center"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Trung tâm trợ giúp" />
+    <fragment
+        android:id="@+id/fragment_live_chat"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Chat trực tiếp" />
+    <fragment
+        android:id="@+id/fragment_report_issue"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Báo cáo sự cố" />
+    <fragment
+        android:id="@+id/fragment_account_settings"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Cài đặt tài khoản" />
+    <fragment
+        android:id="@+id/fragment_feedback"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Phản hồi" />
+    <fragment
+        android:id="@+id/fragment_login"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Đăng nhập" />
+    <fragment
+        android:id="@+id/fragment_register"
+        android:name="androidx.fragment.app.Fragment"
+        android:label="Đăng ký" />
+
+</navigation>

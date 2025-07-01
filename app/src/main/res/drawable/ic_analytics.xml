@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="36dp"
+    android:height="36dp"
+    android:viewportWidth="36"
+    android:viewportHeight="36">
+
+    <!-- Khung màn hình & viền ngoài -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M32,13.22V29H4V7h18.57c-0.046,-0.332 -0.069,-0.666 -0.07,-1s0.024,-0.669 0.07,-1H4
+            C2.895,5 2,5.895 2,7v22c0,1.104 0.895,2 2,2h28c1.104,0 2,-0.896 2,-2V12.34
+            C33.38,12.73 32.706,13.026 32,13.22Z" />
+
+    <!-- Đường biểu đồ -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M15.62,15.222l-6.018,8.746l-4.052,-3.584l1.06,-1.198l2.698,2.386
+            l6.326,-9.192l6.75,10.015l6.754,-8.925l1.276,0.966L22.308,25.145Z" />
+
+    <!-- Chấm tròn góc trên phải (badge) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M30,1a5,5 0 1,0 0,10a5,5 0 1,0 0,-10Z" />
+</vector>

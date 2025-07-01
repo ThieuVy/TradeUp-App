@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Outer circle -->
+    <path
+        android:pathData="M12,3a9,9 0 1,0 0,18a9,9 0 1,0 0,-18Z"
+        android:strokeColor="#292929"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+
+    <!-- Compass needle -->
+    <path
+        android:pathData="M11.3074,9.73851L15,9L14.2615,12.6926
+                          C14.1031,13.4843 13.4843,14.1031 12.6926,14.2615
+                          L9,15L9.73851,11.3074
+                          C9.89686,10.5157 10.5157,9.89686 11.3074,9.73851Z"
+        android:strokeColor="#292929"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

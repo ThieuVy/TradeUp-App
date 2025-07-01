@@ -1,0 +1,40 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Main chip body -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M160,160h192v192h-192z" />
+
+    <!-- Left pins (dài ra) -->
+    <path android:fillColor="#000000" android:pathData="M144,176h-32v8h32z" />
+    <path android:fillColor="#000000" android:pathData="M144,208h-32v8h32z" />
+    <path android:fillColor="#000000" android:pathData="M144,240h-32v8h32z" />
+    <path android:fillColor="#000000" android:pathData="M144,272h-32v8h32z" />
+    <path android:fillColor="#000000" android:pathData="M144,304h-32v8h32z" />
+
+    <!-- Right pins (dài ra) -->
+    <path android:fillColor="#000000" android:pathData="M368,176h32v8h-32z" />
+    <path android:fillColor="#000000" android:pathData="M368,208h32v8h-32z" />
+    <path android:fillColor="#000000" android:pathData="M368,240h32v8h-32z" />
+    <path android:fillColor="#000000" android:pathData="M368,272h32v8h-32z" />
+    <path android:fillColor="#000000" android:pathData="M368,304h32v8h-32z" />
+
+    <!-- Top pins (dài ra) -->
+    <path android:fillColor="#000000" android:pathData="M176,144v-32h8v32z" />
+    <path android:fillColor="#000000" android:pathData="M208,144v-32h8v32z" />
+    <path android:fillColor="#000000" android:pathData="M240,144v-32h8v32z" />
+    <path android:fillColor="#000000" android:pathData="M272,144v-32h8v32z" />
+    <path android:fillColor="#000000" android:pathData="M304,144v-32h8v32z" />
+
+    <!-- Bottom pins (dài ra) -->
+    <path android:fillColor="#000000" android:pathData="M176,368v32h8v-32z" />
+    <path android:fillColor="#000000" android:pathData="M208,368v32h8v-32z" />
+    <path android:fillColor="#000000" android:pathData="M240,368v32h8v-32z" />
+    <path android:fillColor="#000000" android:pathData="M272,368v32h8v-32z" />
+    <path android:fillColor="#000000" android:pathData="M304,368v32h8v-32z" />
+
+</vector>

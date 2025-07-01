@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Viền ngoài của khung -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M1,19 L23,19 L23,1 L1,1 L1,19 Z" />
+
+    <!-- Phần chân đế bên dưới -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M5,23 L19,23" />
+
+    <!-- Hình chữ nhật nhỏ giữa chân đế -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M8,23 L16,23 L16,19 L8,19 L8,23 Z" />
+
+    <!-- Mũi tên góc trên trái -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M7.757,5.757 L9.879,7.879" />
+
+    <!-- Đường ngang trái -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M6,10 L9,10" />
+
+    <!-- Mũi tên góc dưới trái -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M7.757,14.243 L9.879,12.121" />
+
+    <!-- Dọc giữa -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M12,13 L12,16" />
+
+    <!-- Mũi tên góc dưới phải -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M14.121,12.121 L16.243,14.243" />
+
+    <!-- Đường ngang phải -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M15,10 L18,10" />
+
+    <!-- Mũi tên góc trên phải -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M14.121,7.879 L16.243,5.757" />
+
+    <!-- Dọc giữa từ trên xuống -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M12,4 L12,7" />
+
+    <!-- Vòng tròn trung tâm -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M12,7
+            C10.343,7 9,8.343 9,10
+            C9,11.657 10.343,13 12,13
+            C13.657,13 15,11.657 15,10
+            C15,8.343 13.657,7 12,7 Z" />
+
+</vector>

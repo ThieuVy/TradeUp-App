@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Khung tài liệu -->
+    <path
+        android:fillColor="@color/warning"
+        android:pathData="M6,2h9l5,5v15a1,1 0 0 1 -1,1H6a1,1 0 0 1 -1,-1V3a1,1 0 0 1 1,-1z" />
+
+    <!-- Gấp góc file -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M15,2v5h5" />
+
+    <!-- Các dòng biểu thị dữ liệu -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M8,9h8v1H8z
+            M8,12h5v1H8z
+            M8,15h6v1H8z
+        " />
+</vector>

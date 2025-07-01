@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- bg_condition_tag.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <solid android:color="@color/condition_bg_color" />
+
+    <corners android:radius="12dp" />
+
+    <stroke
+        android:color="@color/condition_border_color" />
+
+</shape>
