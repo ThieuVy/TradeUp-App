@@ -5,6 +5,9 @@ import android.os.Parcelable;
 
 import com.google.firebase.firestore.Exclude;
 import com.google.firebase.firestore.IgnoreExtraProperties;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 @IgnoreExtraProperties
 public class User implements Parcelable {
@@ -24,6 +27,11 @@ public class User implements Parcelable {
     private String walletStatus; // e.g., "connected", "not_connected"
     private int notificationCount;
     private String bankAccount; // New: To store bank account info (e.g., account number, bank name)
+    private List<String> favoriteListingIds;
+    private String location;
+    private Date memberSince;
+    private int activeListingsCount;
+    private int completedSalesCount;
 
     public User() {
         // Public no-argument constructor needed for Firebase Firestore
@@ -43,6 +51,11 @@ public class User implements Parcelable {
         this.walletStatus = "not_connected";
         this.notificationCount = 0;
         this.bankAccount = ""; // Default empty string
+        this.favoriteListingIds = new ArrayList<>();
+        this.location = "";
+        this.memberSince = new Date(); // Mặc định là thời gian hiện tại
+        this.activeListingsCount = 0;
+        this.completedSalesCount = 0;
     }
 
     // Comprehensive constructor
@@ -122,6 +135,18 @@ public class User implements Parcelable {
     public void setBankAccount(String bankAccount) { this.bankAccount = bankAccount; } // New Setter
 
 
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
+
+    public java.util.Date getMemberSince() { return memberSince; }
+    public void setMemberSince(java.util.Date memberSince) { this.memberSince = memberSince; }
+
+    public int getActiveListingsCount() { return activeListingsCount; }
+    public void setActiveListingsCount(int activeListingsCount) { this.activeListingsCount = activeListingsCount; }
+
+    public int getCompletedSalesCount() { return completedSalesCount; }
+    public void setCompletedSalesCount(int completedSalesCount) { this.completedSalesCount = completedSalesCount; }
+
     // Parcelable implementation
     protected User(Parcel in) {
         id = in.readString();
@@ -138,7 +163,12 @@ public class User implements Parcelable {
         isFlagged = in.readByte() != 0;
         walletStatus = in.readString();
         notificationCount = in.readInt();
-        bankAccount = in.readString(); // Read new field
+        bankAccount = in.readString();
+        location = in.readString();
+        long tmpDate = in.readLong();
+        memberSince = tmpDate == -1 ? null : new java.util.Date(tmpDate);
+        activeListingsCount = in.readInt();
+        completedSalesCount = in.readInt();
     }
 
     public static final Creator<User> CREATOR = new Creator<User>() {
@@ -174,6 +204,17 @@ public class User implements Parcelable {
         dest.writeByte((byte) (isFlagged ? 1 : 0));
         dest.writeString(walletStatus);
         dest.writeInt(notificationCount);
-        dest.writeString(bankAccount); // Write new field
+        dest.writeString(bankAccount);
+        dest.writeString(location);
+        dest.writeLong(memberSince != null ? memberSince.getTime() : -1);
+        dest.writeInt(activeListingsCount);
+        dest.writeInt(completedSalesCount);
+    }
+    public List<String> getFavoriteListingIds() {
+        return favoriteListingIds;
+    }
+
+    public void setFavoriteListingIds(List<String> favoriteListingIds) {
+        this.favoriteListingIds = favoriteListingIds;
     }
 }

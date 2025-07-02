@@ -1,6 +1,9 @@
 package com.example.testapptradeup.models;
 
 import android.annotation.SuppressLint;
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import com.google.firebase.firestore.DocumentId;
 import com.google.firebase.firestore.ServerTimestamp;
 import java.text.NumberFormat;
@@ -17,7 +20,7 @@ public class Listing {
     private String title;
     private String description;
     private double price;
-    private List<String> imageUrls; // THAY ĐỔI QUAN TRỌNG: Từ String thành List<String>
+    private List<String> imageUrls;
     private String location;
 
     @ServerTimestamp
@@ -51,7 +54,6 @@ public class Listing {
         this.sellerName = sellerName;
         this.condition = condition;
         this.isNegotiable = isNegotiable;
-        // Các giá trị mặc định khi tạo mới
         this.status = "available";
         this.views = 0;
         this.offersCount = 0;
@@ -66,7 +68,7 @@ public class Listing {
     public String getTitle() { return title; }
     public String getDescription() { return description; }
     public double getPrice() { return price; }
-    public List<String> getImageUrls() { return imageUrls; } // Sửa getter
+    public List<String> getImageUrls() { return imageUrls; }
     public String getLocation() { return location; }
     public Date getTimePosted() { return timePosted; }
     public String getCategoryId() { return categoryId; }
@@ -81,12 +83,13 @@ public class Listing {
     public int getOffersCount() { return offersCount; }
     public boolean isSold() { return isSold; }
 
+
     // Setters
     public void setId(String id) { this.id = id; }
     public void setTitle(String title) { this.title = title; }
     public void setDescription(String description) { this.description = description; }
     public void setPrice(double price) { this.price = price; }
-    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; } // Sửa setter
+    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
     public void setLocation(String location) { this.location = location; }
     public void setTimePosted(Date timePosted) { this.timePosted = timePosted; }
     public void setCategoryId(String categoryId) { this.categoryId = categoryId; }
@@ -108,11 +111,9 @@ public class Listing {
         if (imageUrls != null && !imageUrls.isEmpty()) {
             return imageUrls.get(0);
         }
-        return null; // Hoặc trả về một URL placeholder
+        return null;
     }
 
-
-    // --- Các hàm tiện ích (giữ nguyên) ---
     public String getFormattedPrice() {
         NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
         return formatter.format(price);
@@ -148,7 +149,6 @@ public class Listing {
             default: return "Không xác định";
         }
     }
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
@@ -161,4 +161,63 @@ public class Listing {
     public int hashCode() {
         return Objects.hash(id);
     }
+    protected Listing(Parcel in) {
+        id = in.readString();
+        title = in.readString();
+        description = in.readString();
+        price = in.readDouble();
+        imageUrls = in.createStringArrayList();
+        location = in.readString();
+        long tmpTimePosted = in.readLong();
+        timePosted = tmpTimePosted == -1 ? null : new Date(tmpTimePosted);
+        categoryId = in.readString();
+        rating = in.readFloat();
+        reviewCount = in.readInt();
+        sellerId = in.readString();
+        sellerName = in.readString();
+        condition = in.readString();
+        isNegotiable = in.readByte() != 0;
+        status = in.readString();
+        views = in.readInt();
+        offersCount = in.readInt();
+        isSold = in.readByte() != 0;
+    }
+
+
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(id);
+        dest.writeString(title);
+        dest.writeString(description);
+        dest.writeDouble(price);
+        dest.writeStringList(imageUrls);
+        dest.writeString(location);
+        dest.writeLong(timePosted != null ? timePosted.getTime() : -1);
+        dest.writeString(categoryId);
+        dest.writeFloat(rating);
+        dest.writeInt(reviewCount);
+        dest.writeString(sellerId);
+        dest.writeString(sellerName);
+        dest.writeString(condition);
+        dest.writeByte((byte) (isNegotiable ? 1 : 0));
+        dest.writeString(status);
+        dest.writeInt(views);
+        dest.writeInt(offersCount);
+        dest.writeByte((byte) (isSold ? 1 : 0));
+    }
+
+    public int describeContents() {
+        return 0;
+    }
+
+    public static final Parcelable.Creator<Listing> CREATOR = new Parcelable.Creator<Listing>() {
+        @Override
+        public Listing createFromParcel(Parcel in) {
+            return new Listing(in);
+        }
+
+        @Override
+        public Listing[] newArray(int size) {
+            return new Listing[size];
+        }
+    };
 }

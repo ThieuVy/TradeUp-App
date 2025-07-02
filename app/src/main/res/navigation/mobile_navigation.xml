@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
     app:startDestination="@id/navigation_home">
 
     <fragment
         android:id="@+id/navigation_home"
         android:name="com.example.testapptradeup.fragments.HomeFragment"
-        android:label="@string/title_home" >
+        android:label="@string/title_home"
+        tools:layout="@layout/fragment_home">
         <action
             android:id="@+id/action_navigation_home_to_navigation_management"
             app:destination="@id/navigation_management" />
@@ -25,7 +27,8 @@
     <fragment
         android:id="@+id/navigation_management"
         android:name="com.example.testapptradeup.fragments.NewsFragment"
-        android:label="@string/title_search" >
+        android:label="@string/title_news"
+        tools:layout="@layout/fragment_newsmanage">
         <action
             android:id="@+id/action_navigation_management_to_navigation_notification"
             app:destination="@id/navigation_notifications" />
@@ -43,7 +46,8 @@
     <fragment
         android:id="@+id/navigation_post"
         android:name="com.example.testapptradeup.fragments.PostFragment"
-        android:label="@string/title_post" >
+        android:label="@string/title_post"
+        tools:layout="@layout/fragment_post">
         <action
             android:id="@+id/action_navigation_post_to_navigation_home"
             app:destination="@id/navigation_home" />
@@ -61,7 +65,8 @@
     <fragment
         android:id="@+id/navigation_notifications"
         android:name="com.example.testapptradeup.fragments.NotificationsFragment"
-        android:label="@string/title_notifications" >
+        android:label="@string/title_notifications"
+        tools:layout="@layout/fragment_notifications">
         <action
             android:id="@+id/action_navigation_discover_to_navigation_profile"
             app:destination="@id/navigation_profile" />
@@ -76,7 +81,8 @@
     <fragment
         android:id="@+id/navigation_profile"
         android:name="com.example.testapptradeup.fragments.ProfileFragment"
-        android:label="@string/title_profile" >
+        android:label="@string/title_profile"
+        tools:layout="@layout/fragment_profile">
         <action
             android:id="@+id/action_navigation_profile_to_navigation_post"
             app:destination="@id/navigation_post" />
@@ -90,4 +96,26 @@
             android:id="@+id/action_navigation_profile_to_navigation_home"
             app:destination="@id/navigation_home" />
     </fragment>
+
+    <activity
+        android:name="com.example.testapptradeup.activities.MainActivity"
+        android:label="@string/app_name"
+        tools:layout="@layout/activity_main" />
+    <activity
+        android:id="@+id/navigation_login"
+        android:name="com.example.testapptradeup.activities.LoginActivity"
+        android:label="@string/title_login"
+        tools:layout="@layout/activity_login"/>
+
+    <activity
+        android:name="com.example.testapptradeup.activities.RegisterActivity"
+        android:label="@string/title_register"
+        tools:layout="@layout/activity_register"/>
+
+    <activity
+        android:name="com.example.testapptradeup.activities.ForgotPasswordActivity"
+        android:label="@string/title_forgot_password"
+        tools:layout="@layout/activity_forgot_password"/>
+
+
 </navigation>

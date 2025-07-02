@@ -16,6 +16,10 @@ import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Listing;
 
+import java.text.NumberFormat;
+import java.util.Locale;
+import java.util.Objects;
+
 /**
  * Adapter for displaying featured products in a RecyclerView.
  * This adapter uses DiffUtil for efficient updates.
@@ -87,20 +91,23 @@ public class FeaturedAdapter extends ListAdapter<Listing, FeaturedAdapter.Featur
          */
         @SuppressLint("DefaultLocale")
         public void bind(Listing listing) {
-            // Load product image using Glide
-            if (listing.getImageUrl() != null && !listing.getImageUrl().isEmpty()) {
+            // Kiểm tra danh sách URL có tồn tại và không rỗng
+            if (listing.getImageUrls() != null && !listing.getImageUrls().isEmpty()) {
+                // Tải ảnh đầu tiên trong danh sách bằng Glide
+                // URL này chính là URL từ Cloudinary mà bạn đã upload và lưu vào Firestore
                 Glide.with(itemView.getContext())
-                        .load(listing.getImageUrl())
-                        .placeholder(R.drawable.img) // Placeholder image
-                        .error(R.drawable.img)       // Error image
+                        .load(listing.getImageUrls().get(0))
+                        .placeholder(R.drawable.img)
+                        .error(R.drawable.img)
                         .into(productImage);
             } else {
-                productImage.setImageResource(R.drawable.img); // Default image if no URL
+                // Nếu không có ảnh, hiển thị ảnh mặc định
+                productImage.setImageResource(R.drawable.img);
             }
-
-            // Set product title and price
             productTitle.setText(listing.getTitle());
-            productPrice.setText(String.format("$%.2f", listing.getPrice())); // Format price
+            // Định dạng giá sang VNĐ
+            NumberFormat format = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+            productPrice.setText(format.format(listing.getPrice()));
         }
     }
 
@@ -108,20 +115,26 @@ public class FeaturedAdapter extends ListAdapter<Listing, FeaturedAdapter.Featur
      * DiffUtil.ItemCallback implementation for efficient list updates.
      * This helps in only updating the items that have changed, added, or removed.
      */
-    private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<Listing>() {
+    private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
-            // Check if the items represent the same product (e.g., by their ID)
-            return oldItem.getId().equals(newItem.getId());
+            // ID là cách tốt nhất để xác định item có giống nhau không
+            return Objects.equals(oldItem.getId(), newItem.getId());
         }
 
+        @SuppressLint("DiffUtilEquals")
         @Override
         public boolean areContentsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
-            // Check if the contents of the items are the same
-            // This is a shallow comparison; consider deep comparison if product has complex objects
+            // *** BẮT ĐẦU SỬA LỖI ***
+            // Lấy URL ảnh đầu tiên từ mỗi item để so sánh
+            String oldImageUrl = (oldItem.getImageUrls() != null && !oldItem.getImageUrls().isEmpty()) ? oldItem.getImageUrls().get(0) : null;
+            String newImageUrl = (newItem.getImageUrls() != null && !newItem.getImageUrls().isEmpty()) ? newItem.getImageUrls().get(0) : null;
+
+            // So sánh các nội dung chính
             return oldItem.getTitle().equals(newItem.getTitle()) &&
                     oldItem.getPrice() == newItem.getPrice() &&
-                    oldItem.getImageUrl().equals(newItem.getImageUrl());
+                    Objects.equals(oldImageUrl, newImageUrl);
+            // *** KẾT THÚC SỬA LỖI ***
         }
     };
 }

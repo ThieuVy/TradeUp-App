@@ -1,6 +1,7 @@
 package com.example.testapptradeup.adapters;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,7 +15,6 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.bumptech.glide.request.RequestOptions;
 import com.example.testapptradeup.R;
-import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.SearchResult;
 
 import java.util.List;
@@ -33,7 +33,8 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<SearchResultsAdap
         void onFavoriteClick(SearchResult product, boolean isFavorite);
     }
 
-    public SearchResultsAdapter(List<Listing> searchResults,
+    // *** SỬA LỖI 1: Thay đổi kiểu của tham số searchResults ***
+    public SearchResultsAdapter(List<SearchResult> searchResults,
                                 OnProductClickListener onProductClickListener,
                                 OnFavoriteClickListener onFavoriteClickListener) {
         this.searchResults = searchResults;
@@ -51,7 +52,8 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<SearchResultsAdap
     @Override
     public void onBindViewHolder(@NonNull SearchResultViewHolder holder, int position) {
         SearchResult result = searchResults.get(position);
-        holder.bind(result, onProductClickListener, onFavoriteClickListener, searchResults);
+        // *** SỬA LỖI: Bỏ tham số không cần thiết ***
+        holder.bind(result, onProductClickListener, onFavoriteClickListener);
     }
 
     @Override
@@ -72,7 +74,6 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<SearchResultsAdap
         notifyItemRangeInserted(startPosition, moreResults.size());
     }
 
-    // Made static to fix visibility scope warning
     static class SearchResultViewHolder extends RecyclerView.ViewHolder {
         private final ImageView productImage;
         private final TextView productTitle;
@@ -84,7 +85,6 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<SearchResultsAdap
 
         public SearchResultViewHolder(@NonNull View itemView) {
             super(itemView);
-
             productImage = itemView.findViewById(R.id.product_image);
             productTitle = itemView.findViewById(R.id.product_title);
             productPrice = itemView.findViewById(R.id.product_price);
@@ -94,84 +94,70 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<SearchResultsAdap
             favoriteButton = itemView.findViewById(R.id.favorite_button);
         }
 
-        public void bind(SearchResult result,
-                         OnProductClickListener onProductClickListener,
-                         OnFavoriteClickListener onFavoriteClickListener,
-                         List<SearchResult> searchResults) {
+        // *** SỬA LỖI: Tái cấu trúc hàm bind để đơn giản hơn ***
+        public void bind(final SearchResult result,
+                         final OnProductClickListener productClickListener,
+                         final OnFavoriteClickListener favoriteClickListener) {
 
             productTitle.setText(result.getTitle());
             productPrice.setText(result.getPrice());
             productCondition.setText(result.getCondition());
 
-            // Format location with distance
             String locationText = result.getLocation();
             if (result.getDistance() != null && !result.getDistance().isEmpty()) {
                 locationText += " • " + result.getDistance();
             }
             productLocation.setText(locationText);
-
             postedTime.setText(result.getPostedTime());
 
-            // Update favorite button state
             updateFavoriteButton(result.isFavorite());
-
-            // Load product image
             loadProductImage(result);
 
-            // Set click listeners
-            setupClickListeners(onProductClickListener, onFavoriteClickListener, searchResults);
-        }
-
-        private void setupClickListeners(OnProductClickListener onProductClickListener,
-                                         OnFavoriteClickListener onFavoriteClickListener,
-                                         List<SearchResult> searchResults) {
-            // Product click listener
+            // Set listeners
             itemView.setOnClickListener(v -> {
-                int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && onProductClickListener != null) {
-                    onProductClickListener.onProductClick(searchResults.get(position));
+                if (productClickListener != null) {
+                    productClickListener.onProductClick(result);
                 }
             });
 
-            // Favorite button click listener
             favoriteButton.setOnClickListener(v -> {
-                int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && onFavoriteClickListener != null) {
-                    SearchResult result = searchResults.get(position);
+                if (favoriteClickListener != null) {
                     boolean newFavoriteState = !result.isFavorite();
-                    result.setFavorite(newFavoriteState);
-                    updateFavoriteButton(newFavoriteState);
-                    onFavoriteClickListener.onFavoriteClick(result, newFavoriteState);
+                    result.setFavorite(newFavoriteState); // Cập nhật trạng thái trong model
+                    updateFavoriteButton(newFavoriteState); // Cập nhật UI ngay lập tức
+                    favoriteClickListener.onFavoriteClick(result, newFavoriteState);
                 }
             });
         }
 
         private void loadProductImage(SearchResult result) {
+            Context context = itemView.getContext();
+            RequestOptions requestOptions = new RequestOptions()
+                    .placeholder(R.drawable.img) // Dùng placeholder chung
+                    .error(R.drawable.img)
+                    .transform(new RoundedCorners(16));
+
             if (result.getImageUrl() != null && !result.getImageUrl().isEmpty()) {
-                Glide.with(itemView.getContext())
+                Glide.with(context)
                         .load(result.getImageUrl())
-                        .apply(new RequestOptions()
-                                .placeholder(R.drawable.ic_image_placeholder)
-                                .error(R.drawable.ic_image_placeholder)
-                                .transform(new RoundedCorners(16)))
+                        .apply(requestOptions)
                         .into(productImage);
             } else {
-                // Set placeholder image
-                Glide.with(itemView.getContext())
-                        .load(R.drawable.ic_image_placeholder)
-                        .apply(new RequestOptions()
-                                .transform(new RoundedCorners(16)))
+                Glide.with(context)
+                        .load(R.drawable.img) // Load placeholder mặc định
+                        .apply(requestOptions)
                         .into(productImage);
             }
         }
 
         private void updateFavoriteButton(boolean isFavorite) {
+            Context context = itemView.getContext();
             if (isFavorite) {
-                favoriteButton.setImageResource(R.drawable.ic_favorite);
-                favoriteButton.setColorFilter(itemView.getContext().getColor(R.color.favorite_color));
+                favoriteButton.setImageResource(R.drawable.ic_favorite); // Icon trái tim đầy
+                favoriteButton.setColorFilter(context.getColor(R.color.red_error)); // Màu đỏ
             } else {
-                favoriteButton.setImageResource(R.drawable.ic_favorite_outline);
-                favoriteButton.setColorFilter(itemView.getContext().getColor(R.color.text_secondary));
+                favoriteButton.setImageResource(R.drawable.ic_favorite_outline); // Icon trái tim rỗng
+                favoriteButton.setColorFilter(context.getColor(R.color.text_secondary)); // Màu xám
             }
         }
     }

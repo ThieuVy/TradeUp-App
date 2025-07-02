@@ -2,31 +2,25 @@ package com.example.testapptradeup.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import com.google.firebase.firestore.IgnoreExtraProperties;
 
-// Đảm bảo các import khác nếu có (ví dụ: cho Firebase Firestore)
-import com.google.firebase.firestore.IgnoreExtraProperties; // Quan trọng nếu bạn đang dùng Firestore
-
-@IgnoreExtraProperties // Firestore sẽ bỏ qua các thuộc tính không có trong document khi deserialize
+@IgnoreExtraProperties
 public class SearchResult implements Parcelable {
-    // Các thuộc tính hiện có của bạn (ví dụ từ Firebase)
     private String id;
-    private final String title;
+    private String title; // Đã bỏ final
     private String price;
     private String condition;
     private String location;
     private String postedTime;
-    private String imageUrl; // Thêm trường này nếu chưa có
-    private double latitude; // Thêm trường này nếu chưa có
-    private double longitude; // Thêm trường này nếu chưa có
-    private String distance; // Có thể là String để hiển thị, hoặc tính toán từ lat/long
-    private String category; // Category của sản phẩm
-
-    // THUỘC TÍNH MỚI CHO TRẠNG THÁI YÊU THÍCH
+    private String imageUrl;
+    private double latitude;
+    private double longitude;
+    private String distance;
+    private String category;
     private boolean isFavorite;
 
-    public SearchResult() {
-        // Hàm tạo rỗng cần thiết cho Firebase Firestore
-        // Khởi tạo giá trị mặc định để tránh null
+    public SearchResult(Listing listing, boolean isFavorite) {
+        // Hàm tạo rỗng cần thiết
         this.title = "";
         this.price = "";
         this.condition = "";
@@ -37,26 +31,29 @@ public class SearchResult implements Parcelable {
         this.category = "";
         this.latitude = 0.0;
         this.longitude = 0.0;
-        this.isFavorite = false; // Mặc định không phải là yêu thích
+        this.isFavorite = false;
     }
 
-    // Constructor với các trường cần thiết để khởi tạo
-    // (Bạn có thể điều chỉnh constructor này theo nhu cầu thực tế của bạn)
-    public SearchResult(String id, String title, String price, String condition, String location,
-                        String postedTime, String imageUrl, double latitude, double longitude, String category, boolean isFavorite) {
-        this.id = id;
-        this.title = title;
-        this.price = price;
-        this.condition = condition;
-        this.location = location;
-        this.postedTime = postedTime;
-        this.imageUrl = imageUrl;
-        this.latitude = latitude;
-        this.longitude = longitude;
-        this.category = category;
-        this.isFavorite = isFavorite;
-        // distance sẽ được tính toán hoặc set sau
+    // Constructor tiện ích để chuyển đổi từ Listing
+    public SearchResult(Listing listing) {
+        this.id = listing.getId();
+        this.title = listing.getTitle();
+        this.price = listing.getFormattedPrice();
+        this.condition = listing.getConditionText();
+        this.location = listing.getLocation();
+        this.imageUrl = listing.getPrimaryImageUrl();
+        this.category = listing.getCategoryId();
+        // this.latitude = listing.getLatitude(); // Bỏ comment nếu Listing có lat/long
+        // this.longitude = listing.getLongitude(); // Bỏ comment nếu Listing có lat/long
+        this.isFavorite = false;
         this.distance = "";
+
+        if (listing.getTimePosted() != null) {
+            this.postedTime = android.text.format.DateUtils.getRelativeTimeSpanString(
+                    listing.getTimePosted().getTime()).toString();
+        } else {
+            this.postedTime = "";
+        }
     }
 
 
@@ -71,18 +68,12 @@ public class SearchResult implements Parcelable {
     public double getLatitude() { return latitude; }
     public double getLongitude() { return longitude; }
     public String getCategory() { return category; }
+    public boolean isFavorite() { return isFavorite; }
+    public String getDistance() { return distance; }
 
-    // Getter và Setter cho isFavorite
-    public boolean isFavorite() {
-        return isFavorite;
-    }
-
-    public void setFavorite(boolean favorite) {
-        isFavorite = favorite;
-    }
-
-    // Setter (nếu bạn cần thay đổi ID sau khi tạo)
+    // Setters
     public void setId(String id) { this.id = id; }
+    public void setTitle(String title) { this.title = title; }
     public void setPrice(String price) { this.price = price; }
     public void setCondition(String condition) { this.condition = condition; }
     public void setLocation(String location) { this.location = location; }
@@ -91,9 +82,7 @@ public class SearchResult implements Parcelable {
     public void setLatitude(double latitude) { this.latitude = latitude; }
     public void setLongitude(double longitude) { this.longitude = longitude; }
     public void setCategory(String category) { this.category = category; }
-
-    // Setter cho distance (có thể được tính toán hoặc set từ bên ngoài)
-    public String getDistance() { return distance; }
+    public void setFavorite(boolean favorite) { isFavorite = favorite; }
     public void setDistance(String distance) { this.distance = distance; }
 
 
@@ -110,7 +99,7 @@ public class SearchResult implements Parcelable {
         longitude = in.readDouble();
         distance = in.readString();
         category = in.readString();
-        isFavorite = in.readByte() != 0; // Đọc boolean
+        isFavorite = in.readByte() != 0;
     }
 
     public static final Creator<SearchResult> CREATOR = new Creator<SearchResult>() {
@@ -143,6 +132,6 @@ public class SearchResult implements Parcelable {
         dest.writeDouble(longitude);
         dest.writeString(distance);
         dest.writeString(category);
-        dest.writeByte((byte) (isFavorite ? 1 : 0)); // Ghi boolean
+        dest.writeByte((byte) (isFavorite ? 1 : 0));
     }
 }

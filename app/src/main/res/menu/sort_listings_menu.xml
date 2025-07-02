@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/sort_most_recent"
+        android:title="Gần đây nhất"
+        tools:ignore="HardcodedText" />
+    <item
+        android:id="@+id/sort_oldest"
+        android:title="Cũ nhất trước tiên"
+        tools:ignore="HardcodedText" />
+    <item
+        android:id="@+id/sort_price_high_to_low"
+        android:title="Giá: Cao đến thấp"
+        tools:ignore="HardcodedText" />
+    <item
+        android:id="@+id/sort_price_low_to_high"
+        android:title="Giá: Thấp đến cao"
+        tools:ignore="HardcodedText" />
+</menu>

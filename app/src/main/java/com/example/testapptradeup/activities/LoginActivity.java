@@ -34,8 +34,6 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 
@@ -52,6 +50,7 @@ public class LoginActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private TextView registerLink;
     private ImageView googleLogin;
+    private TextView forgotPassword;
     private CredentialManager credentialManager;
 
     @Override
@@ -83,6 +82,7 @@ public class LoginActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         registerLink = findViewById(R.id.sign_up_link);
         googleLogin = findViewById(R.id.google_login);
+        forgotPassword = findViewById(R.id.forgot_password);
     }
 
     private void setupListeners() {
@@ -110,6 +110,10 @@ public class LoginActivity extends AppCompatActivity {
 
         loginButton.setOnClickListener(v -> performEmailPasswordLogin());
         googleLogin.setOnClickListener(v -> performGoogleSignIn());
+        forgotPassword.setOnClickListener(v -> {
+            Intent intent = new Intent(LoginActivity.this, ForgotPasswordActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void performEmailPasswordLogin() {

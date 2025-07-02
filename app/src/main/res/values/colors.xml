@@ -258,4 +258,13 @@
     <color name="green_dark">#1B5E20</color>   <!-- xanh đậm -->
     <color name="grey_dark">#424242</color>    <!-- xám đậm -->
     <color name="yellow_dark">#F9A825</color>  <!-- vàng đậm -->
+
+    <!-- Primary Colors -->
+    <color name="red_error">#F44336</color>
+
+    <!-- Icon Colors -->
+    <color name="icon_tint_color">#2196F3</color>
+    <!-- Background Colors -->
+    <color name="menu_item_background">#FFFFFF</color>
+
 </resources>

@@ -5,15 +5,18 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_light">
+    android:background="@color/background_light"
+    tools:context=".fragments.SearchFragment">
 
-    <!-- Search Bar -->
-    <androidx.cardview.widget.CardView
+    <!-- Thanh tìm kiếm -->
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/search_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        app:cardCornerRadius="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        app:cardCornerRadius="28dp"
         app:cardElevation="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -21,62 +24,69 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:background="@drawable/search_bar_background"
-            android:padding="8dp">
+            android:paddingStart="20dp"
+            android:paddingEnd="8dp">
 
             <EditText
                 android:id="@+id/search_input"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:background="@null"
                 android:hint="@string/search_hint"
                 android:imeOptions="actionSearch"
                 android:inputType="text"
                 android:maxLines="1"
-                android:padding="12dp"
-                android:background="@null"
-                android:textSize="16sp"
                 android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_hint"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="16sp"
                 tools:ignore="Autofill" />
 
             <ImageButton
                 android:id="@+id/clear_search"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_clear"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/clear_search_desc"
-                android:background="@null"
+                android:src="@drawable/ic_clear"
+                android:visibility="gone"
+                tools:visibility="visible"/>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="24dp"
                 android:layout_gravity="center_vertical"
-                android:visibility="gone" />
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="8dp"
+                android:background="@color/divider" />
 
             <ImageButton
                 android:id="@+id/filter_toggle"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_filter"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/filter_toggle_desc"
-                android:background="@null"
-                android:layout_gravity="center_vertical"
-                android:layout_marginEnd="8dp" />
-
+                android:src="@drawable/ic_filter" />
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
+    </com.google.android.material.card.MaterialCardView>
 
-    <!-- Filters Card -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/filters_card"
+    <!-- Container cho bộ lọc, có thể cuộn -->
+    <ScrollView
+        android:id="@+id/filters_container"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:background="@color/white"
+        android:elevation="2dp"
         android:visibility="gone"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/search_card">
+        app:layout_constraintTop_toBottomOf="@id/search_card"
+        tools:visibility="visible">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -84,234 +94,243 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <TextView
+                style="@style/FilterSectionTitle"
+                android:text="Khoảng giá"
+                tools:ignore="HardcodedText" />
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <EditText
+                    android:id="@+id/min_price_input"
+                    android:hint="Tối thiểu"
+                    style="@style/FilterEditText"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    tools:ignore="Autofill,HardcodedText" />
+                <EditText
+                    android:id="@+id/max_price_input"
+                    android:hint="Tối đa"
+                    style="@style/FilterEditText"
+                    android:layout_weight="1"
+                    tools:ignore="Autofill,HardcodedText" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/FilterSectionTitle"
+                android:text="Danh mục"
+                tools:ignore="HardcodedText" />
             <AutoCompleteTextView
                 android:id="@+id/category_filter"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/category_hint"
-                android:inputType="text"
-                android:padding="12dp"
-                android:background="@drawable/edit_text_background"
-                android:layout_marginBottom="8dp" />
+                android:hint="Chọn danh mục"
+                style="@style/FilterAutoCompleteTextView"
+                tools:ignore="HardcodedText" />
 
-            <EditText
-                android:id="@+id/min_price_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/min_price_hint"
-                android:inputType="numberDecimal"
-                android:padding="12dp"
-                android:background="@drawable/edit_text_background"
-                android:layout_marginBottom="8dp"
-                android:textSize="16sp"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_hint"
-                tools:ignore="Autofill" />
-
-            <EditText
-                android:id="@+id/max_price_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/max_price_hint"
-                android:inputType="numberDecimal"
-                android:padding="12dp"
-                android:background="@drawable/edit_text_background"
-                android:layout_marginBottom="8dp"
-                android:textSize="16sp"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_hint"
-                tools:ignore="Autofill" />
-
+            <TextView
+                style="@style/FilterSectionTitle"
+                android:text="Tình trạng"
+                tools:ignore="HardcodedText" />
             <AutoCompleteTextView
                 android:id="@+id/condition_filter"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/condition_hint"
-                android:inputType="text"
-                android:padding="12dp"
-                android:background="@drawable/edit_text_background"
-                android:layout_marginBottom="8dp" />
+                android:hint="Chọn tình trạng"
+                style="@style/FilterAutoCompleteTextView"
+                tools:ignore="HardcodedText" />
 
-            <SeekBar
-                android:id="@+id/distance_seekbar"
+            <TextView
+                style="@style/FilterSectionTitle"
+                android:text="Vị trí &amp; Khoảng cách"
+                tools:ignore="HardcodedText" />
+            <LinearLayout
+                android:orientation="horizontal"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:max="100"
-                android:layout_marginBottom="8dp" />
-
+                android:layout_height="wrap_content">
+                <EditText
+                    android:id="@+id/location_input"
+                    android:hint="Nhập vị trí"
+                    style="@style/FilterEditText"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:inputType="text"
+                    tools:ignore="Autofill,HardcodedText,InefficientWeight" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/use_gps_button"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginBottom="12dp"
+                    app:icon="@drawable/ic_gps"/>
+            </LinearLayout>
             <TextView
                 android:id="@+id/distance_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/no_distance_limit"
-                android:layout_marginBottom="8dp" />
-
-            <EditText
-                android:id="@+id/location_input"
+                android:layout_gravity="center_horizontal"
+                tools:text="Trong vòng 50 km"/>
+            <SeekBar
+                android:id="@+id/distance_seekbar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/location_hint"
-                android:inputType="text"
-                android:padding="12dp"
-                android:background="@drawable/edit_text_background"
-                android:layout_marginBottom="8dp"
-                android:textSize="16sp"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_hint"
-                tools:ignore="Autofill" />
+                android:max="100" />
 
-            <Button
-                android:id="@+id/use_gps_button"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/use_gps"
-                android:background="@drawable/button_background"
-                android:textColor="@color/text_primary"
-                android:padding="12dp"
-                android:layout_marginBottom="8dp" />
-
-            <Button
-                android:id="@+id/clear_filters_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/clear_filters"
-                android:background="@drawable/button_background"
-                android:textColor="@color/text_primary"
-                android:padding="12dp" />
-
+                android:orientation="horizontal"
+                android:layout_marginTop="24dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/clear_filters_button"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Xóa bộ lọc"
+                    tools:ignore="HardcodedText" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/apply_filters_button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="Áp dụng"
+                    tools:ignore="HardcodedText" />
+            </LinearLayout>
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
+    </ScrollView>
 
-    <!-- Sort Header -->
-    <androidx.cardview.widget.CardView
+    <!-- Header sắp xếp và số kết quả -->
+    <LinearLayout
         android:id="@+id/sort_header_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/filters_card">
+        app:layout_constraintTop_toBottomOf="@id/search_card">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/results_count"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="10dp">
+            android:layout_weight="1"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            tools:text="Tìm thấy 245 kết quả" />
 
-            <TextView
-                android:id="@+id/results_count"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/no_results"
-                android:padding="8dp"
-                android:textSize="16sp"
-                android:textColor="@color/text_primary" />
+        <AutoCompleteTextView
+            android:id="@+id/sort_filter"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@null"
+            android:hint="Sắp xếp"
+            android:minWidth="150dp"
+            android:padding="0dp"
+            tools:ignore="HardcodedText" />
 
-            <AutoCompleteTextView
-                android:id="@+id/sort_filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:hint="@string/sort_hint"
-                android:inputType="text"
-                android:padding="12dp"
-                android:background="@drawable/edit_text_background" />
+    </LinearLayout>
 
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-
-    <!-- Search Results -->
+    <!-- Danh sách kết quả -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/search_results_recycler_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/load_more_button"
+        android:paddingHorizontal="8dp"
+        android:clipToPadding="false"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/sort_header_card" />
+        app:layout_constraintTop_toBottomOf="@id/sort_header_card"
+        tools:listitem="@layout/item_product_search"/>
 
-    <!-- Loading State -->
+    <!-- Trạng thái đang tải -->
     <LinearLayout
         android:id="@+id/loading_state"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:gravity="center"
-        android:padding="24dp"
+        android:orientation="vertical"
         android:visibility="gone"
+        android:background="#80FFFFFF"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/sort_header_card">
-
+        app:layout_constraintTop_toBottomOf="@id/sort_header_card"
+        tools:visibility="gone">
         <ProgressBar
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/loading"
-            android:textColor="@color/text_secondary" />
-
+            android:layout_height="wrap_content"/>
     </LinearLayout>
 
-    <!-- Empty State -->
+    <!-- Trạng thái rỗng -->
     <LinearLayout
         android:id="@+id/empty_state"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:gravity="center"
+        android:orientation="vertical"
         android:padding="24dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/sort_header_card">
+        app:layout_constraintTop_toBottomOf="@id/sort_header_card"
+        tools:visibility="gone">
+
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/ic_search_empty"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Không tìm thấy"
+            tools:ignore="HardcodedText" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/no_results"
+            android:layout_marginTop="16dp"
+            android:text="Không tìm thấy kết quả"
             android:textColor="@color/text_primary"
-            android:textSize="16sp"
-            android:layout_marginBottom="8dp" />
+            android:textSize="18sp"
+            android:textStyle="bold"
+            tools:ignore="HardcodedText" />
 
-        <Button
-            android:id="@+id/reset_search_button"
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/reset_search"
-            android:background="@drawable/button_background"
-            android:textColor="@color/text_primary"
-            android:padding="12dp" />
-
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="Hãy thử thay đổi từ khóa hoặc bộ lọc của bạn."
+            android:textColor="@color/text_secondary"
+            tools:ignore="HardcodedText" />
     </LinearLayout>
 
-    <!-- Load More -->
-    <Button
+    <!-- Nút tải thêm (được quản lý trong code) -->
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/load_more_button"
+        style="@style/Widget.Material3.Button.TonalButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/load_more"
-        android:background="@drawable/button_background"
-        android:textColor="@color/text_primary"
-        android:padding="12dp"
+        android:layout_marginBottom="16dp"
+        android:text="Tải thêm"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/load_more_progress"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        tools:ignore="HardcodedText" />
 
+    <!-- Progress bar cho việc tải thêm -->
     <ProgressBar
         android:id="@+id/load_more_progress"
-        android:layout_width="match_parent"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
         android:visibility="gone"
-        style="?android:attr/progressBarStyleHorizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

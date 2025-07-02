@@ -1,23 +1,30 @@
 package com.example.testapptradeup.fragments;
 
 import android.annotation.SuppressLint;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.testapptradeup.R;
-import com.example.testapptradeup.adapters.MyListingsAdapter; // Import Adapter bạn đã tạo
+import com.example.testapptradeup.adapters.MyListingsAdapter;
 import com.example.testapptradeup.models.Listing;
-import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -25,27 +32,40 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
-// THAY ĐỔI 1: Kế thừa từ androidx.fragment.app.Fragment
 public class MyListingsFragment extends Fragment {
 
     private static final String TAG = "MyListingsFragment";
 
     private RecyclerView recyclerViewMyListings;
-    private ChipGroup chipGroupFilters;
     private MyListingsAdapter adapter;
+    private LinearLayout emptyState;
 
-    private List<Listing> allMyListings; // Danh sách chứa tất cả tin đăng
-    private List<Listing> displayedListings; // Danh sách hiển thị sau khi lọc
+    // Components from the new layout
+    private ImageView btnBack;
+    private TextView tabAll, tabActive, tabSold, tabPaused;
+    private LinearLayout sortContainer;
+    private TextView sortText;
+
+    private List<Listing> allMyListings;
+    private List<Listing> displayedListings;
+    private List<TextView> tabViews;
+
+    private String currentFilterStatus = "all";
+    private int currentSortOptionId = R.id.sort_most_recent;
 
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
+    private NavController navController;
+
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // THAY ĐỔI 2: Gắn (inflate) layout cho Fragment
         return inflater.inflate(R.layout.fragment_my_listings, container, false);
     }
 
@@ -53,91 +73,117 @@ public class MyListingsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Khởi tạo Firebase
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
+        navController = Navigation.findNavController(view);
 
-        // Ánh xạ các view từ layout
         initViews(view);
-
-        // Thiết lập RecyclerView và Adapter
         setupRecyclerView();
+        setupListeners();
 
-        // Thiết lập listener cho các chip lọc
-        setupFilterListeners();
-
-        // Lấy dữ liệu từ Firestore
         fetchMyListings();
     }
 
     private void initViews(View view) {
-        recyclerViewMyListings = view.findViewById(R.id.recycler_view_my_listings);
-        chipGroupFilters = view.findViewById(R.id.chip_group_filters);
-        // Bạn có thể thêm xử lý cho Toolbar ở đây nếu cần
-        // Toolbar toolbar = view.findViewById(R.id.toolbar);
+        // Sử dụng ID từ layout XML mới `fragment_my_listings.xml`
+        recyclerViewMyListings = view.findViewById(R.id.recycler_listings);
+        emptyState = view.findViewById(R.id.empty_state);
+
+        btnBack = view.findViewById(R.id.btn_back);
+        tabAll = view.findViewById(R.id.tab_all);
+        tabActive = view.findViewById(R.id.tab_active);
+        tabSold = view.findViewById(R.id.tab_sold);
+        tabPaused = view.findViewById(R.id.tab_paused);
+        sortContainer = view.findViewById(R.id.sort_container);
+        sortText = view.findViewById(R.id.sort_text);
+
+        tabViews = new ArrayList<>();
+        tabViews.add(tabAll);
+        tabViews.add(tabActive);
+        tabViews.add(tabSold);
+        tabViews.add(tabPaused);
     }
 
     private void setupRecyclerView() {
         allMyListings = new ArrayList<>();
         displayedListings = new ArrayList<>();
 
-        // Sử dụng GridLayout với 2 cột
         GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 2);
         recyclerViewMyListings.setLayoutManager(layoutManager);
 
-        // Khởi tạo và gán adapter
         adapter = new MyListingsAdapter(getContext(), displayedListings);
         recyclerViewMyListings.setAdapter(adapter);
     }
 
-    private void setupFilterListeners() {
-        chipGroupFilters.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            // 1. Kiểm tra nếu không có gì được chọn -> An toàn
-            if (checkedIds.isEmpty()) {
-                return;
-            }
+    private void setupListeners() {
+        btnBack.setOnClickListener(v -> navController.navigateUp());
 
-            // 2. Lấy ID đầu tiên vì là single-selection -> Chính xác
-            int checkedId = checkedIds.get(0);
-
-            // 3. Xử lý logic dựa trên ID -> Rõ ràng, dễ đọc
-            if (checkedId == R.id.chip_all) {
-                filterAndDisplayListings("all");
-            } else if (checkedId == R.id.chip_active) {
-                filterAndDisplayListings("active");
-            } else if (checkedId == R.id.chip_sold) {
-                filterAndDisplayListings("sold");
-            } else if (checkedId == R.id.chip_paused) {
-                filterAndDisplayListings("paused");
-            }
+        // Tab listeners
+        tabAll.setOnClickListener(v -> {
+            currentFilterStatus = "all";
+            updateTabUI(v);
+            applyFiltersAndSort();
         });
+        tabActive.setOnClickListener(v -> {
+            currentFilterStatus = "active";
+            updateTabUI(v);
+            applyFiltersAndSort();
+        });
+        tabSold.setOnClickListener(v -> {
+            currentFilterStatus = "sold";
+            updateTabUI(v);
+            applyFiltersAndSort();
+        });
+        tabPaused.setOnClickListener(v -> {
+            currentFilterStatus = "paused";
+            updateTabUI(v);
+            applyFiltersAndSort();
+        });
+
+        // Sort listener
+        sortContainer.setOnClickListener(this::showSortMenu);
     }
+
+    private void showSortMenu(View v) {
+        PopupMenu popup = new PopupMenu(getContext(), v);
+        popup.getMenuInflater().inflate(R.menu.sort_listings_menu, popup.getMenu());
+
+        popup.setOnMenuItemClickListener(item -> {
+            currentSortOptionId = item.getItemId();
+            sortText.setText(item.getTitle());
+            applyFiltersAndSort();
+            return true;
+        });
+
+        popup.show();
+    }
+
 
     private void fetchMyListings() {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             Toast.makeText(getContext(), "Vui lòng đăng nhập để xem tin đăng.", Toast.LENGTH_SHORT).show();
-            return; // Người dùng chưa đăng nhập, không làm gì cả
+            return;
         }
         String currentUserId = currentUser.getUid();
 
-        // TODO: Hiển thị một ProgressBar (vòng xoay loading)
-
+        // TODO: Hiển thị ProgressBar
         db.collection("listings")
-                .whereEqualTo("sellerId", currentUserId) // Lọc các tin đăng của người dùng hiện tại
-                .orderBy("timePosted", Query.Direction.DESCENDING) // Sắp xếp theo mới nhất
+                .whereEqualTo("sellerId", currentUserId)
+                .orderBy("timePosted", Query.Direction.DESCENDING)
                 .get()
                 .addOnCompleteListener(task -> {
                     // TODO: Ẩn ProgressBar
-
                     if (task.isSuccessful()) {
-                        allMyListings.clear(); // Xóa dữ liệu cũ
+                        allMyListings.clear();
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             Listing listing = document.toObject(Listing.class);
+                            listing.setId(document.getId()); // Quan trọng để có ID cho các thao tác sau này
                             allMyListings.add(listing);
                         }
-                        // Sau khi lấy xong, hiển thị tất cả (mặc định)
-                        filterAndDisplayListings("all");
+                        // Sau khi lấy xong, áp dụng bộ lọc và sắp xếp mặc định
+                        updateTabUI(tabAll); // Mặc định chọn tab "All"
+                        applyFiltersAndSort();
                     } else {
                         Log.w(TAG, "Lỗi khi lấy dữ liệu: ", task.getException());
                         Toast.makeText(getContext(), "Không thể tải danh sách tin đăng.", Toast.LENGTH_SHORT).show();
@@ -146,24 +192,63 @@ public class MyListingsFragment extends Fragment {
     }
 
     @SuppressLint("NotifyDataSetChanged")
-    private void filterAndDisplayListings(String status) {
-        displayedListings.clear(); // Xóa danh sách hiển thị hiện tại
-
-        if (status.equalsIgnoreCase("all")) {
+    private void applyFiltersAndSort() {
+        // 1. Filter
+        displayedListings.clear();
+        if (currentFilterStatus.equalsIgnoreCase("all")) {
             displayedListings.addAll(allMyListings);
         } else {
             for (Listing listing : allMyListings) {
-                // So sánh trạng thái (không phân biệt hoa thường)
-                if (listing.getStatus() != null && listing.getStatus().equalsIgnoreCase(status)) {
+                if (listing.getStatus() != null && listing.getStatus().equalsIgnoreCase(currentFilterStatus)) {
                     displayedListings.add(listing);
                 }
             }
         }
 
-        // Cập nhật lại RecyclerView
-        adapter.notifyDataSetChanged();
+        // 2. Sort
+        Comparator<Listing> comparator = null;
+        if (currentSortOptionId == R.id.sort_most_recent) {
+            comparator = (l1, l2) -> l2.getTimePosted().compareTo(l1.getTimePosted());
+        } else if (currentSortOptionId == R.id.sort_oldest) {
+            comparator = (l1, l2) -> l1.getTimePosted().compareTo(l2.getTimePosted());
+        } else if (currentSortOptionId == R.id.sort_price_high_to_low) {
+            comparator = Comparator.comparing(Listing::getPrice).reversed();
+        } else if (currentSortOptionId == R.id.sort_price_low_to_high) {
+            comparator = Comparator.comparing(Listing::getPrice);
+        }
 
-        // TODO: Hiển thị một thông báo nếu danh sách rỗng
-        // if (displayedListings.isEmpty()) { ... }
+        if (comparator != null) {
+            Collections.sort(displayedListings, comparator);
+        }
+
+        // 3. Update UI
+        adapter.notifyDataSetChanged();
+        checkEmptyState();
+    }
+
+    private void updateTabUI(View selectedTab) {
+        for (TextView tab : tabViews) {
+            if (tab == selectedTab) {
+                // Style cho tab được chọn
+                tab.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.charcoal_black));
+                tab.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
+                tab.setTypeface(null, Typeface.BOLD);
+            } else {
+                // Style cho các tab không được chọn
+                tab.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.white));
+                tab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+                tab.setTypeface(null, Typeface.NORMAL);
+            }
+        }
+    }
+
+    private void checkEmptyState() {
+        if (displayedListings.isEmpty()) {
+            emptyState.setVisibility(View.VISIBLE);
+            recyclerViewMyListings.setVisibility(View.GONE);
+        } else {
+            emptyState.setVisibility(View.GONE);
+            recyclerViewMyListings.setVisibility(View.VISIBLE);
+        }
     }
 }
