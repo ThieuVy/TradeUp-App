@@ -1,15 +1,16 @@
 package com.example.testapptradeup.fragments;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.graphics.Typeface;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,51 +18,39 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.testapptradeup.R;
-import com.example.testapptradeup.adapters.MyListingsAdapter;
+import com.example.testapptradeup.adapters.ManageListingsAdapter;
 import com.example.testapptradeup.models.Listing;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.example.testapptradeup.repositories.ListingRepository;
+import com.example.testapptradeup.viewmodels.MyListingsViewModel;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+public class MyListingsFragment extends Fragment implements ManageListingsAdapter.OnItemInteractionListener {
 
-public class MyListingsFragment extends Fragment {
-
-    private static final String TAG = "MyListingsFragment";
-
-    private RecyclerView recyclerViewMyListings;
-    private MyListingsAdapter adapter;
-    private LinearLayout emptyState;
-
-    // Components from the new layout
-    private ImageView btnBack;
-    private TextView tabAll, tabActive, tabSold, tabPaused;
-    private LinearLayout sortContainer;
-    private TextView sortText;
-
-    private List<Listing> allMyListings;
-    private List<Listing> displayedListings;
-    private List<TextView> tabViews;
-
-    private String currentFilterStatus = "all";
-    private int currentSortOptionId = R.id.sort_most_recent;
-
-    private FirebaseFirestore db;
-    private FirebaseAuth mAuth;
+    private MyListingsViewModel viewModel;
     private NavController navController;
 
+    // --- UI Components ---
+    private RecyclerView recyclerView;
+    private ManageListingsAdapter adapter;
+    private LinearLayout emptyState;
+    private ProgressBar loadingState;
+    private ImageView btnBack;
+    private TextView tabAll, tabActive, tabPaused, tabSold, sortText, headerTitle;
+    private LinearLayout sortContainer;
+
+    private GridLayoutManager layoutManager;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        viewModel = new ViewModelProvider(this).get(MyListingsViewModel.class);
+    }
 
     @Nullable
     @Override
@@ -72,183 +61,156 @@ public class MyListingsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        db = FirebaseFirestore.getInstance();
-        mAuth = FirebaseAuth.getInstance();
         navController = Navigation.findNavController(view);
-
         initViews(view);
         setupRecyclerView();
         setupListeners();
-
-        fetchMyListings();
+        observeViewModel();
+        // Set tab mặc định
+        updateFilterButtonUI(R.id.tab_all);
     }
 
     private void initViews(View view) {
-        // Sử dụng ID từ layout XML mới `fragment_my_listings.xml`
-        recyclerViewMyListings = view.findViewById(R.id.recycler_listings);
+        recyclerView = view.findViewById(R.id.recycler_listings);
         emptyState = view.findViewById(R.id.empty_state);
-
+        loadingState = view.findViewById(R.id.loading_state);
         btnBack = view.findViewById(R.id.btn_back);
+        if (btnBack != null) {
+            btnBack.setVisibility(View.GONE); // Ẩn nút back
+        }
         tabAll = view.findViewById(R.id.tab_all);
         tabActive = view.findViewById(R.id.tab_active);
         tabSold = view.findViewById(R.id.tab_sold);
         tabPaused = view.findViewById(R.id.tab_paused);
         sortContainer = view.findViewById(R.id.sort_container);
         sortText = view.findViewById(R.id.sort_text);
-
-        tabViews = new ArrayList<>();
-        tabViews.add(tabAll);
-        tabViews.add(tabActive);
-        tabViews.add(tabSold);
-        tabViews.add(tabPaused);
+        headerTitle = view.findViewById(R.id.header_title);
     }
 
     private void setupRecyclerView() {
-        allMyListings = new ArrayList<>();
-        displayedListings = new ArrayList<>();
+        adapter = new ManageListingsAdapter(this, this, this);
+        layoutManager = new GridLayoutManager(getContext(), 1); // Sử dụng 1 cột cho dễ nhìn
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setAdapter(adapter);
 
-        GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 2);
-        recyclerViewMyListings.setLayoutManager(layoutManager);
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy > 0) {
+                    int visibleItemCount = layoutManager.getChildCount();
+                    int totalItemCount = layoutManager.getItemCount();
+                    int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
 
-        adapter = new MyListingsAdapter(getContext(), displayedListings);
-        recyclerViewMyListings.setAdapter(adapter);
+                    if (Boolean.FALSE.equals(viewModel.isLoadingMore().getValue()) && !viewModel.isLastPage()) {
+                        if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+                                && firstVisibleItemPosition >= 0
+                                && totalItemCount >= ListingRepository.PAGE_SIZE) {
+                            viewModel.loadNextPage();
+                        }
+                    }
+                }
+            }
+        });
     }
 
     private void setupListeners() {
-        btnBack.setOnClickListener(v -> navController.navigateUp());
+        btnBack.setOnClickListener(v -> navController.popBackStack());
 
-        // Tab listeners
-        tabAll.setOnClickListener(v -> {
-            currentFilterStatus = "all";
-            updateTabUI(v);
-            applyFiltersAndSort();
-        });
-        tabActive.setOnClickListener(v -> {
-            currentFilterStatus = "active";
-            updateTabUI(v);
-            applyFiltersAndSort();
-        });
-        tabSold.setOnClickListener(v -> {
-            currentFilterStatus = "sold";
-            updateTabUI(v);
-            applyFiltersAndSort();
-        });
-        tabPaused.setOnClickListener(v -> {
-            currentFilterStatus = "paused";
-            updateTabUI(v);
-            applyFiltersAndSort();
-        });
+        View.OnClickListener filterClickListener = v -> {
+            int id = v.getId();
+            updateFilterButtonUI(id);
+            if (id == R.id.tab_all) viewModel.setFilter("all");
+            else if (id == R.id.tab_active) viewModel.setFilter("available");
+            else if (id == R.id.tab_paused) viewModel.setFilter("paused");
+            else if (id == R.id.tab_sold) viewModel.setFilter("sold");
+        };
+        tabAll.setOnClickListener(filterClickListener);
+        tabActive.setOnClickListener(filterClickListener);
+        tabPaused.setOnClickListener(filterClickListener);
+        tabSold.setOnClickListener(filterClickListener);
 
-        // Sort listener
         sortContainer.setOnClickListener(this::showSortMenu);
+    }
+
+    private void observeViewModel() {
+        viewModel.getDisplayedListings().observe(getViewLifecycleOwner(), listings -> {
+            adapter.submitList(listings);
+            if (Boolean.FALSE.equals(viewModel.isLoading().getValue())) {
+                checkEmptyState(listings.isEmpty());
+            }
+            updateHeaderTitle(listings.size());
+        });
+
+        viewModel.isLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            loadingState.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+            if (isLoading) {
+                recyclerView.setVisibility(View.GONE);
+                emptyState.setVisibility(View.GONE);
+            }
+        });
+
+        viewModel.isLoadingMore().observe(getViewLifecycleOwner(), isLoadingMore -> {
+            // Có thể hiển thị một footer progress bar trong RecyclerView nếu muốn
+        });
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void updateHeaderTitle(int count) {
+        if(headerTitle != null) {
+            headerTitle.setText("Quản lý tin (" + count + ")");
+        }
+    }
+
+    private void updateFilterButtonUI(int selectedId) {
+        updateSingleButtonUI(tabAll, selectedId == R.id.tab_all);
+        updateSingleButtonUI(tabActive, selectedId == R.id.tab_active);
+        updateSingleButtonUI(tabPaused, selectedId == R.id.tab_paused);
+        updateSingleButtonUI(tabSold, selectedId == R.id.tab_sold);
+    }
+
+    private void updateSingleButtonUI(TextView button, boolean isSelected) {
+        if (button == null || getContext() == null) return;
+        button.setBackgroundResource(isSelected ? R.drawable.tab_selected_background : android.R.color.transparent);
+        button.setTextColor(ContextCompat.getColor(getContext(), isSelected ? R.color.text_primary_on_dark : R.color.text_secondary));
+        button.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
     }
 
     private void showSortMenu(View v) {
         PopupMenu popup = new PopupMenu(getContext(), v);
-        popup.getMenuInflater().inflate(R.menu.sort_listings_menu, popup.getMenu());
-
-        popup.setOnMenuItemClickListener(item -> {
-            currentSortOptionId = item.getItemId();
-            sortText.setText(item.getTitle());
-            applyFiltersAndSort();
-            return true;
-        });
-
-        popup.show();
+        Toast.makeText(getContext(), "Chức năng sắp xếp đang phát triển", Toast.LENGTH_SHORT).show();
     }
 
+    private void checkEmptyState(boolean isEmpty) {
+        if (emptyState != null) emptyState.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+        if (recyclerView != null) recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+    }
 
-    private void fetchMyListings() {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(getContext(), "Vui lòng đăng nhập để xem tin đăng.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String currentUserId = currentUser.getUid();
+    // --- Triển khai các phương thức của OnItemInteractionListener ---
 
-        // TODO: Hiển thị ProgressBar
-        db.collection("listings")
-                .whereEqualTo("sellerId", currentUserId)
-                .orderBy("timePosted", Query.Direction.DESCENDING)
-                .get()
-                .addOnCompleteListener(task -> {
-                    // TODO: Ẩn ProgressBar
-                    if (task.isSuccessful()) {
-                        allMyListings.clear();
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            Listing listing = document.toObject(Listing.class);
-                            listing.setId(document.getId()); // Quan trọng để có ID cho các thao tác sau này
-                            allMyListings.add(listing);
+    @Override
+    public void onItemClick(Listing listing) {
+        Toast.makeText(getContext(), "Xem chi tiết: " + listing.getTitle(), Toast.LENGTH_SHORT).show();
+    }
+
+    public void onEditClick(Listing listing) {
+        Toast.makeText(getContext(), "Chỉnh sửa: " + listing.getTitle(), Toast.LENGTH_SHORT).show();
+    }
+
+    public void onDeleteClick(Listing listing) {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Xác nhận xóa")
+                .setMessage("Bạn có chắc chắn muốn xóa tin \"" + listing.getTitle() + "\"?")
+                .setPositiveButton("Xóa", (dialog, which) -> {
+                    viewModel.deleteListing(listing.getId()).observe(getViewLifecycleOwner(), success -> {
+                        if (success != null && success) {
+                            Toast.makeText(getContext(), "Đã xóa tin thành công", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(getContext(), "Lỗi khi xóa tin", Toast.LENGTH_SHORT).show();
                         }
-                        // Sau khi lấy xong, áp dụng bộ lọc và sắp xếp mặc định
-                        updateTabUI(tabAll); // Mặc định chọn tab "All"
-                        applyFiltersAndSort();
-                    } else {
-                        Log.w(TAG, "Lỗi khi lấy dữ liệu: ", task.getException());
-                        Toast.makeText(getContext(), "Không thể tải danh sách tin đăng.", Toast.LENGTH_SHORT).show();
-                    }
-                });
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    private void applyFiltersAndSort() {
-        // 1. Filter
-        displayedListings.clear();
-        if (currentFilterStatus.equalsIgnoreCase("all")) {
-            displayedListings.addAll(allMyListings);
-        } else {
-            for (Listing listing : allMyListings) {
-                if (listing.getStatus() != null && listing.getStatus().equalsIgnoreCase(currentFilterStatus)) {
-                    displayedListings.add(listing);
-                }
-            }
-        }
-
-        // 2. Sort
-        Comparator<Listing> comparator = null;
-        if (currentSortOptionId == R.id.sort_most_recent) {
-            comparator = (l1, l2) -> l2.getTimePosted().compareTo(l1.getTimePosted());
-        } else if (currentSortOptionId == R.id.sort_oldest) {
-            comparator = (l1, l2) -> l1.getTimePosted().compareTo(l2.getTimePosted());
-        } else if (currentSortOptionId == R.id.sort_price_high_to_low) {
-            comparator = Comparator.comparing(Listing::getPrice).reversed();
-        } else if (currentSortOptionId == R.id.sort_price_low_to_high) {
-            comparator = Comparator.comparing(Listing::getPrice);
-        }
-
-        if (comparator != null) {
-            Collections.sort(displayedListings, comparator);
-        }
-
-        // 3. Update UI
-        adapter.notifyDataSetChanged();
-        checkEmptyState();
-    }
-
-    private void updateTabUI(View selectedTab) {
-        for (TextView tab : tabViews) {
-            if (tab == selectedTab) {
-                // Style cho tab được chọn
-                tab.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.charcoal_black));
-                tab.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
-                tab.setTypeface(null, Typeface.BOLD);
-            } else {
-                // Style cho các tab không được chọn
-                tab.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.white));
-                tab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
-                tab.setTypeface(null, Typeface.NORMAL);
-            }
-        }
-    }
-
-    private void checkEmptyState() {
-        if (displayedListings.isEmpty()) {
-            emptyState.setVisibility(View.VISIBLE);
-            recyclerViewMyListings.setVisibility(View.GONE);
-        } else {
-            emptyState.setVisibility(View.GONE);
-            recyclerViewMyListings.setVisibility(View.VISIBLE);
-        }
+                    });
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
     }
 }

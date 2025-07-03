@@ -56,6 +56,7 @@ public class RegisterActivity extends AppCompatActivity {
     private ImageView googleLogin;
     private CredentialManager credentialManager;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -144,16 +145,37 @@ public class RegisterActivity extends AppCompatActivity {
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        FirebaseUser user = mAuth.getCurrentUser();
-                        if (user != null) {
-                            // For email/password registration, default name to email prefix or generic
-                            String name = user.getEmail() != null ? user.getEmail().split("@")[0] : "Người dùng mới";
-                            saveUserToFirestoreAndNavigate(user.getUid(), name, user.getEmail(), user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : "");
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        if (firebaseUser != null) {
+                            // <<< BẮT ĐẦU THAY ĐỔI >>>
+                            sendVerificationEmail(firebaseUser);
+                            // <<< KẾT THÚC THAY ĐỔI >>>
+
+                            String name = firebaseUser.getEmail() != null ? firebaseUser.getEmail().split("@")[0] : "Người dùng mới";
+                            saveUserToFirestore(firebaseUser.getUid(), name, firebaseUser.getEmail());
                         }
                     } else {
                         showLoading(false);
                         String errorMessage = getFirebaseErrorMessage(task);
                         Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void sendVerificationEmail(FirebaseUser firebaseUser) {
+        firebaseUser.sendEmailVerification()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Log.d(TAG, "Email xác thực đã được gửi.");
+                        // Hiển thị một thông báo dài hơn để người dùng chú ý
+                        Toast.makeText(RegisterActivity.this,
+                                "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.",
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        Log.e(TAG, "Lỗi gửi email xác thực.", task.getException());
+                        Toast.makeText(RegisterActivity.this,
+                                "Lỗi gửi email xác thực. Vui lòng thử đăng nhập lại và gửi lại.",
+                                Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -225,6 +247,25 @@ public class RegisterActivity extends AppCompatActivity {
                         String errorMessage = getFirebaseErrorMessage(task);
                         Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                     }
+                });
+    }
+
+    private void saveUserToFirestore(String userId, String name, String email) {
+        User newUser = new User(userId, name, email, "", "", "", "", 0.0f, 0, false, "active", false, "not_connected", 0);
+
+        db.collection("users").document(userId)
+                .set(newUser)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Lưu dữ liệu người dùng mới vào Firestore thành công.");
+                    prefsHelper.saveCurrentUser(newUser); // Lưu vào local cache
+                    // Sau khi lưu xong, mới điều hướng
+                    navigateToMainActivity();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi lưu dữ liệu người dùng vào Firestore: ", e);
+                    Toast.makeText(RegisterActivity.this, "Lỗi lưu thông tin: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    // Vẫn điều hướng dù lỗi lưu, MainActivity sẽ xử lý fallback
+                    navigateToMainActivity();
                 });
     }
 

@@ -1,11 +1,12 @@
 package com.example.testapptradeup.fragments;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -14,6 +15,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -21,34 +23,34 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
+import com.example.testapptradeup.activities.LoginActivity;
+import com.example.testapptradeup.adapters.ReviewAdapter;
 import com.example.testapptradeup.models.User;
+import com.example.testapptradeup.viewmodels.ProfileViewModel;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.Locale; // <<< THÊM IMPORT NÀY
 
 public class ProfileFragment extends Fragment {
 
-    // UI Components
-    private FrameLayout frameProfileImage;
-    private ImageView profileImage, cameraIcon;
-    private TextView textDisplayName, textRatingInfo, textBio, textEmail;
-    private MaterialButton btnEditProfile, btnViewPublic, btnDeactivateAccount, btnDeleteAccount;
-    private MaterialCardView cardSavedItems, cardOffers, cardPurchases, cardPayments;
-    private TextView textSavedItemsCount, textOffersCount, textPurchasesCount, textPaymentsCount;
-    private LinearLayout menuPersonalInfo, menuChangePassword, menuNotificationSettings, menuPaymentMethods;
-
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
-    private User currentUser;
+    private ProfileViewModel viewModel;
     private NavController navController;
+    private User currentUser;
+
+    // UI Components
+    private ImageView profileImage;
+    private TextView textDisplayName, textRatingInfo, textBio, textEmail;
+    private MaterialButton btnEditProfile, btnViewPublic, btnDeactivateAccount, btnDeleteAccount, btnLogout;
+    private TextView textSavedItemsCount, textOffersCount, textPurchasesCount, textPaymentsCount;
+    private LinearLayout menuPaymentMethods;
+    private RecyclerView recyclerViewReviews;
+    private TextView emptyReviewsText;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
+        viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
     }
 
     @Override
@@ -62,146 +64,136 @@ public class ProfileFragment extends Fragment {
         navController = Navigation.findNavController(view);
         initViews(view);
         setupClickListeners();
-        loadUserData();
+        observeViewModel();
     }
 
     private void initViews(View view) {
-        frameProfileImage = view.findViewById(R.id.frame_profile_image);
         profileImage = view.findViewById(R.id.profile_image);
-        cameraIcon = view.findViewById(R.id.camera_icon);
         textDisplayName = view.findViewById(R.id.text_display_name);
         textRatingInfo = view.findViewById(R.id.text_rating_info);
         textBio = view.findViewById(R.id.text_bio);
         textEmail = view.findViewById(R.id.text_email);
-
         btnEditProfile = view.findViewById(R.id.btn_edit_profile);
         btnViewPublic = view.findViewById(R.id.btn_view_public);
-
-        cardSavedItems = view.findViewById(R.id.card_saved_items);
-        cardOffers = view.findViewById(R.id.card_offers);
-        cardPurchases = view.findViewById(R.id.card_purchases);
-        cardPayments = view.findViewById(R.id.card_payments);
-
         textSavedItemsCount = view.findViewById(R.id.text_saved_items_count);
         textOffersCount = view.findViewById(R.id.text_offers_count);
         textPurchasesCount = view.findViewById(R.id.text_purchases_count);
         textPaymentsCount = view.findViewById(R.id.text_payments_count);
-
-        menuPersonalInfo = view.findViewById(R.id.menu_personal_info);
-        menuChangePassword = view.findViewById(R.id.menu_change_password);
-        menuNotificationSettings = view.findViewById(R.id.menu_notification_settings);
         menuPaymentMethods = view.findViewById(R.id.menu_payment_methods);
-
-        RecyclerView recyclerViewReviews = view.findViewById(R.id.recycler_view_reviews);
-        recyclerViewReviews.setLayoutManager(new LinearLayoutManager(getContext()));
-
+        recyclerViewReviews = view.findViewById(R.id.recycler_view_reviews);
+        emptyReviewsText = view.findViewById(R.id.empty_reviews_text);
         btnDeactivateAccount = view.findViewById(R.id.btn_deactivate_account);
         btnDeleteAccount = view.findViewById(R.id.btn_delete_account);
+        btnLogout = view.findViewById(R.id.btn_logout);
     }
 
     private void setupClickListeners() {
-        frameProfileImage.setOnClickListener(v -> showToast("Chọn ảnh mới (Cloudinary upload cần tích hợp)"));
-        cameraIcon.setOnClickListener(v -> showToast("Chọn ảnh mới (Cloudinary upload cần tích hợp)"));
-
-        btnEditProfile.setOnClickListener(v -> navController.navigate(R.id.editProfileFragment));
-        btnViewPublic.setOnClickListener(v -> {
-            FirebaseUser firebaseUser = mAuth.getCurrentUser();
-            if (firebaseUser != null) {
-                String currentUserId = firebaseUser.getUid();
-
-                // Tạo một Bundle để truyền userId
-                Bundle bundle = new Bundle();
-                bundle.putString("userId", currentUserId);
-
-                // Điều hướng đến PublicProfileFragment với userId của người dùng hiện tại
-                // Đảm bảo bạn có action này trong nav_graph.xml
-                navController.navigate(R.id.action_profileFragment_to_publicProfileFragment, bundle);
-            } else {
-                showToast("Vui lòng đăng nhập.");
+        btnEditProfile.setOnClickListener(v -> {
+            if (currentUser != null) {
+                // Sửa: Sử dụng lớp Directions đã được tạo tự động
+                ProfileFragmentDirections.ActionProfileFragmentToEditProfileFragment action =
+                        ProfileFragmentDirections.actionProfileFragmentToEditProfileFragment(currentUser);
+                navController.navigate(action);
             }
         });
 
-        // *** BẮT ĐẦU THAY ĐỔI ***
-        // Điều hướng đến màn hình MyListingsFragment khi nhấn vào
-        // Lưu ý: MyListingsFragment hiện tại hiển thị tin đăng CỦA BẠN.
-        // Để hiển thị tin ĐÃ LƯU, bạn cần sửa đổi logic của MyListingsFragment
-        // hoặc tạo một Fragment mới. Đây là bước điều hướng cơ bản.
-        cardSavedItems.setOnClickListener(v -> {
-            // Đảm bảo bạn đã định nghĩa action này trong file navigation graph của bạn
-            // ví dụ: res/navigation/nav_graph.xml
-            navController.navigate(R.id.action_profileFragment_to_myListingsFragment);
+        btnViewPublic.setOnClickListener(v -> {
+            if (currentUser != null) {
+                // Sửa: Sử dụng lớp Directions đã được tạo tự động
+                ProfileFragmentDirections.ActionProfileFragmentToPublicProfileFragment action =
+                        ProfileFragmentDirections.actionProfileFragmentToPublicProfileFragment(currentUser.getId());
+                navController.navigate(action);
+            }
         });
-        // *** KẾT THÚC THAY ĐỔI ***
 
-        cardOffers.setOnClickListener(v -> showToast("Xem đề xuất"));
-        cardPurchases.setOnClickListener(v -> showToast("Xem lịch sử mua"));
-        cardPayments.setOnClickListener(v -> showToast("Xem thanh toán"));
+        menuPaymentMethods.setOnClickListener(v -> Toast.makeText(getContext(), "Mở cài đặt thanh toán Stripe...", Toast.LENGTH_SHORT).show());
 
-        menuPersonalInfo.setOnClickListener(v -> navController.navigate(R.id.editProfileFragment));
-        menuChangePassword.setOnClickListener(v -> showToast("Chuyển đến đổi mật khẩu"));
-        menuNotificationSettings.setOnClickListener(v -> showToast("Cài đặt thông báo"));
-        menuPaymentMethods.setOnClickListener(v -> showToast("Cài đặt thanh toán"));
-
-        btnDeactivateAccount.setOnClickListener(v -> showToast("Tạm dừng tài khoản (cần xử lý logic)"));
-        btnDeleteAccount.setOnClickListener(v -> showToast("Xóa tài khoản (cần xử lý logic và xác nhận)"));
+        btnDeactivateAccount.setOnClickListener(v -> showDeactivateConfirmDialog());
+        btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
+        btnLogout.setOnClickListener(v -> logout());
     }
 
-    private void loadUserData() {
-        FirebaseUser firebaseUser = mAuth.getCurrentUser();
-        if (firebaseUser == null) {
-            showToast("Chưa đăng nhập");
-            navController.navigate(R.id.navigation_login); // Ví dụ: điều hướng đến màn hình đăng nhập
-            return;
-        }
+    private void observeViewModel() {
+        viewModel.getUserProfileData().observe(getViewLifecycleOwner(), user -> {
+            if (user != null) {
+                this.currentUser = user;
+                updateUI(user);
+            } else {
+                Toast.makeText(getContext(), "Không thể tải dữ liệu người dùng.", Toast.LENGTH_SHORT).show();
+            }
+        });
 
-        db.collection("users").document(firebaseUser.getUid())
-                .get()
-                .addOnSuccessListener(snapshot -> {
-                    if (snapshot.exists()) {
-                        currentUser = snapshot.toObject(User.class);
-                        if (currentUser != null) {
-                            updateUI();
-                        }
-                    } else {
-                        showToast("Không tìm thấy thông tin người dùng.");
-                    }
-                })
-                .addOnFailureListener(e -> showToast("Lỗi tải dữ liệu người dùng"));
+        viewModel.getUserReviewsData().observe(getViewLifecycleOwner(), reviews -> {
+            if (reviews != null && !reviews.isEmpty()) {
+                recyclerViewReviews.setVisibility(View.VISIBLE);
+                emptyReviewsText.setVisibility(View.GONE);
+                recyclerViewReviews.setLayoutManager(new LinearLayoutManager(getContext()));
+                recyclerViewReviews.setAdapter(new ReviewAdapter(reviews));
+            } else {
+                recyclerViewReviews.setVisibility(View.GONE);
+                emptyReviewsText.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     @SuppressLint("SetTextI18n")
-    private void updateUI() {
-        textDisplayName.setText(currentUser.getName());
-        textBio.setText(currentUser.getBio());
-        textEmail.setText(currentUser.getEmail());
+    private void updateUI(User user) {
+        textDisplayName.setText(user.getName());
+        textEmail.setText(user.getEmail());
+        textBio.setText(user.getBio() != null && !user.getBio().isEmpty() ? user.getBio() : "Chưa có tiểu sử.");
 
-        if (currentUser.getRating() > 0 && currentUser.getReviewCount() > 0) {
-            String ratingInfo = currentUser.getRating() + " từ " + currentUser.getReviewCount() + " đánh giá";
-            textRatingInfo.setText(ratingInfo);
+        if (user.getReviewCount() > 0) {
+            // Sửa: Sử dụng Locale đã được import
+            textRatingInfo.setText(String.format(Locale.getDefault(), "%.1f từ %d đánh giá", user.getRating(), user.getReviewCount()));
         } else {
             textRatingInfo.setText("Chưa có đánh giá");
         }
 
-
-        if (currentUser.getProfileImageUrl() != null && !currentUser.getProfileImageUrl().isEmpty()) {
-            Glide.with(this)
-                    .load(currentUser.getProfileImageUrl())
-                    .placeholder(R.drawable.img)
-                    .error(R.drawable.img)
-                    .circleCrop()
-                    .into(profileImage);
+        if (getContext() != null && user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
+            Glide.with(getContext()).load(user.getProfileImageUrl()).circleCrop().into(profileImage);
+        } else {
+            // Đặt ảnh mặc định nếu không có ảnh
+            profileImage.setImageResource(R.drawable.img);
         }
 
-        // Placeholder counts until implemented
-        textSavedItemsCount.setText("--");
-        textOffersCount.setText("--");
-        textPurchasesCount.setText("--");
-        textPaymentsCount.setText("--");
+        textSavedItemsCount.setText(String.valueOf(user.getFavoriteListingIds() != null ? user.getFavoriteListingIds().size() : 0));
+        textPurchasesCount.setText(String.valueOf(user.getCompletedSalesCount()));
+        textOffersCount.setText("0");
+        textPaymentsCount.setText("0");
     }
 
-    private void showToast(String message) {
-        if (getContext() != null) {
-            Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+    private void showDeactivateConfirmDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Tạm dừng tài khoản")
+                .setMessage("Bạn có chắc chắn muốn tạm dừng tài khoản? Bạn có thể kích hoạt lại bằng cách đăng nhập.")
+                .setPositiveButton("Xác nhận", (dialog, which) -> viewModel.deactivateAccount().observe(getViewLifecycleOwner(), success -> {
+                    if (success != null && success) {
+                        Toast.makeText(getContext(), "Tài khoản đã được tạm dừng.", Toast.LENGTH_SHORT).show();
+                        logout();
+                    } else {
+                        Toast.makeText(getContext(), "Có lỗi xảy ra.", Toast.LENGTH_SHORT).show();
+                    }
+                }))
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void showDeleteConfirmDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Xóa tài khoản vĩnh viễn")
+                .setMessage("Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa. Bạn có chắc chắn không?")
+                .setPositiveButton("Xóa vĩnh viễn", (dialog, which) -> Toast.makeText(getContext(), "Đang xử lý yêu cầu xóa...", Toast.LENGTH_SHORT).show())
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void logout() {
+        FirebaseAuth.getInstance().signOut();
+        Intent intent = new Intent(getActivity(), LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        if (getActivity() != null) {
+            getActivity().finish();
         }
     }
 }

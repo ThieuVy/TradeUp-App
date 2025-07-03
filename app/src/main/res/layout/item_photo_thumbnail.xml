@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="80dp"
+    android:layout_height="80dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="1dp"
+    android:layout_margin="4dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/thumbnail_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@color/charcoal_black"
+            android:contentDescription="Ảnh đã chọn"
+            tools:ignore="HardcodedText" />
+
+        <ImageView
+            android:id="@+id/thumbnail_remove_button"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_margin="4dp"
+            android:background="@drawable/circle_background_dark"
+            android:src="@drawable/ic_close"
+            android:padding="3dp"
+            app:tint="@android:color/white"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Xóa ảnh"
+            tools:ignore="HardcodedText" />
+    </RelativeLayout>
+</com.google.android.material.card.MaterialCardView>

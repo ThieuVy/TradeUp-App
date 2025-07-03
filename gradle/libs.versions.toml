@@ -1,19 +1,21 @@
 [versions]
 agp = "8.9.2"
-cloudinaryAndroid = "1.33.0"
+circleimageview = "3.1.0"
 cloudinaryAndroidVersion = "3.0.2"
 firebaseAnalytics = "22.4.0"
 firebaseAuthKtx = "23.2.1"
 firebaseBom = "33.15.0"
 firebaseFunctions = "21.2.1"
 glide = "4.16.0"
-googleidVersion = "1.2.0"
 gson = "2.10.1"
 identityCredentialBinding = "1.2.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.1"
+lifecycleCommonJava8 = "2.9.1"
+lifecycleLivedata = "2.9.1"
+lifecycleViewmodel = "2.9.1"
 material = "1.12.0"
 activity = "1.10.1"
 constraintlayout = "2.2.1"
@@ -23,6 +25,7 @@ credentials = "1.5.0"
 credentialsPlayServicesAuth = "1.5.0"
 googleid = "1.1.1"
 navigationFragment = "2.9.0"
+navigationSafeArgsGradlePlugin = "2.9.1"
 navigationUi = "2.9.0"
 playServicesAuth = "21.3.0"
 playServicesLocation = "21.3.0"
@@ -31,25 +34,28 @@ recyclerview = "1.4.0"
 stripeAndroid = "21.17.0"
 swiperefreshlayout = "1.1.0"
 firebaseDatabase = "21.0.0"
-
+navigation = "2.7.7"
 
 [libraries]
-cloudinary-android = { module = "com.cloudinary:cloudinary-android", version.ref = "cloudinaryAndroid" }
+circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circleimageview" }
 cloudinary-android-v302 = { module = "com.cloudinary:cloudinary-android", version.ref = "cloudinaryAndroidVersion" }
 compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-functions = { module = "com.google.firebase:firebase-functions", version.ref = "firebaseFunctions" }
+firebase-storage = { module = "com.google.firebase:firebase-storage" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 google-firebase-auth = { module = "com.google.firebase:firebase-auth" }
-googleid-v120 = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleidVersion" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 identity-credential-binding = { module = "com.google.android.libraries.identity:identity-credential-binding", version.ref = "identityCredentialBinding" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+lifecycle-common-java8 = { module = "androidx.lifecycle:lifecycle-common-java8", version.ref = "lifecycleCommonJava8" }
+lifecycle-livedata = { module = "androidx.lifecycle:lifecycle-livedata", version.ref = "lifecycleLivedata" }
+lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycleViewmodel" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
@@ -58,6 +64,7 @@ credentials = { group = "androidx.credentials", name = "credentials", version.re
 credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 navigation-fragment = { group = "androidx.navigation", name = "navigation-fragment", version.ref = "navigationFragment" }
+navigation-safe-args-gradle-plugin = { module = "androidx.navigation:navigation-safe-args-gradle-plugin", version.ref = "navigationSafeArgsGradlePlugin" }
 navigation-ui = { group = "androidx.navigation", name = "navigation-ui", version.ref = "navigationUi" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
@@ -70,4 +77,4 @@ firebase-database = { group = "com.google.firebase", name = "firebase-database",
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 google-gms-google-services = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }
-
+navigation-safeargs = { id = "androidx.navigation.safeargs", version.ref = "navigation" }

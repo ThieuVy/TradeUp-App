@@ -4,25 +4,28 @@ import android.content.Intent;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View; // Import View
-import android.view.ViewTreeObserver; // Import ViewTreeObserver
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
-import androidx.navigation.ui.NavigationUI;
 
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.utils.SharedPrefsHelper;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
@@ -33,7 +36,11 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private SharedPrefsHelper prefsHelper;
     private NavController navController;
-    private BottomNavigationView navView; // Khai báo BottomNavigationView
+
+    // --- UI Components cho BottomAppBar ---
+    private FloatingActionButton fabAdd;
+    private LinearLayout menuHome, menuManage, menuNotification, menuProfile;
+    private List<LinearLayout> menuContainers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,29 +51,140 @@ public class MainActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         prefsHelper = new SharedPrefsHelper(this);
 
-        // IMMEDIATE CHECK: If user is NOT logged in with Firebase Auth, redirect to LoginActivity.
-        // This is the very first check to prevent unauthenticated access.
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
-            Log.d(TAG, "No user logged in (Firebase Auth). Redirecting to LoginActivity.");
-            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-            startActivity(intent);
-            finish();
-            return; // IMPORTANT: Stop onCreate execution here if not logged in.
+            Log.d(TAG, "No user logged in. Redirecting to LoginActivity.");
+            navigateToLogin();
+            return;
         }
 
-        // If user is authenticated via Firebase Auth, ensure their data is in SharedPrefs.
-        // This handles cases where app process was killed, but auth token is still valid.
         if (prefsHelper.getCurrentUser() == null) {
-            Log.d(TAG, "User logged in (Auth), but data not in SharedPrefs. Loading from Firestore.");
             loadUserDataFromFirestore(currentUser.getUid());
-            // The rest of onCreate will not execute immediately.
-            // setupMainUI() will be called after Firestore data is loaded/fallback created.
         } else {
-            Log.d(TAG, "User data found in SharedPrefs. Proceeding with UI setup.");
-            setupMainUI(); // User data is already cached, proceed to set up UI.
+            // Chỉ gọi một hàm setupUI duy nhất
+            setupUI();
         }
     }
+
+    // ========== PHẦN CODE ĐÃ ĐƯỢC HỢP NHẤT VÀ SỬA LỖI ==========
+    private void setupUI() {
+        setContentView(R.layout.activity_main);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+
+        // Khởi tạo NavController
+        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.nav_host_fragment);
+        navController = Objects.requireNonNull(navHostFragment).getNavController();
+
+        // Ánh xạ và cài đặt cho BottomAppBar
+        initCustomBottomBarViews();
+        setupCustomBottomBarListeners();
+
+        // Cài đặt listener để ẩn/hiện BottomAppBar khi bàn phím xuất hiện
+        setupKeyboardListener();
+    }
+
+    private void initCustomBottomBarViews() {
+        fabAdd = findViewById(R.id.fab_add);
+
+        menuHome = findViewById(R.id.menu_home);
+        menuManage = findViewById(R.id.menu_manage);
+        menuNotification = findViewById(R.id.menu_notification);
+        menuProfile = findViewById(R.id.menu_profile);
+
+        // Gom các container vào một list để dễ quản lý
+        menuContainers = new ArrayList<>();
+        menuContainers.add(menuHome);
+        menuContainers.add(menuManage);
+        menuContainers.add(menuNotification);
+        menuContainers.add(menuProfile);
+    }
+
+    private void setupCustomBottomBarListeners() {
+        // Lắng nghe sự thay đổi màn hình (fragment) để cập nhật UI cho thanh nav
+        navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
+            int destinationId = destination.getId();
+            if (destinationId == R.id.navigation_home) {
+                updateSelectedMenuUI(menuHome);
+            } else if (destinationId == R.id.myListingsFragment) {
+                updateSelectedMenuUI(menuManage);
+            } else if (destinationId == R.id.notificationsFragment) {
+                updateSelectedMenuUI(menuNotification);
+            } else if (destinationId == R.id.navigation_profile) {
+                updateSelectedMenuUI(menuProfile);
+            } else {
+                // Nếu là màn hình khác không có trong bottom bar (ví dụ PostFragment), bỏ chọn tất cả
+                updateSelectedMenuUI(null);
+            }
+        });
+
+        // Gán sự kiện click để điều hướng
+        menuHome.setOnClickListener(v -> navigateTo(R.id.navigation_home));
+        menuManage.setOnClickListener(v -> navigateTo(R.id.myListingsFragment));
+        menuNotification.setOnClickListener(v -> navigateTo(R.id.notificationsFragment));
+        menuProfile.setOnClickListener(v -> navigateTo(R.id.navigation_profile));
+
+        fabAdd.setOnClickListener(v -> {
+            navigateTo(R.id.postFragment);
+            Toast.makeText(this, "Mở màn hình đăng tin", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    /**
+     * Hàm điều hướng, kiểm tra để tránh click liên tục vào cùng một item
+     * @param destinationId ID của destination cần điều hướng đến
+     */
+    private void navigateTo(int destinationId) {
+        if (navController.getCurrentDestination() != null && navController.getCurrentDestination().getId() != destinationId) {
+            navController.navigate(destinationId);
+        }
+    }
+
+    private void updateSelectedMenuUI(View selectedContainer) {
+        int selectedColor = ContextCompat.getColor(this, R.color.charcoal_black);
+        int unselectedColor = ContextCompat.getColor(this, R.color.charcoal_black);
+
+        for (View container : menuContainers) {
+            LinearLayout linearLayout = (LinearLayout) container;
+            ImageView icon = (ImageView) linearLayout.getChildAt(0);
+            TextView text = (TextView) linearLayout.getChildAt(1);
+
+            if (container == selectedContainer) {
+                icon.setColorFilter(selectedColor);
+                text.setTextColor(selectedColor);
+            } else {
+                icon.setColorFilter(unselectedColor);
+                text.setTextColor(unselectedColor);
+            }
+        }
+    }
+
+    private void setupKeyboardListener() {
+        final View rootView = getWindow().getDecorView().getRootView();
+        final View bottomBarContainer = findViewById(R.id.coordinatorLayout);
+
+        rootView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            Rect r = new Rect();
+            rootView.getWindowVisibleDisplayFrame(r);
+            int screenHeight = rootView.getHeight();
+            int keypadHeight = screenHeight - r.bottom;
+
+            if (keypadHeight > screenHeight * 0.15) {
+                if (bottomBarContainer.getVisibility() == View.VISIBLE) {
+                    bottomBarContainer.setVisibility(View.GONE);
+                }
+            } else {
+                if (bottomBarContainer.getVisibility() == View.GONE) {
+                    bottomBarContainer.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+
+    // ========== CÁC HÀM XỬ LÝ USER VÀ LOGOUT (KHÔNG THAY ĐỔI) ==========
 
     private void loadUserDataFromFirestore(String userId) {
         db.collection("users").document(userId)
@@ -77,192 +195,55 @@ public class MainActivity extends AppCompatActivity {
                         if (user != null) {
                             user.setId(userId);
                             prefsHelper.saveCurrentUser(user);
-                            Log.d(TAG, "User data loaded from Firestore and saved to SharedPrefs successfully.");
                         } else {
-                            Log.e(TAG, "User object is null after conversion from Firestore for UID: " + userId);
                             createFallbackUserAndSave(userId, "Firestore conversion failed");
                         }
                     } else {
-                        Log.w(TAG, "Firestore document not found for user: " + userId + ". Creating fallback default user.");
                         createFallbackUserAndSave(userId, "Firestore document not found");
                     }
-                    // AFTER loading/creating user data, setup the UI.
-                    setupMainUI();
+                    setupUI();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading user data from Firestore in MainActivity: " + e.getMessage(), e);
-                    // If Firestore load fails (e.g., network issue), still try to setup UI.
-                    // ProfileFragment will attempt to load data or display default.
-                    // For persistent network issues, consider a retry mechanism or redirect to Login.
-                    setupMainUI();
+                    Log.e(TAG, "Error loading user data from Firestore: " + e.getMessage(), e);
+                    setupUI();
                 });
     }
 
     private void createFallbackUserAndSave(String userId, String reason) {
-        Log.d(TAG, "Attempting to create fallback user: " + reason);
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser != null) {
             User fallbackUser = new User(
                     firebaseUser.getUid(),
                     firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "Người dùng",
-                    firebaseUser.getEmail(),
-                    "", // phone default
-                    "", // bio default
+                    firebaseUser.getEmail(), "", "",
                     firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : "",
-                    "", // address default
-                    0.0f, // rating default
-                    0,    // reviewCount default
-                    false, // isVerified default
-                    "active", // accountStatus default
-                    false, // isFlagged default
-                    "not_connected", // walletStatus default
-                    0    // notificationCount default
+                    "", 0.0f, 0, false, "active", false, "not_connected", 0
             );
-            fallbackUser.setBankAccount(""); // Đảm bảo bankAccount được khởi tạo
+            fallbackUser.setBankAccount("");
             prefsHelper.saveCurrentUser(fallbackUser);
-            Log.d(TAG, "Fallback user created and saved to SharedPrefs for UID: " + userId);
         } else {
-            Log.e(TAG, "FirebaseUser is null when trying to create fallback user for " + userId + ". Cannot create fallback.");
-            // If FirebaseUser is null here, it means we somehow lost auth state, best to re-authenticate.
-            // This case should ideally be handled by the initial currentUser == null check.
-            performLogout(); // Force logout and redirect to Login.
-        }
-    }
-
-
-    private void setupMainUI() {
-        setContentView(R.layout.activity_main);
-
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().hide();
-        }
-
-        navView = findViewById(R.id.nav_view); // Ánh xạ BottomNavigationView
-
-        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.nav_host_fragment);
-        navController = Objects.requireNonNull(navHostFragment).getNavController();
-
-        NavigationUI.setupWithNavController(navView, navController);
-
-        navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
-            if (getSupportActionBar() != null) {
-                if (destination.getId() == R.id.navigation_home) {
-                    getSupportActionBar().hide();
-                } else {
-                    getSupportActionBar().show();
-                    getSupportActionBar().setTitle(destination.getLabel());
-                }
-            }
-        });
-
-        // Add a global layout listener to detect keyboard visibility changes
-        final View rootView = getWindow().getDecorView().getRootView();
-        rootView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            private final Rect r = new Rect();
-            private int previousKeyboardHeight = 0;
-
-            @Override
-            public void onGlobalLayout() {
-                // Determine the visible area of the screen.
-                rootView.getWindowVisibleDisplayFrame(r);
-                int screenHeight = rootView.getHeight();
-                int keyboardHeight = screenHeight - r.bottom;
-
-                // Check if keyboard is visible and if its height has changed significantly
-                if (keyboardHeight > screenHeight * 0.15 && keyboardHeight != previousKeyboardHeight) { // Assume keyboard if height > 15% of screen
-                    // Keyboard is visible
-                    if (navView.getVisibility() == View.VISIBLE) {
-                        navView.setVisibility(View.GONE);
-                        Log.d(TAG, "Keyboard is visible, hiding BottomNavigationView.");
-                    }
-                } else if (keyboardHeight < screenHeight * 0.15 && previousKeyboardHeight > screenHeight * 0.15) {
-                    // Keyboard is hidden
-                    if (navView.getVisibility() == View.GONE) {
-                        navView.setVisibility(View.VISIBLE);
-                        Log.d(TAG, "Keyboard is hidden, showing BottomNavigationView.");
-                    }
-                }
-                previousKeyboardHeight = keyboardHeight;
-            }
-        });
-    }
-
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        if (navController != null &&
-                navController.getCurrentDestination() != null &&
-                navController.getCurrentDestination().getId() != R.id.navigation_home) {
-            getMenuInflater().inflate(R.menu.main_menu, menu);
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        if (navController != null &&
-                navController.getCurrentDestination() != null &&
-                navController.getCurrentDestination().getId() == R.id.navigation_home) {
-            return false;
-        }
-        return super.onPrepareOptionsMenu(menu);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.action_logout) {
             performLogout();
-            return true;
         }
-
-        return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        return navController.navigateUp() || super.onSupportNavigateUp();
+    private void navigateToLogin() {
+        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    public void performLogout() {
+        mAuth.signOut();
+        prefsHelper.clearUserData();
+        navigateToLogin();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        // This onStart check acts as a safeguard.
-        // If currentUser is null (meaning logged out), redirect.
-        // If currentUser is NOT null, but prefsHelper.getCurrentUser() IS null,
-        // it means app was killed and restarted. In this case, load user data and setup UI.
-        if (currentUser == null) {
-            Log.d(TAG, "onStart: User logged out. Redirecting to LoginActivity.");
-            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-            startActivity(intent);
-            finish();
-        } else if (prefsHelper.getCurrentUser() == null) {
-            Log.d(TAG, "onStart: User logged in, but data not in SharedPrefs. Re-loading.");
-            loadUserDataFromFirestore(currentUser.getUid());
-        } else {
-            Log.d(TAG, "onStart: User logged in and data in SharedPrefs. UI should be ready.");
-            // If already set up, do nothing. If onCreate skipped setup because of loading,
-            // this might re-trigger it, but it's safe if setupMainUI handles multiple calls.
-            // For now, let's assume onCreate handles initial setup.
+        if (mAuth.getCurrentUser() == null) {
+            navigateToLogin();
         }
-    }
-
-    /**
-     * Method to handle logout from any fragment or ActionBar menu.
-     * Clears Firebase session and local user data, then redirects to LoginActivity.
-     */
-    public void performLogout() {
-        Log.d(TAG, "Performing logout.");
-        mAuth.signOut();
-        prefsHelper.clearUserData();
-
-        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
     }
 }

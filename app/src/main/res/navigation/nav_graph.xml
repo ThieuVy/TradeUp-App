@@ -6,6 +6,7 @@
     app:startDestination="@+id/navigation_profile"
     tools:ignore="InvalidNavigation">
 
+
     <fragment
         android:id="@+id/navigation_profile"
         android:name="com.example.testapptradeup.fragments.ProfileFragment"
@@ -13,16 +14,14 @@
         tools:layout="@layout/fragment_profile">
 
         <action
+            android:id="@+id/action_profileFragment_to_editProfileFragment"
+            app:destination="@id/editProfileFragment" />
+        <action
             android:id="@+id/action_profileFragment_to_publicProfileFragment"
             app:destination="@id/publicProfileFragment" />
         <action
             android:id="@+id/action_profileFragment_to_myListingsFragment"
             app:destination="@id/myListingsFragment" />
-
-        <!-- All actions originating from ProfileFragment are now nested here -->
-        <action
-            android:id="@+id/action_navigation_profile_to_editProfileFragment"
-            app:destination="@id/editProfileFragment" />
         <action
             android:id="@+id/action_profile_to_buy_orders"
             app:destination="@+id/fragment_buy_orders" />
@@ -62,8 +61,11 @@
     <fragment
         android:id="@+id/editProfileFragment"
         android:name="com.example.testapptradeup.fragments.EditProfileFragment"
-        android:label="Chỉnh sửa hồ sơ"
+        android:label="fragment_edit_profile"
         tools:layout="@layout/fragment_edit_profile" >
+        <argument
+            android:name="currentUser"
+            app:argType="com.example.testapptradeup.models.User" />
         <action
             android:id="@+id/action_editProfileFragment_to_navigation_profile"
             app:destination="@id/navigation_profile" />
@@ -73,6 +75,16 @@
         android:id="@+id/publicProfileFragment"
         android:name="com.example.testapptradeup.fragments.PublicProfileFragment"
         android:label="fragment_public_profile"
-        tools:layout="@layout/fragment_public_profile" />
+        tools:layout="@layout/fragment_public_profile" >
+        <argument
+            android:name="userId"
+            app:argType="string" />
+    </fragment>
+
+    <activity
+        android:id="@+id/login_activity"
+        android:name="com.example.testapptradeup.activities.LoginActivity"
+        tools:layout="@layout/activity_login" />
+
 
 </navigation>

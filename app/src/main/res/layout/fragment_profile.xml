@@ -352,6 +352,19 @@
             tools:itemCount="2"
             tools:listitem="@layout/item_review" />
 
+        <!-- THÊM VIEW NÀY -->
+        <TextView
+            android:id="@+id/empty_reviews_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Chưa có đánh giá nào."
+            android:gravity="center"
+            android:padding="16dp"
+            android:textColor="@color/text_secondary"
+            android:visibility="gone"
+            tools:visibility="visible"
+            tools:ignore="HardcodedText" />
+
         <!-- SECTION 6: ACCOUNT ACTIONS -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_deactivate_account"
@@ -373,6 +386,19 @@
             android:layout_marginTop="8dp"
             android:text="Xóa tài khoản"
             app:backgroundTint="@color/red_error"
+            tools:ignore="HardcodedText" />
+
+        <!-- THÊM NÚT NÀY -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_logout"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            android:text="Đăng xuất"
+            app:backgroundTint="?attr/colorOnSurface"
+            android:textColor="?attr/colorSurface"
             tools:ignore="HardcodedText" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

@@ -2,120 +2,125 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/nav_graph"
-    app:startDestination="@id/navigation_home">
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/navigation_home">
 
+    <!-- Các destination cho BottomAppBar -->
     <fragment
         android:id="@+id/navigation_home"
         android:name="com.example.testapptradeup.fragments.HomeFragment"
-        android:label="@string/title_home"
-        tools:layout="@layout/fragment_home">
+        android:label="fragment_home"
+        tools:layout="@layout/fragment_home" >
         <action
-            android:id="@+id/action_navigation_home_to_navigation_management"
-            app:destination="@id/navigation_management" />
+            android:id="@+id/action_homeFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" />
         <action
-            android:id="@+id/action_navigation_home_to_navigation_notification"
-            app:destination="@id/navigation_notifications" />
+            android:id="@+id/action_home_to_chat_list"
+            app:destination="@id/chatListFragment" />
         <action
-            android:id="@+id/action_navigation_home_to_navigation_post"
-            app:destination="@id/navigation_post" />
+            android:id="@+id/action_home_to_search"
+            app:destination="@id/searchFragment" />
         <action
-            android:id="@+id/action_navigation_home_to_navigation_profile"
-            app:destination="@id/navigation_profile" />
+            android:id="@+id/action_home_to_product_list"
+            app:destination="@id/productListFragment" />
+        <action
+            android:id="@+id/action_home_to_product_detail"
+            app:destination="@id/productDetailFragment" />
     </fragment>
 
     <fragment
-        android:id="@+id/navigation_management"
-        android:name="com.example.testapptradeup.fragments.NewsFragment"
-        android:label="@string/title_news"
-        tools:layout="@layout/fragment_newsmanage">
+        android:id="@+id/productListFragment"
+        android:name="com.example.testapptradeup.fragments.ProductListFragment"
+        android:label="Danh sách sản phẩm"
+        tools:layout="@layout/fragment_product_list">
+
+        <argument
+            android:name="filterType"
+            app:argType="string" />
+        <argument
+            android:name="categoryId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <!-- THÊM ACTION NÀY VÀO -->
+        <!-- Action để đi từ ProductListFragment đến ProductDetailFragment -->
         <action
-            android:id="@+id/action_navigation_management_to_navigation_notification"
-            app:destination="@id/navigation_notifications" />
+            android:id="@+id/action_productList_to_productDetail"
+            app:destination="@id/productDetailFragment" />
+
+    </fragment>
+
+    <fragment android:id="@+id/productDetailFragment"
+        android:name="com.example.testapptradeup.fragments.ProductDetailFragment"
+        android:label="fragment_product_detail"
+        tools:layout="@layout/fragment_product_detail">
+        <argument
+            android:name="listingId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment android:id="@+id/searchFragment"
+        android:name="com.example.testapptradeup.fragments.SearchFragment"
+        android:label="fragment_search"
+        tools:layout="@layout/fragment_search"/>
+    <fragment
+        android:id="@+id/myListingsFragment"
+        android:name="com.example.testapptradeup.fragments.MyListingsFragment"
+        android:label="fragment_my_listings"
+        tools:layout="@layout/fragment_my_listings" />
+    <fragment
+        android:id="@+id/chatListFragment"
+        android:name="com.example.testapptradeup.fragments.ChatListFragment"
+        android:label="Tin nhắn"
+        tools:layout="@layout/fragment_chat_list">
+        <!-- Action để đi từ danh sách chat đến chat chi tiết -->
         <action
-            android:id="@+id/action_navigation_management_to_navigation_home"
-            app:destination="@id/navigation_home" />
-        <action
-            android:id="@+id/action_navigation_management_to_navigation_post"
-            app:destination="@id/navigation_post" />
-        <action
-            android:id="@+id/action_navigation_management_to_navigation_profile"
-            app:destination="@id/navigation_profile" />
+            android:id="@+id/action_chatListFragment_to_chatDetailFragment"
+            app:destination="@id/chatDetailFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/chatDetailFragment"
+        android:name="com.example.testapptradeup.fragments.ChatDetailFragment"
+        android:label="Chi tiết tin nhắn"
+        tools:layout="@layout/fragment_chat_detail">
+
+        <!-- Khai báo argument mà fragment này sẽ nhận -->
+        <argument
+            android:name="chatId"
+            app:argType="string" />
+
+        <!-- Argument 2 (Bắt buộc) -->
+        <argument
+            android:name="otherUserName"
+            app:argType="string"
+            app:nullable="true" /> <!-- Dù nullable=true, nếu không có defaultValue, nó vẫn là bắt buộc -->
+
+        <!-- Argument 3 (Tùy chọn) -->
+        <argument
+            android:name="listingId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
     </fragment>
 
     <fragment
-        android:id="@+id/navigation_post"
-        android:name="com.example.testapptradeup.fragments.PostFragment"
-        android:label="@string/title_post"
-        tools:layout="@layout/fragment_post">
-        <action
-            android:id="@+id/action_navigation_post_to_navigation_home"
-            app:destination="@id/navigation_home" />
-        <action
-            android:id="@+id/action_navigation_post_to_navigation_profile"
-            app:destination="@id/navigation_profile" />
-        <action
-            android:id="@+id/action_navigation_post_to_navigation_notification"
-            app:destination="@id/navigation_notifications" />
-        <action
-            android:id="@+id/action_navigation_post_to_navigation_management"
-            app:destination="@id/navigation_management" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/navigation_notifications"
+        android:id="@+id/notificationsFragment"
         android:name="com.example.testapptradeup.fragments.NotificationsFragment"
-        android:label="@string/title_notifications"
-        tools:layout="@layout/fragment_notifications">
-        <action
-            android:id="@+id/action_navigation_discover_to_navigation_profile"
-            app:destination="@id/navigation_profile" />
-        <action
-            android:id="@+id/action_navigation_discover_to_navigation_management"
-            app:destination="@id/navigation_management" />
-        <action
-            android:id="@+id/action_navigation_discover_to_navigation_post"
-            app:destination="@id/navigation_post" />
-    </fragment>
+        android:label="fragment_notifications"
+        tools:layout="@layout/fragment_notifications" />
 
     <fragment
         android:id="@+id/navigation_profile"
         android:name="com.example.testapptradeup.fragments.ProfileFragment"
-        android:label="@string/title_profile"
-        tools:layout="@layout/fragment_profile">
-        <action
-            android:id="@+id/action_navigation_profile_to_navigation_post"
-            app:destination="@id/navigation_post" />
-        <action
-            android:id="@+id/action_navigation_profile_to_navigation_notification"
-            app:destination="@id/navigation_notifications" />
-        <action
-            android:id="@+id/action_navigation_profile_to_navigation_management"
-            app:destination="@id/navigation_management" />
-        <action
-            android:id="@+id/action_navigation_profile_to_navigation_home"
-            app:destination="@id/navigation_home" />
-    </fragment>
+        android:label="fragment_profile"
+        tools:layout="@layout/fragment_profile" />
 
-    <activity
-        android:name="com.example.testapptradeup.activities.MainActivity"
-        android:label="@string/app_name"
-        tools:layout="@layout/activity_main" />
-    <activity
-        android:id="@+id/navigation_login"
-        android:name="com.example.testapptradeup.activities.LoginActivity"
-        android:label="@string/title_login"
-        tools:layout="@layout/activity_login"/>
-
-    <activity
-        android:name="com.example.testapptradeup.activities.RegisterActivity"
-        android:label="@string/title_register"
-        tools:layout="@layout/activity_register"/>
-
-    <activity
-        android:name="com.example.testapptradeup.activities.ForgotPasswordActivity"
-        android:label="@string/title_forgot_password"
-        tools:layout="@layout/activity_forgot_password"/>
-
+    <!-- Destination cho FAB -->
+    <fragment
+        android:id="@+id/postFragment"
+        android:name="com.example.testapptradeup.fragments.PostFragment"
+        android:label="fragment_post"
+        tools:layout="@layout/fragment_post" />
 
 </navigation>

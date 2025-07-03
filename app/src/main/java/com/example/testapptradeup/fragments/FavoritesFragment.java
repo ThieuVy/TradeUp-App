@@ -1,18 +1,19 @@
 package com.example.testapptradeup.fragments;
 
+import static android.content.ContentValues.TAG;
+
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-// Thêm ProgressBar vào layout nếu muốn
-// Thêm TextView cho trạng thái rỗng
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -28,26 +29,31 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldPath;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.example.testapptradeup.viewmodels.FavoritesViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class FavoritesFragment extends Fragment {
 
-    private static final String TAG = "FavoritesFragment";
-
     private RecyclerView recyclerView;
     private FavoritesAdapter adapter;
     private List<Listing> favoriteListings;
     private MaterialToolbar toolbar;
     private NavController navController;
-
+    private FavoritesViewModel viewModel;
     // Optional: for loading and empty states
     // private ProgressBar progressBar;
     // private TextView emptyStateText;
 
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        viewModel = new ViewModelProvider(this).get(FavoritesViewModel.class);
+    }
 
     @Nullable
     @Override
@@ -58,16 +64,11 @@ public class FavoritesFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        db = FirebaseFirestore.getInstance();
-        mAuth = FirebaseAuth.getInstance();
         navController = Navigation.findNavController(view);
-
         initViews(view);
         setupRecyclerView();
         setupToolbar();
-
-        fetchFavoriteListingIds();
+        observeViewModel();
     }
 
     private void initViews(View view) {
@@ -82,12 +83,24 @@ public class FavoritesFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        favoriteListings = new ArrayList<>();
-        adapter = new FavoritesAdapter(getContext(), favoriteListings);
+        adapter = new FavoritesAdapter(getContext(), new ArrayList<>());
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
     }
 
+    private void observeViewModel() {
+        viewModel.getFavoriteListings().observe(getViewLifecycleOwner(), listings -> {
+            if (listings != null) {
+                adapter = new FavoritesAdapter(getContext(), listings);
+                recyclerView.setAdapter(adapter);
+                if (listings.isEmpty()) {
+                    showEmptyState();
+                }
+            } else {
+                Toast.makeText(getContext(), "Lỗi tải danh sách yêu thích", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
     private void fetchFavoriteListingIds() {
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser == null) {

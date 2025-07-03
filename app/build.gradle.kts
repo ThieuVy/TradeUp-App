@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.navigation.safeargs)
 }
 
 android {
@@ -74,4 +75,14 @@ dependencies {
     implementation (libs.play.services.auth)
 //    implementation (libs.identity.credential.binding) // Sử dụng phiên bản mới nhất
 //    implementation (libs.googleid.v120) // Sử dụng phiên bản mới nhất
+    //noinspection UseTomlInstead
+    implementation(libs.firebase.storage)
+    implementation (libs.lifecycle.viewmodel)
+    implementation (libs.lifecycle.livedata)
+    implementation (libs.lifecycle.common.java8)
+    implementation (libs.navigation.safe.args.gradle.plugin)
+    implementation (libs.circleimageview)
+}
+configurations.all {
+    exclude(group = "xpp3", module = "xpp3")
 }

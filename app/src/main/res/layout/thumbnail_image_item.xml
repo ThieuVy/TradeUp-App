@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="72dp"
-    android:layout_height="72dp"
-    android:layout_marginEnd="8dp"
-    android:layout_marginBottom="8dp"
+    android:layout_width="80dp"
+    android:layout_height="80dp"
+    android:layout_margin="4dp"
     app:cardCornerRadius="8dp"
     app:cardElevation="1dp">
 
@@ -14,30 +13,58 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <!-- 1. Ảnh sản phẩm -->
         <ImageView
             android:id="@+id/thumbnail_image"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="centerCrop"
             android:background="@color/background_light"
-            android:contentDescription="Product Thumbnail"
+            android:contentDescription="Ảnh thu nhỏ sản phẩm"
+            tools:src="@tools:sample/backgrounds/scenic"
             tools:ignore="HardcodedText" />
 
+        <!-- 2. Nút xóa ảnh -->
         <ImageView
             android:id="@+id/thumbnail_remove_button"
             android:layout_width="20dp"
             android:layout_height="20dp"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="4dp"
+            android:layout_margin="4dp"
             android:background="@drawable/circle_background_dark"
             android:src="@drawable/ic_close"
-            android:tint="@android:color/white"
+            app:tint="@android:color/white"
             android:padding="3dp"
             android:clickable="true"
             android:focusable="true"
-            android:contentDescription="Remove image"
-            tools:ignore="HardcodedText,UseAppTint" />
+            android:contentDescription="Xóa ảnh"
+            tools:ignore="HardcodedText"/>
+
+        <!-- 3. (THÊM MỚI) Vòng xoay loading -->
+        <!-- Sẽ hiển thị ở giữa khi ảnh đang được tải lên -->
+        <ProgressBar
+            android:id="@+id/thumbnail_loading_indicator"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_centerInParent="true"
+            android:indeterminateTint="@color/purple_500"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+        <!-- 4. (THÊM MỚI) Icon báo lỗi -->
+        <!-- Sẽ hiển thị ở giữa khi tải ảnh lên thất bại -->
+        <ImageView
+            android:id="@+id/thumbnail_error_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_centerInParent="true"
+            android:src="@drawable/stripe_ic_error"
+            app:tint="@color/red_error"
+            android:visibility="gone"
+            tools:visibility="visible"
+            android:contentDescription="Lỗi tải ảnh"
+            tools:ignore="HardcodedText"/>
+
     </RelativeLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

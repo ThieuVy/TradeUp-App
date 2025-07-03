@@ -267,4 +267,6 @@
     <!-- Background Colors -->
     <color name="menu_item_background">#FFFFFF</color>
 
+    <color name="text_primary_on_dark">#FFFFFF</color>
+
 </resources>

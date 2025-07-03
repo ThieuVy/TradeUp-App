@@ -2,7 +2,6 @@ package com.example.testapptradeup.adapters;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,35 +37,25 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
         Listing listing = favoriteListings.get(position);
 
         holder.textName.setText(listing.getTitle());
-        holder.textPrice.setText(listing.getFormattedPrice()); // Dùng hàm định dạng giá
+        holder.textPrice.setText(listing.getFormattedPrice());
 
-        // Xử lý trạng thái còn hàng/hết hàng
         if ("sold".equalsIgnoreCase(listing.getStatus())) {
             holder.textStockStatus.setText("Đã bán");
-            // Cập nhật màu sắc nếu cần
         } else {
             holder.textStockStatus.setText("Còn hàng");
         }
 
-        // Tải ảnh từ Cloudinary bằng Glide
-        // getPrimaryImageUrl() trả về URL của Cloudinary (hoặc Base64 nếu bạn vẫn dùng cách cũ)
+        // <<--- LOGIC ĐƯỢC ĐƠN GIẢN HÓA
         String imageUrl = listing.getPrimaryImageUrl();
         if (imageUrl != null && !imageUrl.isEmpty()) {
-            if (imageUrl.startsWith("http")) { // Đây là URL từ Cloudinary/Firebase Storage
-                Glide.with(context)
-                        .load(imageUrl)
-                        .placeholder(R.drawable.img_placeholder) // Ảnh chờ
-                        .error(R.drawable.img_placeholder) // Ảnh lỗi
-                        .into(holder.imageProduct);
-            } else { // Đây là chuỗi Base64
-                byte[] imageBytes = Base64.decode(imageUrl, Base64.DEFAULT);
-                Glide.with(context)
-                        .load(imageBytes)
-                        .placeholder(R.drawable.img_placeholder)
-                        .error(R.drawable.img_placeholder)
-                        .into(holder.imageProduct);
-            }
+            // Luôn tải ảnh từ URL (Cloudinary hoặc bất kỳ host nào khác)
+            Glide.with(context)
+                    .load(imageUrl)
+                    .placeholder(R.drawable.img_placeholder)
+                    .error(R.drawable.img_placeholder)
+                    .into(holder.imageProduct);
         } else {
+            // Nếu không có ảnh, hiển thị placeholder
             holder.imageProduct.setImageResource(R.drawable.img_placeholder);
         }
     }

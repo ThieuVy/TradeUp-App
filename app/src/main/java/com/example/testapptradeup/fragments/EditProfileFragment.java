@@ -1,7 +1,6 @@
 package com.example.testapptradeup.fragments;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,11 +8,12 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
-import android.widget.ImageButton; // Import ImageButton
+import android.widget.ImageButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
@@ -21,41 +21,33 @@ import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.utils.SharedPrefsHelper;
+import com.example.testapptradeup.viewmodels.EditProfileViewModel;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Objects;
 
 public class EditProfileFragment extends Fragment {
 
-    private static final String TAG = "EditProfileFragment";
-
     // UI Components
-    private ImageButton btnBack; // Khai báo ImageButton cho nút back
+    private ImageButton btnBack;
     private ImageView editProfileImage;
     private Button btnChangeProfileImage;
-    private TextInputEditText editDisplayName;
-    private TextInputEditText editEmailAddress;
-    private TextInputEditText editPhoneNumber;
-    private TextInputEditText editUserBio;
-    private TextInputEditText editUserAddress;
+    private TextInputEditText editDisplayName, editEmailAddress, editPhoneNumber, editUserBio, editUserAddress;
     private Button btnSaveProfile;
     private ProgressBar profileSaveProgress;
 
-    // Data
-    private User currentUser;
+    // ViewModel and Data
+    private EditProfileViewModel viewModel;
+    private User currentUserData; // Giữ bản sao để cập nhật
     private SharedPrefsHelper prefsHelper;
-    private FirebaseFirestore db;
+    private NavController navController;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        FirebaseAuth mAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
+        viewModel = new ViewModelProvider(this).get(EditProfileViewModel.class);
         prefsHelper = new SharedPrefsHelper(requireContext());
-        currentUser = prefsHelper.getCurrentUser(); // Lấy thông tin người dùng từ SharedPrefs
     }
 
     @Nullable
@@ -67,14 +59,14 @@ public class EditProfileFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
+        navController = Navigation.findNavController(view);
         initViews(view);
-        loadUserProfileData();
         setupListeners();
+        observeViewModel();
     }
 
     private void initViews(View view) {
-        btnBack = view.findViewById(R.id.btn_back); // Ánh xạ nút back
+        btnBack = view.findViewById(R.id.btn_back);
         editProfileImage = view.findViewById(R.id.edit_profile_image);
         btnChangeProfileImage = view.findViewById(R.id.btn_change_profile_image);
         editDisplayName = view.findViewById(R.id.edit_display_name);
@@ -86,12 +78,34 @@ public class EditProfileFragment extends Fragment {
         profileSaveProgress = view.findViewById(R.id.profile_save_progress);
     }
 
-    private void loadUserProfileData() {
-        if (currentUser != null) {
+    private void observeViewModel() {
+        String userId = FirebaseAuth.getInstance().getUid();
+        if (userId == null) {
+            Toast.makeText(getContext(), "Lỗi: Người dùng không hợp lệ", Toast.LENGTH_SHORT).show();
+            navController.popBackStack();
+            return;
+        }
+
+        viewModel.getUserProfile(userId).observe(getViewLifecycleOwner(), user -> {
+            if (user != null) {
+                // Khi nhận được dữ liệu, gán vào biến local
+                this.currentUserData = user;
+                // Gọi hàm để điền dữ liệu lên UI
+                populateUI(user);
+            } else {
+                Toast.makeText(requireContext(), "Không thể tải dữ liệu hồ sơ.", Toast.LENGTH_SHORT).show();
+                navController.popBackStack();
+            }
+        });
+    }
+
+    private void populateUI(User user) {
+        // <<< SỬA: Thay `currentUser` bằng `user` (tham số của hàm) để đảm bảo tính nhất quán.
+        if (user != null) {
             // Load profile image
-            if (currentUser.getProfileImageUrl() != null && !currentUser.getProfileImageUrl().isEmpty()) {
+            if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
                 Glide.with(this)
-                        .load(currentUser.getProfileImageUrl())
+                        .load(user.getProfileImageUrl())
                         .placeholder(R.drawable.img)
                         .error(R.drawable.img)
                         .circleCrop()
@@ -101,28 +115,16 @@ public class EditProfileFragment extends Fragment {
             }
 
             // Load text data
-            editDisplayName.setText(currentUser.getName());
-            editEmailAddress.setText(currentUser.getEmail()); // Email không chỉnh sửa được
-            editPhoneNumber.setText(currentUser.getPhone());
-            editUserBio.setText(currentUser.getBio());
-            editUserAddress.setText(currentUser.getAddress());
-        } else {
-            Toast.makeText(requireContext(), "Không thể tải dữ liệu hồ sơ.", Toast.LENGTH_SHORT).show();
-            // Optional: navigate back if no user data
-            NavController navController = Navigation.findNavController(requireView());
-            navController.popBackStack();
+            editDisplayName.setText(user.getName());
+            editEmailAddress.setText(user.getEmail()); // Email không chỉnh sửa được
+            editPhoneNumber.setText(user.getPhone());
+            editUserBio.setText(user.getBio());
+            editUserAddress.setText(user.getAddress());
         }
     }
 
     private void setupListeners() {
-        // Listener cho nút back
-        if (btnBack != null) {
-            btnBack.setOnClickListener(v -> {
-                NavController navController = Navigation.findNavController(requireView());
-                navController.popBackStack(); // Quay lại Fragment trước đó trên back stack
-            });
-        }
-
+        btnBack.setOnClickListener(v -> navController.popBackStack());
         btnChangeProfileImage.setOnClickListener(v -> handleChangeProfileImage());
         btnSaveProfile.setOnClickListener(v -> saveProfileChanges());
     }
@@ -133,42 +135,37 @@ public class EditProfileFragment extends Fragment {
     }
 
     private void saveProfileChanges() {
-        if (currentUser == null) {
-            Toast.makeText(requireContext(), "Lỗi: Không có dữ liệu người dùng để lưu.", Toast.LENGTH_SHORT).show();
+        if (currentUserData == null) {
+            Toast.makeText(requireContext(), "Lỗi: Không có dữ liệu để lưu.", Toast.LENGTH_SHORT).show();
             return;
         }
-
         showLoading(true);
 
-        // Get updated data from EditTexts
+        // <<< SỬA: Lấy dữ liệu từ UI và cập nhật trực tiếp vào đối tượng currentUserData
         String newDisplayName = Objects.requireNonNull(editDisplayName.getText()).toString().trim();
         String newPhoneNumber = Objects.requireNonNull(editPhoneNumber.getText()).toString().trim();
         String newUserBio = Objects.requireNonNull(editUserBio.getText()).toString().trim();
         String newUserAddress = Objects.requireNonNull(editUserAddress.getText()).toString().trim();
 
-        // Update currentUser object
-        currentUser.setName(newDisplayName);
-        currentUser.setPhone(newPhoneNumber);
-        currentUser.setBio(newUserBio);
-        currentUser.setAddress(newUserAddress);
+        // Update currentUserData object
+        currentUserData.setName(newDisplayName);
+        currentUserData.setPhone(newPhoneNumber);
+        currentUserData.setBio(newUserBio);
+        currentUserData.setAddress(newUserAddress);
 
-        // Save to Firestore
-        db.collection("users").document(currentUser.getId())
-                .set(currentUser) // Set will overwrite existing document
-                .addOnSuccessListener(aVoid -> {
-                    // Save to SharedPrefs after successful Firestore update
-                    prefsHelper.saveCurrentUser(currentUser);
-                    showLoading(false);
-                    Toast.makeText(requireContext(), "Cập nhật hồ sơ thành công!", Toast.LENGTH_SHORT).show();
-                    // Optionally navigate back to ProfileFragment
-                    NavController navController = Navigation.findNavController(requireView());
-                    navController.popBackStack();
-                })
-                .addOnFailureListener(e -> {
-                    showLoading(false);
-                    Log.e(TAG, "Error updating profile: " + e.getMessage(), e);
-                    Toast.makeText(requireContext(), "Lỗi cập nhật hồ sơ: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+        // Gọi ViewModel để lưu đối tượng đã được cập nhật
+        viewModel.saveUserProfile(currentUserData).observe(getViewLifecycleOwner(), success -> {
+            showLoading(false);
+            if (success != null && success) {
+                // Cập nhật lại dữ liệu trong SharedPreferences sau khi lưu thành công
+                prefsHelper.saveCurrentUser(currentUserData);
+                Toast.makeText(requireContext(), "Cập nhật hồ sơ thành công!", Toast.LENGTH_SHORT).show();
+                // Quay lại màn hình Profile
+                navController.popBackStack();
+            } else {
+                Toast.makeText(requireContext(), "Lỗi cập nhật hồ sơ.", Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void showLoading(boolean isLoading) {

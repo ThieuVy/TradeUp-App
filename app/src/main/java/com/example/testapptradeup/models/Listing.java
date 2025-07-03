@@ -37,6 +37,7 @@ public class Listing {
     private int views;
     private int offersCount;
     private boolean isSold = false; // Thêm trường này để dễ dàng query
+    private List<String> tags;
 
     public Listing() {
         // Constructor rỗng cho Firebase Firestore
@@ -103,6 +104,13 @@ public class Listing {
     public void setViews(int views) { this.views = views; }
     public void setOffersCount(int offersCount) { this.offersCount = offersCount; }
     public void setSold(boolean sold) { isSold = sold; }
+
+    public List<String> getTags() {
+        return tags;
+    }
+    public void setTags(List<String> tags) {
+        this.tags = tags;
+    }
 
     /**
      * Lấy URL ảnh đại diện (ảnh đầu tiên trong danh sách)

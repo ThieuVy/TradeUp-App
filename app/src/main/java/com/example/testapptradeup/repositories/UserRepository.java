@@ -1,0 +1,103 @@
+package com.example.testapptradeup.repositories;
+
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+
+import com.example.testapptradeup.models.Review;
+import com.example.testapptradeup.models.User;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class UserRepository {
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private final FirebaseAuth mAuth = FirebaseAuth.getInstance();
+
+    public LiveData<User> getUserProfile(String userId) {
+        MutableLiveData<User> userLiveData = new MutableLiveData<>();
+        if (userId == null) {
+            userLiveData.setValue(null);
+            return userLiveData;
+        }
+
+        db.collection("users").document(userId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        User user = documentSnapshot.toObject(User.class);
+                        if (user != null) {
+                            user.setId(documentSnapshot.getId());
+                        }
+                        userLiveData.setValue(user);
+                    } else {
+                        userLiveData.setValue(null);
+                    }
+                }).addOnFailureListener(e -> userLiveData.setValue(null));
+        return userLiveData;
+    }
+
+    public LiveData<Boolean> updateUserProfile(User user) {
+        MutableLiveData<Boolean> updateStatus = new MutableLiveData<>();
+        db.collection("users").document(user.getId()).set(user)
+                .addOnSuccessListener(aVoid -> updateStatus.setValue(true))
+                .addOnFailureListener(e -> updateStatus.setValue(false));
+        return updateStatus;
+    }
+
+    public LiveData<List<String>> getFavoriteIds(String userId) {
+        MutableLiveData<List<String>> favoriteIdsData = new MutableLiveData<>();
+        if (userId == null) {
+            favoriteIdsData.setValue(null);
+            return favoriteIdsData;
+        }
+        db.collection("users").document(userId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        User user = documentSnapshot.toObject(User.class);
+                        if (user != null) {
+                            favoriteIdsData.setValue(user.getFavoriteListingIds());
+                        } else {
+                            favoriteIdsData.setValue(null);
+                        }
+                    } else {
+                        favoriteIdsData.setValue(null);
+                    }
+                }).addOnFailureListener(e -> favoriteIdsData.setValue(null));
+        return favoriteIdsData;
+    }
+    // Phương thức mới để lấy danh sách đánh giá của một user
+    public LiveData<List<Review>> getUserReviews(String userId) {
+        MutableLiveData<List<Review>> reviewsData = new MutableLiveData<>();
+        if (userId == null) {
+            reviewsData.setValue(new ArrayList<>());
+            return reviewsData;
+        }
+        db.collection("reviews")
+                .whereEqualTo("reviewedUserId", userId)
+                .orderBy("reviewDate", Query.Direction.DESCENDING)
+                .limit(5) // Lấy 5 đánh giá gần nhất
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    reviewsData.setValue(queryDocumentSnapshots.toObjects(Review.class));
+                })
+                .addOnFailureListener(e -> reviewsData.setValue(new ArrayList<>()));
+        return reviewsData;
+    }
+    // Phương thức mới để cập nhật trạng thái tài khoản
+    public LiveData<Boolean> updateAccountStatus(String userId, String status) {
+        MutableLiveData<Boolean> statusData = new MutableLiveData<>();
+        if (userId == null) {
+            statusData.setValue(false);
+            return statusData;
+        }
+        db.collection("users").document(userId)
+                .update("accountStatus", status)
+                .addOnSuccessListener(aVoid -> statusData.setValue(true))
+                .addOnFailureListener(e -> statusData.setValue(false));
+        return statusData;
+    }
+}

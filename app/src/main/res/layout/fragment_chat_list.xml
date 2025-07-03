@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@color/background_light"
+    tools:context=".fragments.ChatListFragment">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="Tin nhắn"
+            app:navigationIcon="@drawable/ic_arrow_back"/>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_chat_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        tools:ignore="SpeakableTextPresentCheck"
+        tools:listitem="@layout/item_chat_conversation" />
+
+    <!-- Optional: Empty State -->
+    <TextView
+        android:id="@+id/empty_chat_text"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="Chưa có cuộc trò chuyện nào"
+        android:gravity="center"
+        android:visibility="gone"
+        tools:ignore="HardcodedText" />
+</LinearLayout>
