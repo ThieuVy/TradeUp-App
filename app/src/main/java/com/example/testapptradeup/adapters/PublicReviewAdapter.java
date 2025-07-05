@@ -1,5 +1,6 @@
 package com.example.testapptradeup.adapters;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
@@ -23,6 +24,16 @@ public class PublicReviewAdapter extends RecyclerView.Adapter<PublicReviewAdapte
         this.context = context;
         this.reviewList = reviewList;
     }
+
+    // ========== PHẦN SỬA LỖI Ở ĐÂY ==========
+    // Di chuyển phương thức này ra ngoài lớp ViewHolder
+    @SuppressLint("NotifyDataSetChanged")
+    public void updateData(List<Review> newReviews) {
+        reviewList.clear();
+        reviewList.addAll(newReviews);
+        notifyDataSetChanged();
+    }
+    // ======================================
 
     @NonNull
     @Override
@@ -49,6 +60,7 @@ public class PublicReviewAdapter extends RecyclerView.Adapter<PublicReviewAdapte
         return reviewList.size();
     }
 
+    // Lớp ViewHolder chỉ chứa các thành phần và logic của một item
     class ReviewViewHolder extends RecyclerView.ViewHolder {
         ImageView reviewerImage;
         TextView reviewerName, reviewDate, reviewRatingStars, reviewComment;
@@ -98,5 +110,5 @@ public class PublicReviewAdapter extends RecyclerView.Adapter<PublicReviewAdapte
             }
             return stars.toString();
         }
-    }
+    } // Kết thúc lớp ReviewViewHolder
 }

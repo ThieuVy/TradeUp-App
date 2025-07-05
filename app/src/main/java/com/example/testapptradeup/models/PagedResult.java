@@ -5,6 +5,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import java.util.List;
 
 public class PagedResult<T> {
+
     private final List<T> data;
     private final DocumentSnapshot lastVisible;
     private final Exception error;

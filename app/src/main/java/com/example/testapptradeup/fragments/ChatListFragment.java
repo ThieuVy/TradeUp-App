@@ -34,7 +34,7 @@ public class ChatListFragment extends Fragment implements ChatListAdapter.OnConv
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        viewModel = new ViewModelProvider(this).get(ChatViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(ChatViewModel.class);
     }
 
     @Override
@@ -101,8 +101,8 @@ public class ChatListFragment extends Fragment implements ChatListAdapter.OnConv
 
         // Mở màn hình chi tiết cuộc trò chuyện
         // Truyền cả 2 tham số BẮT BUỘC: chatId và otherUserName
-        ChatListFragmentDirections.ActionChatListFragmentToChatDetailFragment action =
-                ChatListFragmentDirections.actionChatListFragmentToChatDetailFragment(
+        ChatListFragmentDirections.ActionChatListToChatDetail action =
+                ChatListFragmentDirections.actionChatListToChatDetail(
                         conversation.getId(),
                         conversation.getOtherUserName()
                 );

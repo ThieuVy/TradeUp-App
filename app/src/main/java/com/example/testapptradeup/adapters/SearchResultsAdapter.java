@@ -41,6 +41,9 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<SearchResultsAdap
         this.onProductClickListener = onProductClickListener;
         this.onFavoriteClickListener = onFavoriteClickListener;
     }
+    public List<SearchResult> getResults() {
+        return searchResults;
+    }
 
     @NonNull
     @Override

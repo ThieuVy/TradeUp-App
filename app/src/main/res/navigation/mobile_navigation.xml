@@ -5,35 +5,92 @@
     android:id="@+id/mobile_navigation"
     app:startDestination="@+id/navigation_home">
 
-    <!-- Các destination cho BottomAppBar -->
+    <!-- ======================================================= -->
+    <!-- 1. CÁC MÀN HÌNH CHÍNH (BOTTOM NAVIGATION BAR) -->
+    <!-- ======================================================= -->
+
     <fragment
         android:id="@+id/navigation_home"
         android:name="com.example.testapptradeup.fragments.HomeFragment"
-        android:label="fragment_home"
-        tools:layout="@layout/fragment_home" >
+        android:label="Trang Chủ"
+        tools:layout="@layout/fragment_home">
+        <!-- Actions từ Home -->
         <action
-            android:id="@+id/action_homeFragment_to_productDetailFragment"
+            android:id="@+id/action_home_to_productDetail"
             app:destination="@id/productDetailFragment" />
         <action
-            android:id="@+id/action_home_to_chat_list"
+            android:id="@+id/action_home_to_chatList"
             app:destination="@id/chatListFragment" />
         <action
             android:id="@+id/action_home_to_search"
             app:destination="@id/searchFragment" />
         <action
-            android:id="@+id/action_home_to_product_list"
+            android:id="@+id/action_home_to_productList"
             app:destination="@id/productListFragment" />
-        <action
-            android:id="@+id/action_home_to_product_detail"
-            app:destination="@id/productDetailFragment" />
     </fragment>
 
+    <fragment
+        android:id="@+id/myListingsFragment"
+        android:name="com.example.testapptradeup.fragments.MyListingsFragment"
+        android:label="Quản Lý Tin"
+        tools:layout="@layout/fragment_my_listings" />
+
+    <fragment
+        android:id="@+id/postFragment"
+        android:name="com.example.testapptradeup.fragments.PostFragment"
+        android:label="Đăng Tin"
+        tools:layout="@layout/fragment_post" />
+
+    <fragment
+        android:id="@+id/notificationsFragment"
+        android:name="com.example.testapptradeup.fragments.NotificationsFragment"
+        android:label="Thông Báo"
+        tools:layout="@layout/fragment_notifications" />
+
+    <fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.example.testapptradeup.fragments.ProfileFragment"
+        android:label="Hồ Sơ"
+        tools:layout="@layout/fragment_profile">
+        <!-- Đặt lại tên ID của các action cho chuẩn -->
+        <action
+            android:id="@+id/action_navigation_profile_to_editProfileFragment"
+            app:destination="@id/editProfileFragment" />
+        <action
+            android:id="@+id/action_navigation_profile_to_publicProfileFragment"
+            app:destination="@id/publicProfileFragment" />
+        <action
+            android:id="@+id/action_navigation_profile_to_favoritesFragment"
+            app:destination="@id/favoritesFragment" />
+        <action
+            android:id="@+id/action_navigation_profile_to_paymentSettingsFragment"
+            app:destination="@id/paymentSettingsFragment" />
+        <action
+            android:id="@+id/action_navigation_profile_to_changePasswordFragment"
+            app:destination="@id/changePasswordFragment" />
+        <action
+            android:id="@+id/action_navigation_profile_to_notificationSettingsFragment"
+            app:destination="@id/notificationSettingsFragment" />
+        <action
+            android:id="@+id/action_navigation_profile_to_reviewsFragment"
+            app:destination="@id/reviewsFragment" />
+    </fragment>
+
+
+    <!-- ======================================================= -->
+    <!-- 2. CÁC MÀN HÌNH CON & LUỒNG PHỤ -->
+    <!-- ======================================================= -->
+
+    <fragment
+        android:id="@+id/searchFragment"
+        android:name="com.example.testapptradeup.fragments.SearchFragment"
+        android:label="Tìm Kiếm"
+        tools:layout="@layout/fragment_search" />
     <fragment
         android:id="@+id/productListFragment"
         android:name="com.example.testapptradeup.fragments.ProductListFragment"
         android:label="Danh sách sản phẩm"
         tools:layout="@layout/fragment_product_list">
-
         <argument
             android:name="filterType"
             app:argType="string" />
@@ -42,41 +99,30 @@
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />
-
-        <!-- THÊM ACTION NÀY VÀO -->
-        <!-- Action để đi từ ProductListFragment đến ProductDetailFragment -->
         <action
             android:id="@+id/action_productList_to_productDetail"
             app:destination="@id/productDetailFragment" />
-
     </fragment>
-
-    <fragment android:id="@+id/productDetailFragment"
+    <fragment
+        android:id="@+id/productDetailFragment"
         android:name="com.example.testapptradeup.fragments.ProductDetailFragment"
-        android:label="fragment_product_detail"
+        android:label="Chi tiết sản phẩm"
         tools:layout="@layout/fragment_product_detail">
         <argument
             android:name="listingId"
             app:argType="string" />
     </fragment>
 
-    <fragment android:id="@+id/searchFragment"
-        android:name="com.example.testapptradeup.fragments.SearchFragment"
-        android:label="fragment_search"
-        tools:layout="@layout/fragment_search"/>
-    <fragment
-        android:id="@+id/myListingsFragment"
-        android:name="com.example.testapptradeup.fragments.MyListingsFragment"
-        android:label="fragment_my_listings"
-        tools:layout="@layout/fragment_my_listings" />
+    <!-- ======================================================= -->
+    <!-- 3. LUỒNG CHAT -->
+    <!-- ======================================================= -->
     <fragment
         android:id="@+id/chatListFragment"
         android:name="com.example.testapptradeup.fragments.ChatListFragment"
-        android:label="Tin nhắn"
+        android:label="Tin Nhắn"
         tools:layout="@layout/fragment_chat_list">
-        <!-- Action để đi từ danh sách chat đến chat chi tiết -->
         <action
-            android:id="@+id/action_chatListFragment_to_chatDetailFragment"
+            android:id="@+id/action_chatList_to_chatDetail"
             app:destination="@id/chatDetailFragment" />
     </fragment>
     <fragment
@@ -84,19 +130,13 @@
         android:name="com.example.testapptradeup.fragments.ChatDetailFragment"
         android:label="Chi tiết tin nhắn"
         tools:layout="@layout/fragment_chat_detail">
-
-        <!-- Khai báo argument mà fragment này sẽ nhận -->
         <argument
             android:name="chatId"
             app:argType="string" />
-
-        <!-- Argument 2 (Bắt buộc) -->
         <argument
             android:name="otherUserName"
             app:argType="string"
-            app:nullable="true" /> <!-- Dù nullable=true, nếu không có defaultValue, nó vẫn là bắt buộc -->
-
-        <!-- Argument 3 (Tùy chọn) -->
+            app:nullable="true" />
         <argument
             android:name="listingId"
             app:argType="string"
@@ -105,22 +145,42 @@
     </fragment>
 
     <fragment
-        android:id="@+id/notificationsFragment"
-        android:name="com.example.testapptradeup.fragments.NotificationsFragment"
-        android:label="fragment_notifications"
-        tools:layout="@layout/fragment_notifications" />
-
+        android:id="@+id/editProfileFragment"
+        android:name="com.example.testapptradeup.fragments.EditProfileFragment"
+        android:label="Chỉnh sửa hồ sơ"
+        tools:layout="@layout/fragment_edit_profile" />
     <fragment
-        android:id="@+id/navigation_profile"
-        android:name="com.example.testapptradeup.fragments.ProfileFragment"
-        android:label="fragment_profile"
-        tools:layout="@layout/fragment_profile" />
-
-    <!-- Destination cho FAB -->
+        android:id="@+id/publicProfileFragment"
+        android:name="com.example.testapptradeup.fragments.PublicProfileFragment"
+        android:label="Hồ sơ công khai"
+        tools:layout="@layout/fragment_public_profile">
+        <argument
+            android:name="userId"
+            app:argType="string" />
+    </fragment>
     <fragment
-        android:id="@+id/postFragment"
-        android:name="com.example.testapptradeup.fragments.PostFragment"
-        android:label="fragment_post"
-        tools:layout="@layout/fragment_post" />
-
+        android:id="@+id/favoritesFragment"
+        android:name="com.example.testapptradeup.fragments.FavoritesFragment"
+        android:label="Mục đã lưu"
+        tools:layout="@layout/fragment_favorites" />
+    <fragment
+        android:id="@+id/reviewsFragment"
+        android:name="com.example.testapptradeup.fragments.ReviewsFragment"
+        android:label="Đánh giá &amp; Nhận xét"
+        tools:layout="@layout/fragment_reviews" />
+    <fragment
+        android:id="@+id/paymentSettingsFragment"
+        android:name="com.example.testapptradeup.fragments.PaymentSettingsFragment"
+        android:label="Phương thức thanh toán"
+        tools:layout="@layout/fragment_payment_settings" />
+    <fragment
+        android:id="@+id/changePasswordFragment"
+        android:name="com.example.testapptradeup.fragments.ChangePasswordFragment"
+        android:label="Đổi mật khẩu"
+        tools:layout="@layout/fragment_change_password" />
+    <fragment
+        android:id="@+id/notificationSettingsFragment"
+        android:name="com.example.testapptradeup.fragments.NotificationSettingsFragment"
+        android:label="Cài đặt thông báo"
+        tools:layout="@layout/fragment_notification_settings" />
 </navigation>

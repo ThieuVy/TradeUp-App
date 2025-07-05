@@ -28,6 +28,7 @@ import com.example.testapptradeup.R;
 import com.example.testapptradeup.adapters.ManageListingsAdapter;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.repositories.ListingRepository;
+import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.example.testapptradeup.viewmodels.MyListingsViewModel;
 
 public class MyListingsFragment extends Fragment implements ManageListingsAdapter.OnItemInteractionListener {
@@ -45,6 +46,7 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
     private LinearLayout sortContainer;
 
     private GridLayoutManager layoutManager;
+    private MainViewModel mainViewModel;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -61,6 +63,7 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class); // Khởi tạo
         navController = Navigation.findNavController(view);
         initViews(view);
         setupRecyclerView();
@@ -68,6 +71,7 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
         observeViewModel();
         // Set tab mặc định
         updateFilterButtonUI(R.id.tab_all);
+        observeSharedViewModel();
     }
 
     private void initViews(View view) {
@@ -110,6 +114,17 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
                         }
                     }
                 }
+            }
+        });
+    }
+
+    private void observeSharedViewModel() {
+        mainViewModel.getNewListingPosted().observe(getViewLifecycleOwner(), newListing -> {
+            if (newListing != null) {
+                // Khi có bài đăng mới, yêu cầu ViewModel tải lại từ đầu
+                viewModel.refreshListings();
+                // Đánh dấu sự kiện đã được xử lý để không trigger lại
+                mainViewModel.onNewListingEventHandled();
             }
         });
     }

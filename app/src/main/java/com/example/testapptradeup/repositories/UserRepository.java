@@ -6,8 +6,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.example.testapptradeup.models.Review;
 import com.example.testapptradeup.models.User;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
@@ -57,19 +56,23 @@ public class UserRepository {
         db.collection("users").document(userId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-                        User user = documentSnapshot.toObject(User.class);
-                        if (user != null) {
-                            favoriteIdsData.setValue(user.getFavoriteListingIds());
+                        // Sử dụng get() thay vì toObject() để tránh lỗi nếu trường không tồn tại
+                        Object favsObject = documentSnapshot.get("favoriteListingIds");
+                        if (favsObject instanceof List) {
+                            @SuppressWarnings("unchecked")
+                            List<String> favIds = (List<String>) favsObject;
+                            favoriteIdsData.setValue(favIds);
                         } else {
-                            favoriteIdsData.setValue(null);
+                            // Trường không tồn tại hoặc không phải là List
+                            favoriteIdsData.setValue(new ArrayList<>());
                         }
                     } else {
-                        favoriteIdsData.setValue(null);
+                        favoriteIdsData.setValue(null); // User không tồn tại
                     }
                 }).addOnFailureListener(e -> favoriteIdsData.setValue(null));
         return favoriteIdsData;
     }
-    // Phương thức mới để lấy danh sách đánh giá của một user
+
     public LiveData<List<Review>> getUserReviews(String userId) {
         MutableLiveData<List<Review>> reviewsData = new MutableLiveData<>();
         if (userId == null) {
@@ -79,15 +82,13 @@ public class UserRepository {
         db.collection("reviews")
                 .whereEqualTo("reviewedUserId", userId)
                 .orderBy("reviewDate", Query.Direction.DESCENDING)
-                .limit(5) // Lấy 5 đánh giá gần nhất
+                .limit(5)
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    reviewsData.setValue(queryDocumentSnapshots.toObjects(Review.class));
-                })
+                .addOnSuccessListener(queryDocumentSnapshots -> reviewsData.setValue(queryDocumentSnapshots.toObjects(Review.class)))
                 .addOnFailureListener(e -> reviewsData.setValue(new ArrayList<>()));
         return reviewsData;
     }
-    // Phương thức mới để cập nhật trạng thái tài khoản
+
     public LiveData<Boolean> updateAccountStatus(String userId, String status) {
         MutableLiveData<Boolean> statusData = new MutableLiveData<>();
         if (userId == null) {
@@ -99,5 +100,23 @@ public class UserRepository {
                 .addOnSuccessListener(aVoid -> statusData.setValue(true))
                 .addOnFailureListener(e -> statusData.setValue(false));
         return statusData;
+    }
+
+    // Phương thức này đã đúng và sẽ được gọi bởi SearchViewModel
+    public void toggleFavorite(String userId, String listingId, boolean isFavorite) {
+        MutableLiveData<Boolean> status = new MutableLiveData<>();
+        if (userId == null) {
+            status.setValue(false);
+            return;
+        }
+
+        FieldValue updateValue = isFavorite ?
+                FieldValue.arrayUnion(listingId) :
+                FieldValue.arrayRemove(listingId);
+
+        db.collection("users").document(userId)
+                .update("favoriteListingIds", updateValue)
+                .addOnSuccessListener(aVoid -> status.setValue(true))
+                .addOnFailureListener(e -> status.setValue(false));
     }
 }

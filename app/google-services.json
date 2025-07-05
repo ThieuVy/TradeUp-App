@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "1074842891241",
+    "firebase_url": "https://tradeup-b9eba-default-rtdb.firebaseio.com",
     "project_id": "tradeup-b9eba",
     "storage_bucket": "tradeup-b9eba.firebasestorage.app"
   },
@@ -13,6 +14,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "1074842891241-u6f4u79vilamiboin20josen0g80umr9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.testapptradeup",
+            "certificate_hash": "59fc6ca666418161a7534b14ae98df0e51812390"
+          }
+        },
         {
           "client_id": "1074842891241-uucfgqc908amua17b6g8u5nihm92b0v2.apps.googleusercontent.com",
           "client_type": 3
@@ -42,6 +51,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "1074842891241-q2q7n9bnr23fv78n3ut3bfon4t26jtn2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.program.tradeupapp",
+            "certificate_hash": "59fc6ca666418161a7534b14ae98df0e51812390"
+          }
+        },
         {
           "client_id": "1074842891241-uucfgqc908amua17b6g8u5nihm92b0v2.apps.googleusercontent.com",
           "client_type": 3

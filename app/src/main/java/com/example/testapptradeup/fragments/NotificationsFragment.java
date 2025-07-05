@@ -83,36 +83,32 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
     }
 
     private void setupTabLayout() {
+        // Xóa các tab cũ nếu có để tránh lặp lại
+        tabLayoutNotifications.removeAllTabs();
+
+        // Thêm các tab bằng code
         tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tất cả"));
         tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tin nhắn"));
         tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Ưu đãi"));
-        tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Danh sách"));
+        tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tin đăng")); // Sửa "Danh sách" thành "Tin đăng" cho rõ nghĩa
         tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Khuyến mãi"));
 
         tabLayoutNotifications.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 String categoryFilter = Objects.requireNonNull(tab.getText()).toString();
-                // Map display names to internal categories used in Firestore/NotificationItem
-                switch (categoryFilter) {
-                    case "Tin nhắn":
-                        notificationsViewModel.loadNotifications(NotificationItem.NotificationType.MESSAGE.name());
-                        break;
+                // ViewModel sẽ chịu trách nhiệm lọc và cập nhật LiveData
+                // Ánh xạ tên hiển thị sang loại category trong model
+                String internalCategory;
+                switch(categoryFilter) {
+                    case "Tin nhắn": internalCategory = "MESSAGE"; break;
                     case "Ưu đãi":
-                        notificationsViewModel.loadNotifications(NotificationItem.NotificationType.PROMOTION.name());
-                        break;
-                    case "Danh sách":
-                        notificationsViewModel.loadNotifications(NotificationItem.NotificationType.LISTING.name());
-                        break;
                     case "Khuyến mãi":
-                        // Giả định Khuyến mãi cũng là loại PROMOTION
-                        notificationsViewModel.loadNotifications(NotificationItem.NotificationType.PROMOTION.name());
-                        break;
-                    case "Tất cả":
-                    default:
-                        notificationsViewModel.loadNotifications("Tất cả");
-                        break;
+                        internalCategory = "PROMOTION"; break;
+                    case "Tin đăng": internalCategory = "LISTING"; break;
+                    default: internalCategory = "Tất cả"; break;
                 }
+                notificationsViewModel.loadNotifications(internalCategory);
             }
 
             @Override

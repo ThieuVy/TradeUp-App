@@ -18,19 +18,19 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.activities.LoginActivity;
-import com.example.testapptradeup.adapters.ReviewAdapter;
+import com.example.testapptradeup.activities.MainActivity;
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.viewmodels.ProfileViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 
-import java.util.Locale; // <<< THÊM IMPORT NÀY
+// <<< THÊM IMPORT NÀY
+
 
 public class ProfileFragment extends Fragment {
 
@@ -46,11 +46,14 @@ public class ProfileFragment extends Fragment {
     private LinearLayout menuPaymentMethods;
     private RecyclerView recyclerViewReviews;
     private TextView emptyReviewsText;
+    private LinearLayout menuPersonalInfo, menuChangePassword, menuNotificationSettings;
+    private LinearLayout cardSavedItems, cardOffers, cardPurchases, cardPayments; // Sửa lại thành LinearLayout nếu cần
+    private LinearLayout menuReviews;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(ProfileViewModel.class); // Dùng scope Activity
     }
 
     @Override
@@ -67,6 +70,12 @@ public class ProfileFragment extends Fragment {
         observeViewModel();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        viewModel.refreshUserProfile(); // Yêu cầu tải lại dữ liệu mới nhất
+    }
+
     private void initViews(View view) {
         profileImage = view.findViewById(R.id.profile_image);
         textDisplayName = view.findViewById(R.id.text_display_name);
@@ -75,42 +84,89 @@ public class ProfileFragment extends Fragment {
         textEmail = view.findViewById(R.id.text_email);
         btnEditProfile = view.findViewById(R.id.btn_edit_profile);
         btnViewPublic = view.findViewById(R.id.btn_view_public);
+        btnLogout = view.findViewById(R.id.btn_logout);
+        btnDeactivateAccount = view.findViewById(R.id.btn_deactivate_account);
+        btnDeleteAccount = view.findViewById(R.id.btn_delete_account);
+
+        // Lịch sử hoạt động
+        cardSavedItems = view.findViewById(R.id.card_saved_items);
+        cardOffers = view.findViewById(R.id.card_offers);
+        cardPurchases = view.findViewById(R.id.card_purchases);
+        cardPayments = view.findViewById(R.id.card_payments);
         textSavedItemsCount = view.findViewById(R.id.text_saved_items_count);
         textOffersCount = view.findViewById(R.id.text_offers_count);
         textPurchasesCount = view.findViewById(R.id.text_purchases_count);
         textPaymentsCount = view.findViewById(R.id.text_payments_count);
+
+
+        // Quản lý tài khoản
+        menuPersonalInfo = view.findViewById(R.id.menu_personal_info);
+        menuChangePassword = view.findViewById(R.id.menu_change_password);
+        menuNotificationSettings = view.findViewById(R.id.menu_notification_settings);
         menuPaymentMethods = view.findViewById(R.id.menu_payment_methods);
+
+        // Đánh giá
+        menuReviews = view.findViewById(R.id.menu_reviews_section); // Giả sử có ID này
         recyclerViewReviews = view.findViewById(R.id.recycler_view_reviews);
         emptyReviewsText = view.findViewById(R.id.empty_reviews_text);
-        btnDeactivateAccount = view.findViewById(R.id.btn_deactivate_account);
-        btnDeleteAccount = view.findViewById(R.id.btn_delete_account);
-        btnLogout = view.findViewById(R.id.btn_logout);
     }
 
     private void setupClickListeners() {
-        btnEditProfile.setOnClickListener(v -> {
-            if (currentUser != null) {
-                // Sửa: Sử dụng lớp Directions đã được tạo tự động
-                ProfileFragmentDirections.ActionProfileFragmentToEditProfileFragment action =
-                        ProfileFragmentDirections.actionProfileFragmentToEditProfileFragment(currentUser);
-                navController.navigate(action);
-            }
-        });
+        // --- CÁC NÚT CHÍNH ---
+        btnEditProfile.setOnClickListener(v ->
+                // Sử dụng ID action mới
+                navController.navigate(R.id.action_navigation_profile_to_editProfileFragment)
+        );
 
         btnViewPublic.setOnClickListener(v -> {
-            if (currentUser != null) {
-                // Sửa: Sử dụng lớp Directions đã được tạo tự động
-                ProfileFragmentDirections.ActionProfileFragmentToPublicProfileFragment action =
-                        ProfileFragmentDirections.actionProfileFragmentToPublicProfileFragment(currentUser.getId());
+            if (currentUser != null && currentUser.getId() != null) {
+                // Lớp và phương thức được tạo ra sẽ khớp với ID action mới
+                ProfileFragmentDirections.ActionNavigationProfileToPublicProfileFragment action =
+                        ProfileFragmentDirections.actionNavigationProfileToPublicProfileFragment(currentUser.getId());
                 navController.navigate(action);
+            } else {
+                Toast.makeText(getContext(), "Không thể xem hồ sơ lúc này.", Toast.LENGTH_SHORT).show();
             }
         });
 
-        menuPaymentMethods.setOnClickListener(v -> Toast.makeText(getContext(), "Mở cài đặt thanh toán Stripe...", Toast.LENGTH_SHORT).show());
+        // --- LỊCH SỬ HOẠT ĐỘNG ---
+        cardSavedItems.setOnClickListener(v ->
+                navController.navigate(R.id.action_navigation_profile_to_favoritesFragment)
+        );
+        cardOffers.setOnClickListener(v ->
+                Toast.makeText(getContext(), "Mở lịch sử đề xuất...", Toast.LENGTH_SHORT).show()
+        );
+        cardPurchases.setOnClickListener(v ->
+                Toast.makeText(getContext(), "Mở lịch sử mua hàng...", Toast.LENGTH_SHORT).show()
+        );
+        cardPayments.setOnClickListener(v ->
+                navController.navigate(R.id.action_navigation_profile_to_paymentSettingsFragment)
+        );
 
+
+        // --- QUẢN LÝ TÀI KHOẢN ---
+        menuPersonalInfo.setOnClickListener(v ->
+                navController.navigate(R.id.action_navigation_profile_to_editProfileFragment)
+        );
+        menuChangePassword.setOnClickListener(v ->
+                navController.navigate(R.id.action_navigation_profile_to_changePasswordFragment)
+        );
+        menuNotificationSettings.setOnClickListener(v ->
+                navController.navigate(R.id.action_navigation_profile_to_notificationSettingsFragment)
+        );
+        menuPaymentMethods.setOnClickListener(v ->
+                navController.navigate(R.id.action_navigation_profile_to_paymentSettingsFragment)
+        );
+
+        // --- ĐÁNH GIÁ & NHẬN XÉT ---
+        menuReviews.setOnClickListener(v ->
+                navController.navigate(R.id.action_navigation_profile_to_reviewsFragment)
+        );
+
+        // --- CÁC HÀNH ĐỘNG KHÁC ---
+        btnLogout.setOnClickListener(v -> showLogoutConfirmationDialog());
         btnDeactivateAccount.setOnClickListener(v -> showDeactivateConfirmDialog());
         btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
-        btnLogout.setOnClickListener(v -> logout());
     }
 
     private void observeViewModel() {
@@ -122,44 +178,44 @@ public class ProfileFragment extends Fragment {
                 Toast.makeText(getContext(), "Không thể tải dữ liệu người dùng.", Toast.LENGTH_SHORT).show();
             }
         });
-
-        viewModel.getUserReviewsData().observe(getViewLifecycleOwner(), reviews -> {
-            if (reviews != null && !reviews.isEmpty()) {
-                recyclerViewReviews.setVisibility(View.VISIBLE);
-                emptyReviewsText.setVisibility(View.GONE);
-                recyclerViewReviews.setLayoutManager(new LinearLayoutManager(getContext()));
-                recyclerViewReviews.setAdapter(new ReviewAdapter(reviews));
-            } else {
-                recyclerViewReviews.setVisibility(View.GONE);
-                emptyReviewsText.setVisibility(View.VISIBLE);
-            }
-        });
     }
 
-    @SuppressLint("SetTextI18n")
+    @SuppressLint({"SetTextI18n", "StringFormatMatches"})
     private void updateUI(User user) {
-        textDisplayName.setText(user.getName());
-        textEmail.setText(user.getEmail());
+        if (user == null) {
+            // Xử lý trường hợp user null (ví dụ: hiển thị trạng thái lỗi)
+            textDisplayName.setText("Không tải được dữ liệu");
+            textEmail.setText("");
+            textRatingInfo.setText("");
+            textBio.setText("");
+            return;
+        }
+
+        // Gán dữ liệu, kiểm tra null trước khi dùng
+        textDisplayName.setText(user.getName() != null ? user.getName() : "Chưa có tên");
+        textEmail.setText(user.getEmail() != null ? user.getEmail() : "Chưa có email");
         textBio.setText(user.getBio() != null && !user.getBio().isEmpty() ? user.getBio() : "Chưa có tiểu sử.");
 
         if (user.getReviewCount() > 0) {
-            // Sửa: Sử dụng Locale đã được import
-            textRatingInfo.setText(String.format(Locale.getDefault(), "%.1f từ %d đánh giá", user.getRating(), user.getReviewCount()));
+            // Sử dụng String resource để dễ dịch thuật sau này
+            textRatingInfo.setText(getString(R.string.rating_info_format, user.getRating(), user.getReviewCount()));
         } else {
             textRatingInfo.setText("Chưa có đánh giá");
         }
 
+        // Tải ảnh đại diện
         if (getContext() != null && user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
-            Glide.with(getContext()).load(user.getProfileImageUrl()).circleCrop().into(profileImage);
+            Glide.with(this).load(user.getProfileImageUrl()).circleCrop().placeholder(R.drawable.ic_profile_placeholder).into(profileImage);
         } else {
-            // Đặt ảnh mặc định nếu không có ảnh
-            profileImage.setImageResource(R.drawable.img);
+            profileImage.setImageResource(R.drawable.ic_profile_placeholder);
         }
 
+        // Cập nhật các số đếm
+        // *** FIX LỖI HIỂN THỊ TRỐNG THAY VÌ SỐ 0 ***
         textSavedItemsCount.setText(String.valueOf(user.getFavoriteListingIds() != null ? user.getFavoriteListingIds().size() : 0));
-        textPurchasesCount.setText(String.valueOf(user.getCompletedSalesCount()));
-        textOffersCount.setText("0");
-        textPaymentsCount.setText("0");
+        textOffersCount.setText("0"); // Cần thêm trường này vào User model
+        textPurchasesCount.setText(String.valueOf(user.getCompletedSalesCount())); // Cần thêm trường này vào User model
+        textPaymentsCount.setText("0"); // Cần thêm trường này vào User model
     }
 
     private void showDeactivateConfirmDialog() {
@@ -174,6 +230,19 @@ public class ProfileFragment extends Fragment {
                         Toast.makeText(getContext(), "Có lỗi xảy ra.", Toast.LENGTH_SHORT).show();
                     }
                 }))
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void showLogoutConfirmationDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Đăng xuất")
+                .setMessage("Bạn có chắc chắn muốn đăng xuất?")
+                .setPositiveButton("Đăng xuất", (dialog, which) -> {
+                    if (getActivity() instanceof MainActivity) {
+                        ((MainActivity) getActivity()).performLogout();
+                    }
+                })
                 .setNegativeButton("Hủy", null)
                 .show();
     }

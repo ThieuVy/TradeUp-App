@@ -97,7 +97,6 @@ public class LoginActivity extends AppCompatActivity {
         registerLink.setOnClickListener(v -> {
             Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
             startActivity(intent);
-            // Không finish() để người dùng có thể quay lại
         });
 
         loginButton.setOnClickListener(v -> performEmailPasswordLogin());
@@ -128,17 +127,22 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
+                        // ========== BẮT ĐẦU PHẦN SỬA LỖI ==========
                         if (user != null) {
                             if (user.isEmailVerified()) {
-                                Toast.makeText(LoginActivity.this, "Đăng nhập thành công", Toast.LENGTH_SHORT).show();
+                                // Email đã xác thực -> Tải dữ liệu và vào app
+                                Log.d(TAG, "Email đã xác thực, đang tải dữ liệu người dùng.");
                                 loadAndNavigateUser(user.getUid());
                             } else {
+                                // Email chưa xác thực -> Chuyển đến màn hình xác thực
                                 showLoading(false);
                                 Toast.makeText(LoginActivity.this, "Vui lòng xác thực email của bạn.", Toast.LENGTH_LONG).show();
                                 Intent intent = new Intent(LoginActivity.this, EmailVerificationActivity.class);
                                 startActivity(intent);
+                                // Không finish() LoginActivity để người dùng có thể quay lại
                             }
                         }
+                        // ========== KẾT THÚC PHẦN SỬA LỖI ==========
                     } else {
                         showLoading(false);
                         String errorMessage = getFirebaseErrorMessage(task.getException());
@@ -188,7 +192,6 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    // <<< HÀM ĐẦY ĐỦ >>>
     private void firebaseAuthWithGoogle(String idToken) {
         AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
         mAuth.signInWithCredential(credential)
@@ -211,7 +214,6 @@ public class LoginActivity extends AppCompatActivity {
                                         "", // address
                                         0.0f, 0, true, "active", false, "not_connected", 0
                                 );
-                                // Lưu user mới vào Firestore và sau đó điều hướng
                                 saveNewUserAndNavigate(newUser);
                             } else {
                                 // Nếu là người dùng cũ, tải dữ liệu và điều hướng
@@ -228,7 +230,6 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
-    // Hàm trợ giúp để lưu user mới và điều hướng
     private void saveNewUserAndNavigate(User newUser) {
         db.collection("users").document(newUser.getId())
                 .set(newUser)
@@ -240,7 +241,6 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error saving new Google user to Firestore: " + e.getMessage(), e);
                     Toast.makeText(LoginActivity.this, "Lỗi khi lưu thông tin người dùng.", Toast.LENGTH_SHORT).show();
-                    // Vẫn cố gắng điều hướng
                     navigateToMainActivity();
                 });
     }
@@ -253,7 +253,7 @@ public class LoginActivity extends AppCompatActivity {
                         if (user != null) {
                             user.setId(userId);
                             prefsHelper.saveCurrentUser(user);
-                            Log.d(TAG, "User data loaded from Firestore and saved to SharedPrefs for UID: " + userId);
+                            Log.d(TAG, "User data loaded for UID: " + userId);
                         } else {
                             createFallbackUserAndSave(userId, "User object null from Firestore");
                         }
@@ -287,14 +287,11 @@ public class LoginActivity extends AppCompatActivity {
     private String getFirebaseErrorMessage(Exception exception) {
         String defaultMessage = "Xác thực thất bại. Vui lòng thử lại.";
         if (exception == null) return defaultMessage;
-
         String message = exception.getMessage();
         if (message == null) return defaultMessage;
-
         if (message.contains("user not found") || message.contains("INVALID_LOGIN_CREDENTIALS")) {
             return "Email hoặc mật khẩu không đúng.";
         }
-        // ... các mã lỗi khác
         return defaultMessage;
     }
 
@@ -307,7 +304,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void navigateToMainActivity() {
-        showLoading(false); // Đảm bảo thanh progress bị ẩn trước khi chuyển màn hình
+        showLoading(false);
         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
@@ -324,16 +321,14 @@ public class LoginActivity extends AppCompatActivity {
     public void onStart() {
         super.onStart();
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
+        // Chỉ tự động đăng nhập nếu user đã đăng nhập VÀ đã xác thực email
         if (firebaseUser != null && firebaseUser.isEmailVerified()) {
-            if (prefsHelper.getCurrentUser() != null) {
-                navigateToMainActivity();
-            } else {
+            // Tải dữ liệu nếu chưa có trong cache, sau đó vào app
+            if (prefsHelper.getCurrentUser() == null) {
                 loadAndNavigateUser(firebaseUser.getUid());
+            } else {
+                navigateToMainActivity();
             }
-        } else if (firebaseUser != null && !firebaseUser.isEmailVerified()) {
-            // Nếu người dùng đã đăng nhập nhưng chưa xác thực, ở lại màn hình này
-            // hoặc chuyển đến màn hình xác thực
-            Log.d(TAG, "User is logged in but email not verified.");
         }
     }
 }

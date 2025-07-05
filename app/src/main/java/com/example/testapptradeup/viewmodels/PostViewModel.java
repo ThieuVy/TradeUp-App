@@ -1,157 +1,113 @@
 package com.example.testapptradeup.viewmodels;
 
+import android.app.Application;
 import android.net.Uri;
-import android.util.Log;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
 
-import com.cloudinary.android.MediaManager;
-import com.cloudinary.android.callback.ErrorInfo;
-import com.cloudinary.android.callback.UploadCallback;
 import com.example.testapptradeup.models.Listing;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.example.testapptradeup.repositories.PostRepository;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
-public class PostViewModel extends ViewModel {
-    private static final String TAG = "PostViewModel";
+public class PostViewModel extends AndroidViewModel {
 
-    // Lớp trạng thái để UI lắng nghe
     public static class PostStatus {
-        public static final PostStatus IDLE = new PostStatus();
-        public static final PostStatus LOADING = new PostStatus();
-        public static final PostStatus SUCCESS = new PostStatus();
+        public static final PostStatus IDLE = new PostStatus("IDLE");
+        public static final PostStatus LOADING = new PostStatus("LOADING");
+
+        // Thay đổi SUCCESS thành một lớp riêng để chứa dữ liệu
+        public static class SUCCESS extends PostStatus {
+            public final Listing listing;
+            public SUCCESS(Listing listing) {
+                super("SUCCESS");
+                this.listing = listing;
+            }
+        }
+
         public static class Error extends PostStatus {
             public final String message;
-            public Error(String message) { this.message = message; }
+            public Error(String message) { super("ERROR"); this.message = message; }
         }
+
+        private final String state;
+        private PostStatus(String state) { this.state = state; }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass().getSimpleName() != o.getClass().getSimpleName()) return false;
+            PostStatus that = (PostStatus) o;
+            return Objects.equals(state, that.state);
+        }
+        @Override
+        public int hashCode() { return Objects.hash(state); }
     }
 
-    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-    // Các LiveData quản lý ảnh
+    private final PostRepository postRepository;
     private final MutableLiveData<List<Uri>> selectedImageUris = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<List<String>> uploadedImageUrls = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<Map<Uri, UploadState>> imageUploadStates = new MutableLiveData<>(new HashMap<>());
-    public enum UploadState { UPLOADING, SUCCESS, FAILED }
-
-    // LiveData cho trạng thái đăng bài
     private final MutableLiveData<PostStatus> postStatus = new MutableLiveData<>(PostStatus.IDLE);
 
-    // Getters
+    public PostViewModel(@NonNull Application application) {
+        super(application);
+        this.postRepository = new PostRepository();
+    }
+
     public LiveData<List<Uri>> getSelectedImageUris() { return selectedImageUris; }
-    public LiveData<Map<Uri, UploadState>> getImageUploadStates() { return imageUploadStates; }
     public LiveData<PostStatus> getPostStatus() { return postStatus; }
 
-    /**
-     * Khi người dùng chọn một ảnh mới.
-     */
+    // Logic quản lý ảnh
     public void addImage(Uri uri) {
         List<Uri> currentUris = new ArrayList<>(Objects.requireNonNull(selectedImageUris.getValue()));
         if (!currentUris.contains(uri)) {
             currentUris.add(uri);
             selectedImageUris.setValue(currentUris);
-            startImageUpload(uri);
         }
     }
 
-    /**
-     * Khi người dùng xóa một ảnh.
-     */
     public void removeImage(Uri uri) {
-        // Cập nhật danh sách Uri hiển thị trên UI
         List<Uri> currentUris = new ArrayList<>(Objects.requireNonNull(selectedImageUris.getValue()));
         currentUris.remove(uri);
         selectedImageUris.setValue(currentUris);
-
-        // Cập nhật trạng thái upload
-        Map<Uri, UploadState> currentStates = new HashMap<>(Objects.requireNonNull(imageUploadStates.getValue()));
-        currentStates.remove(uri);
-        imageUploadStates.setValue(currentStates);
-
-        // TODO: Cần một cơ chế phức tạp hơn để xóa URL đã upload khỏi uploadedImageUrls
-        // Ví dụ: Dùng một Map<Uri, String> để lưu cặp Uri-Url
     }
 
     /**
-     * Khi người dùng nhấn "Đăng tin".
+     * Bắt đầu quá trình đăng tin: upload ảnh rồi lưu thông tin.
+     * @param listing Đối tượng tin đăng đã có thông tin (trừ URL ảnh).
      */
     public void postListing(Listing listing) {
-        postStatus.setValue(PostStatus.LOADING);
-
         List<Uri> urisToUpload = selectedImageUris.getValue();
-        List<String> finalUrls = uploadedImageUrls.getValue();
-
-        if (urisToUpload == null || finalUrls == null || urisToUpload.size() != finalUrls.size()) {
-            postStatus.setValue(new PostStatus.Error("Vui lòng chờ tất cả ảnh được tải lên hoặc xóa các ảnh bị lỗi."));
+        if (urisToUpload == null || urisToUpload.isEmpty()) {
+            postStatus.setValue(new PostStatus.Error("Vui lòng chọn ít nhất một ảnh."));
             return;
         }
 
-        listing.setImageUrls(finalUrls);
-        listing.setTimePosted(new Date());
-        saveListingToFirestore(listing);
-    }
+        postStatus.setValue(PostStatus.LOADING);
 
-    // ========== PHẦN SỬA LỖI ==========
-    /**
-     * Bắt đầu quá trình upload một URI ảnh lên Cloudinary.
-     */
-    private void startImageUpload(final Uri uri) {
-        updateImageState(uri, UploadState.UPLOADING);
-
-        MediaManager.get().upload(uri).callback(new UploadCallback() {
-            @Override
-            public void onStart(String requestId) {
-                Log.d(TAG, "Bắt đầu tải lên: " + uri.toString());
+        // Bước 1: Upload ảnh
+        postRepository.uploadImages(urisToUpload, getApplication()).observeForever(uploadedUrls -> {
+            if (uploadedUrls == null || uploadedUrls.isEmpty()) {
+                postStatus.postValue(new PostStatus.Error("Lỗi upload ảnh."));
+                return;
             }
 
-            @Override
-            public void onSuccess(String requestId, Map resultData) {
-                String url = (String) resultData.get("secure_url");
-                if (url != null) {
-                    Log.d(TAG, "Tải lên thành công: " + url);
-                    List<String> currentUrls = new ArrayList<>(Objects.requireNonNull(uploadedImageUrls.getValue()));
-                    currentUrls.add(url);
-                    uploadedImageUrls.setValue(currentUrls);
-                    updateImageState(uri, UploadState.SUCCESS);
+            // Bước 2: Gán URLs và lưu vào Firestore
+            listing.setImageUrls(uploadedUrls);
+
+            postRepository.saveListing(listing).addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    // KHI THÀNH CÔNG: Gửi về trạng thái SUCCESS cùng với đối tượng Listing
+                    postStatus.postValue(new PostStatus.SUCCESS(listing));
                 } else {
-                    // SỬA: Tạo một đối tượng ErrorInfo mới với mã lỗi tùy chỉnh
-                    // và một thông điệp rõ ràng.
-                    ErrorInfo errorInfo = new ErrorInfo(-1, "Phản hồi từ Cloudinary không hợp lệ (thiếu URL).");
-                    onError(requestId, errorInfo);
+                    postStatus.postValue(new PostStatus.Error("Lỗi khi lưu tin đăng: " + task.getException().getMessage()));
                 }
-            }
-
-            @Override
-            public void onError(String requestId, ErrorInfo error) {
-                Log.e(TAG, "Lỗi tải lên: " + error.getDescription());
-                updateImageState(uri, UploadState.FAILED);
-            }
-
-            @Override
-            public void onReschedule(String requestId, ErrorInfo error) { }
-            @Override
-            public void onProgress(String requestId, long bytes, long totalBytes) { }
-        }).dispatch();
-    }
-    // ========== KẾT THÚC PHẦN SỬA LỖI ==========
-
-    private void updateImageState(Uri uri, UploadState state) {
-        Map<Uri, UploadState> currentStates = new HashMap<>(Objects.requireNonNull(imageUploadStates.getValue()));
-        currentStates.put(uri, state);
-        imageUploadStates.setValue(currentStates);
-    }
-
-    private void saveListingToFirestore(Listing listing) {
-        db.collection("listings").add(listing)
-                .addOnSuccessListener(documentReference -> postStatus.setValue(PostStatus.SUCCESS))
-                .addOnFailureListener(e -> postStatus.setValue(new PostStatus.Error("Lỗi lưu dữ liệu: " + e.getMessage())));
+            });
+        });
     }
 }

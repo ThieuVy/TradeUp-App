@@ -93,7 +93,7 @@
                     android:layout_height="16dp"
                     android:src="@drawable/ic_star"
                     app:tint="#FFC107"
-                    tools:ignore="ContentDescription" />
+                    tools:ignore="ContentDescription,ImageContrastCheck" />
 
                 <TextView
                     android:id="@+id/text_rating_info"
@@ -145,7 +145,7 @@
                 android:textSize="15dp"
                 app:icon="@drawable/ic_edit"
                 app:iconGravity="textStart"
-                tools:ignore="HardcodedText,SpUsage" />
+                tools:ignore="HardcodedText,SpUsage,TextSizeCheck,VisualLintButtonSize" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_view_public"
@@ -158,7 +158,7 @@
                 android:textSize="15dp"
                 app:icon="@drawable/ic_visibility"
                 app:iconGravity="textStart"
-                tools:ignore="HardcodedText,SpUsage" />
+                tools:ignore="HardcodedText,SpUsage,TextSizeCheck,VisualLintButtonSize" />
         </LinearLayout>
 
         <!-- SECTION: ACTIVITY HISTORY / QUICK STATS -->
@@ -338,32 +338,64 @@
         </LinearLayout>
 
         <!-- SECTION 5: RATINGS & REVIEWS -->
-        <TextView
-            style="@style/ProfileSectionHeader"
-            android:text="Đánh giá &amp; Nhận xét"
-            tools:ignore="HardcodedText" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_view_reviews"
+        <!-- BỌC PHẦN NÀY TRONG MỘT LINEARLAYOUT VÀ ĐẶT ID -->
+        <LinearLayout
+            android:id="@+id/menu_reviews_section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:nestedScrollingEnabled="false"
-            android:paddingHorizontal="16dp"
-            tools:itemCount="2"
-            tools:listitem="@layout/item_review" />
+            android:orientation="vertical"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
 
-        <!-- THÊM VIEW NÀY -->
-        <TextView
-            android:id="@+id/empty_reviews_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Chưa có đánh giá nào."
-            android:gravity="center"
-            android:padding="16dp"
-            android:textColor="@color/text_secondary"
-            android:visibility="gone"
-            tools:visibility="visible"
-            tools:ignore="HardcodedText" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="8dp"
+                tools:ignore="UseCompoundDrawables">
+
+                <TextView
+                    style="@style/ProfileSectionHeader"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="0dp"
+                    android:layout_marginTop="0dp"
+                    android:layout_marginBottom="0dp"
+                    android:text="Đánh giá &amp; Nhận xét"
+                    tools:ignore="HardcodedText" />
+
+                <ImageView
+                    style="@style/ProfileMenuChevron"
+                    tools:ignore="ContentDescription" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view_reviews"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:paddingHorizontal="16dp"
+                tools:itemCount="2"
+                tools:listitem="@layout/item_review" />
+
+            <TextView
+                android:id="@+id/empty_reviews_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Chưa có đánh giá nào."
+                android:gravity="center"
+                android:padding="16dp"
+                android:textColor="@color/text_secondary"
+                android:visibility="gone"
+                tools:visibility="visible"
+                tools:ignore="HardcodedText" />
+
+        </LinearLayout>
 
         <!-- SECTION 6: ACCOUNT ACTIONS -->
         <com.google.android.material.button.MaterialButton
@@ -375,7 +407,7 @@
             android:layout_marginTop="24dp"
             android:text="Tạm dừng tài khoản"
             android:textColor="@color/text_secondary"
-            tools:ignore="HardcodedText" />
+            tools:ignore="HardcodedText,VisualLintButtonSize" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_delete_account"
@@ -386,7 +418,7 @@
             android:layout_marginTop="8dp"
             android:text="Xóa tài khoản"
             app:backgroundTint="@color/red_error"
-            tools:ignore="HardcodedText" />
+            tools:ignore="HardcodedText,VisualLintButtonSize,TextContrastCheck" />
 
         <!-- THÊM NÚT NÀY -->
         <com.google.android.material.button.MaterialButton
@@ -399,6 +431,6 @@
             android:text="Đăng xuất"
             app:backgroundTint="?attr/colorOnSurface"
             android:textColor="?attr/colorSurface"
-            tools:ignore="HardcodedText" />
+            tools:ignore="HardcodedText,VisualLintButtonSize" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

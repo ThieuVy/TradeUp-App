@@ -1,5 +1,6 @@
 package com.example.testapptradeup.adapters;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -82,5 +83,11 @@ public class PublicListingAdapter extends RecyclerView.Adapter<PublicListingAdap
                         .into(listingImage);
             }
         }
+    }
+    @SuppressLint("NotifyDataSetChanged")
+    public void updateData(List<Listing> newListings) {
+        listingList.clear();
+        listingList.addAll(newListings);
+        notifyDataSetChanged();
     }
 }

@@ -12,6 +12,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -21,22 +22,18 @@ import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.adapters.PublicListingAdapter;
 import com.example.testapptradeup.adapters.PublicReviewAdapter;
-import com.example.testapptradeup.models.Listing;
-import com.example.testapptradeup.models.Review;
 import com.example.testapptradeup.models.User;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
+import com.example.testapptradeup.viewmodels.PublicProfileViewModel; // Import ViewModel
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 public class PublicProfileFragment extends Fragment {
 
     private String userId;
     private NavController navController;
-    private FirebaseFirestore db;
+    private PublicProfileViewModel viewModel;
 
     // UI Elements
     private ImageView profileImage, btnBack;
@@ -46,20 +43,20 @@ public class PublicProfileFragment extends Fragment {
 
     private PublicListingAdapter listingAdapter;
     private PublicReviewAdapter reviewAdapter;
-    private final List<Listing> listings = new ArrayList<>();
-    private final List<Review> reviews = new ArrayList<>();
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        db = FirebaseFirestore.getInstance();
+        // Khởi tạo ViewModel
+        viewModel = new ViewModelProvider(this).get(PublicProfileViewModel.class);
         if (getArguments() != null) {
             userId = getArguments().getString("userId");
         }
     }
 
+    @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_public_profile, container, false);
     }
 
@@ -67,19 +64,39 @@ public class PublicProfileFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         navController = Navigation.findNavController(view);
-
         initViews(view);
         setupRecyclerViews();
         setupClickListeners();
 
         if (userId != null && !userId.isEmpty()) {
-            loadUserProfile();
-            loadUserListings();
-            loadUserReviews();
+            observeViewModel();
+            viewModel.loadProfileData(userId); // Yêu cầu ViewModel tải dữ liệu
         } else {
             Toast.makeText(getContext(), R.string.error_invalid_user_id, Toast.LENGTH_SHORT).show();
             navController.popBackStack();
         }
+    }
+
+    private void observeViewModel() {
+        viewModel.getUserProfile().observe(getViewLifecycleOwner(), user -> {
+            if (user != null) {
+                updateProfileUI(user);
+            } else {
+                Toast.makeText(getContext(), R.string.error_loading_profile, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        viewModel.getUserListings().observe(getViewLifecycleOwner(), userListings -> {
+            if (userListings != null) {
+                listingAdapter.updateData(userListings);
+            }
+        });
+
+        viewModel.getUserReviews().observe(getViewLifecycleOwner(), userReviews -> {
+            if (userReviews != null) {
+                reviewAdapter.updateData(userReviews);
+            }
+        });
     }
 
     private void initViews(View view) {
@@ -99,32 +116,18 @@ public class PublicProfileFragment extends Fragment {
     }
 
     private void setupRecyclerViews() {
-        // Listings RecyclerView
+        // Khởi tạo adapter với danh sách rỗng
         recyclerActiveListings.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        listingAdapter = new PublicListingAdapter(getContext(), listings);
+        listingAdapter = new PublicListingAdapter(getContext(), new ArrayList<>());
         recyclerActiveListings.setAdapter(listingAdapter);
 
-        // Reviews RecyclerView
         recyclerReviews.setLayoutManager(new LinearLayoutManager(getContext()));
-        reviewAdapter = new PublicReviewAdapter(getContext(), reviews);
+        reviewAdapter = new PublicReviewAdapter(getContext(), new ArrayList<>());
         recyclerReviews.setAdapter(reviewAdapter);
     }
 
     private void setupClickListeners() {
         btnBack.setOnClickListener(v -> navController.popBackStack());
-    }
-
-    private void loadUserProfile() {
-        db.collection("users").document(userId).get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        User user = documentSnapshot.toObject(User.class);
-                        if (user != null) {
-                            updateProfileUI(user);
-                        }
-                    }
-                })
-                .addOnFailureListener(e -> Toast.makeText(getContext(), R.string.error_loading_profile, Toast.LENGTH_SHORT).show());
     }
 
     @SuppressLint("SetTextI18n")
@@ -171,38 +174,5 @@ public class PublicProfileFragment extends Fragment {
             }
         }
         return stars.toString();
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    private void loadUserListings() {
-        db.collection("listings")
-                .whereEqualTo("sellerId", userId)
-                .whereEqualTo("status", "active")
-                .orderBy("timePosted", Query.Direction.DESCENDING)
-                .limit(10)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
-                        listings.clear();
-                        listings.addAll(queryDocumentSnapshots.toObjects(Listing.class));
-                        listingAdapter.notifyDataSetChanged();
-                    }
-                });
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    private void loadUserReviews() {
-        db.collection("reviews")
-                .whereEqualTo("reviewedUserId", userId)
-                .orderBy("reviewDate", Query.Direction.DESCENDING)
-                .limit(3)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
-                        reviews.clear();
-                        reviews.addAll(queryDocumentSnapshots.toObjects(Review.class));
-                        reviewAdapter.notifyDataSetChanged();
-                    }
-                });
     }
 }

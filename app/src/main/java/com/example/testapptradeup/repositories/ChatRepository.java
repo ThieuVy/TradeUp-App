@@ -7,16 +7,20 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.example.testapptradeup.models.ChatMessage;
 import com.example.testapptradeup.models.Conversation;
+import com.example.testapptradeup.models.User;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ChatRepository {
     private static final String TAG = "ChatRepository";
@@ -24,7 +28,8 @@ public class ChatRepository {
     private final String currentUserId = FirebaseAuth.getInstance().getUid();
 
     /**
-     * Lắng nghe danh sách các cuộc trò chuyện của người dùng hiện tại trong thời gian thực.
+     * Lắng nghe danh sách các cuộc trò chuyện của người dùng hiện tại,
+     * đồng thời lấy thông tin của người dùng đối diện.
      * @return LiveData chứa danh sách Conversation.
      */
     public LiveData<List<Conversation>> getConversations() {
@@ -40,27 +45,64 @@ public class ChatRepository {
                 .addSnapshotListener((snapshots, error) -> {
                     if (error != null) {
                         Log.e(TAG, "Lỗi lắng nghe conversations: ", error);
-                        conversationsData.setValue(new ArrayList<>());
+                        conversationsData.postValue(new ArrayList<>());
                         return;
                     }
-                    if (snapshots == null) {
-                        conversationsData.setValue(new ArrayList<>());
+                    if (snapshots == null || snapshots.isEmpty()) {
+                        conversationsData.postValue(new ArrayList<>());
                         return;
                     }
 
-                    List<Conversation> conversations = new ArrayList<>();
+                    List<Conversation> tempConversations = new ArrayList<>();
+                    AtomicInteger pendingUserFetches = new AtomicInteger(snapshots.size());
+
                     for (QueryDocumentSnapshot doc : snapshots) {
                         Conversation convo = doc.toObject(Conversation.class);
                         convo.setId(doc.getId());
-                        conversations.add(convo);
+
+                        List<String> members = (List<String>) doc.get("members");
+                        if (members != null) {
+                            String otherUserId = members.stream()
+                                    .filter(id -> !id.equals(currentUserId))
+                                    .findFirst()
+                                    .orElse(null);
+
+                            if (otherUserId != null) {
+                                db.collection("users").document(otherUserId).get()
+                                        .addOnSuccessListener(userDoc -> {
+                                            if (userDoc.exists()) {
+                                                User otherUser = userDoc.toObject(User.class);
+                                                if (otherUser != null) {
+                                                    convo.setOtherUserId(otherUserId);
+                                                    convo.setOtherUserName(otherUser.getName());
+                                                    convo.setOtherUserAvatarUrl(otherUser.getProfileImageUrl());
+                                                }
+                                            }
+                                            tempConversations.add(convo);
+                                            if (pendingUserFetches.decrementAndGet() == 0) {
+                                                conversationsData.postValue(tempConversations);
+                                            }
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e(TAG, "Lỗi lấy thông tin người dùng " + otherUserId, e);
+                                            tempConversations.add(convo);
+                                            if (pendingUserFetches.decrementAndGet() == 0) {
+                                                conversationsData.postValue(tempConversations);
+                                            }
+                                        });
+                            } else {
+                                // Trường hợp chat với chính mình hoặc dữ liệu lỗi
+                                tempConversations.add(convo);
+                                if (pendingUserFetches.decrementAndGet() == 0) {
+                                    conversationsData.postValue(tempConversations);
+                                }
+                            }
+                        }
                     }
-                    conversationsData.setValue(conversations);
                 });
 
         return conversationsData;
     }
-
-    // ========== PHẦN CODE ĐƯỢC HOÀN THIỆN ==========
 
     /**
      * Lắng nghe danh sách tin nhắn trong một cuộc trò chuyện cụ thể trong thời gian thực.
@@ -76,6 +118,7 @@ public class ChatRepository {
 
         db.collection("chats").document(chatId).collection("messages")
                 .orderBy("timestamp", Query.Direction.ASCENDING)
+                .limitToLast(50) // Giới hạn 50 tin nhắn cuối để tối ưu hiệu năng
                 .addSnapshotListener((snapshots, error) -> {
                     if (error != null) {
                         Log.e(TAG, "Lỗi lắng nghe messages: ", error);
@@ -99,31 +142,50 @@ public class ChatRepository {
     }
 
     /**
-     * Gửi một tin nhắn mới và cập nhật thông tin cuộc trò chuyện.
+     * Gửi một tin nhắn mới và cập nhật thông tin cuộc trò chuyện một cách an toàn (atomic).
      * @param chatId ID của cuộc trò chuyện.
      * @param message Đối tượng ChatMessage cần gửi.
+     * @return LiveData<Boolean> để báo trạng thái thành công/thất bại.
      */
-    public void sendMessage(String chatId, ChatMessage message) {
-        if (chatId == null || message == null || message.getText().isEmpty()) {
-            return;
+    public LiveData<Boolean> sendMessage(String chatId, ChatMessage message) {
+        MutableLiveData<Boolean> sendStatus = new MutableLiveData<>();
+        if (chatId == null || message == null || message.getText() == null || message.getText().trim().isEmpty()) {
+            sendStatus.setValue(false);
+            return sendStatus;
         }
 
-        // 1. Thêm tin nhắn mới vào sub-collection "messages"
-        db.collection("chats").document(chatId).collection("messages")
-                .add(message)
-                .addOnSuccessListener(documentReference -> Log.d(TAG, "Gửi tin nhắn thành công: " + documentReference.getId()))
-                .addOnFailureListener(e -> Log.e(TAG, "Lỗi khi gửi tin nhắn", e));
+        // Tạo một reference cho tin nhắn mới trong sub-collection
+        DocumentReference newMessageRef = db.collection("chats").document(chatId)
+                .collection("messages").document();
+        message.setMessageId(newMessageRef.getId());
 
-        // 2. Cập nhật thông tin của cuộc trò chuyện cha
+        // Tạo một reference đến document cuộc trò chuyện cha
+        DocumentReference chatDocRef = db.collection("chats").document(chatId);
+
+        // Tạo một WriteBatch
+        WriteBatch batch = db.batch();
+
+        // 1. Thêm tin nhắn mới vào batch
+        batch.set(newMessageRef, message);
+
+        // 2. Cập nhật cuộc trò chuyện cha vào batch
         Map<String, Object> chatUpdates = new HashMap<>();
         chatUpdates.put("lastMessage", message.getText());
-        chatUpdates.put("timestamp", FieldValue.serverTimestamp()); // Dùng server timestamp để đồng bộ
+        chatUpdates.put("timestamp", FieldValue.serverTimestamp());
         chatUpdates.put("lastMessageSenderId", message.getSenderId());
+        batch.update(chatDocRef, chatUpdates);
 
-        db.collection("chats").document(chatId)
-                .update(chatUpdates)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "Cập nhật cuộc trò chuyện thành công."))
-                .addOnFailureListener(e -> Log.e(TAG, "Lỗi cập nhật cuộc trò chuyện", e));
+        // 3. Thực thi batch
+        batch.commit()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Gửi tin nhắn và cập nhật cuộc trò chuyện thành công.");
+                    sendStatus.setValue(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi khi thực thi batch gửi tin nhắn.", e);
+                    sendStatus.setValue(false);
+                });
+
+        return sendStatus;
     }
-    // ========== KẾT THÚC PHẦN CODE HOÀN THIỆN ==========
 }

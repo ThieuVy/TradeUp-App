@@ -77,4 +77,10 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
             textStockStatus = itemView.findViewById(R.id.text_stock_status);
         }
     }
+    @SuppressLint("NotifyDataSetChanged")
+    public void updateListings(List<Listing> newListings) {
+        this.favoriteListings.clear();
+        this.favoriteListings.addAll(newListings);
+        notifyDataSetChanged();
+    }
 }

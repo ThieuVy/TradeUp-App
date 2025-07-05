@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mảng này dùng cho dropdown sắp xếp trong SearchFragment -->
+    <string-array name="sort_options">
+        <item>Liên quan nhất</item>
+        <item>Mới nhất</item>
+        <item>Giá: Thấp đến cao</item>
+        <item>Giá: Cao đến thấp</item>
+    </string-array>
+</resources>

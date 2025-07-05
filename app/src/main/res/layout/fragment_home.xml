@@ -8,7 +8,6 @@
     android:background="@color/background_light"
     tools:context=".fragments.HomeFragment">
 
-    <!-- Thanh App Bar tùy chỉnh, có thể ẩn/hiện khi cuộn -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar_layout"
         android:layout_width="match_parent"
@@ -66,7 +65,6 @@
         </com.google.android.material.appbar.MaterialToolbar>
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Nội dung chính có thể cuộn -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -79,49 +77,58 @@
             android:orientation="vertical"
             android:paddingBottom="16dp">
 
-            <!-- Thanh tìm kiếm -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/search_bar_card"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="48dp"
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginTop="16dp"
-                app:cardCornerRadius="28dp"
-                app:cardElevation="2dp"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="1dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground"
                 app:cardBackgroundColor="@android:color/white">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center_vertical"
-                    android:paddingHorizontal="20dp"
+                    android:paddingHorizontal="16dp"
                     tools:ignore="UseCompoundDrawables">
+
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
                         android:src="@drawable/ic_search"
                         android:layout_marginEnd="12dp"
                         app:tint="@color/text_secondary"
                         android:contentDescription="Icon tìm kiếm"
-                        tools:ignore="HardcodedText"/>
+                        tools:ignore="HardcodedText" />
+
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Tìm kiếm sản phẩm, danh mục..."
+                        android:text="Tìm kiếm vật phẩm, danh mục..."
                         android:textColor="@color/text_secondary"
-                        android:textSize="16sp"
+                        android:textSize="15sp"
                         tools:ignore="HardcodedText"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Mục Nổi bật -->
             <TextView
-                style="@style/HomeSectionTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="12dp"
                 android:text="Nổi bật"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
                 tools:ignore="HardcodedText"/>
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/featured_recycler"
                 android:layout_width="match_parent"
@@ -129,64 +136,111 @@
                 android:orientation="horizontal"
                 android:clipToPadding="false"
                 android:paddingHorizontal="16dp"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                tools:orientation="horizontal"
                 tools:itemCount="3"
                 tools:listitem="@layout/item_featured_product" />
 
-            <!-- Mục Danh mục -->
             <TextView
-                style="@style/HomeSectionTitle"
-                android:text="Danh mục"
-                tools:ignore="HardcodedText"/>
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/categories_recycler"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:paddingHorizontal="16dp"
-                tools:itemCount="4"
-                tools:listitem="@layout/item_category_row" />
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
+                android:text="Danh mục"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:ignore="HardcodedText"/>
 
-            <!-- Mục Đề xuất cho bạn -->
+            <include
+                android:id="@+id/categories_section_layout"
+                layout="@layout/categories_section_layout" />
+
             <LinearLayout
-                style="@style/HomeSectionTitle.Container">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="12dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
                 <TextView
-                    style="@style/HomeSectionTitle.Text"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="Đề xuất cho bạn"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
                     tools:ignore="HardcodedText"/>
+
                 <TextView
                     android:id="@+id/see_all_recommendations"
-                    style="@style/HomeSectionSeeAll"
-                    android:text="Tất cả"
-                    tools:ignore="HardcodedText"/>
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:padding="4dp"
+                    android:text="Xem tất cả"
+                    android:textColor="@color/primary_color"
+                    android:textSize="14sp"
+                    tools:ignore="HardcodedText,DuplicateSpeakableTextCheck,TouchTargetSizeCheck" />
             </LinearLayout>
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recommendations_recycler"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
                 android:paddingHorizontal="12dp"
+                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                app:spanCount="2"
                 tools:itemCount="4"
                 tools:listitem="@layout/item_product_grid" />
 
-            <!-- Mục Khám phá gần đây -->
             <LinearLayout
-                style="@style/HomeSectionTitle.Container">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="12dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
                 <TextView
-                    style="@style/HomeSectionTitle.Text"
-                    android:text="Khám phá gần đây"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Tin rao gần đây"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
                     tools:ignore="HardcodedText"/>
+
                 <TextView
                     android:id="@+id/see_all_recent"
-                    style="@style/HomeSectionSeeAll"
-                    android:text="Tất cả"
-                    tools:ignore="HardcodedText"/>
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:padding="4dp"
+                    android:text="Xem tất cả"
+                    android:textColor="@color/primary_color"
+                    android:textSize="14sp"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
             </LinearLayout>
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/listings_recycler"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
                 android:paddingHorizontal="12dp"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 tools:itemCount="5"
                 tools:listitem="@layout/item_product_listing" />
         </LinearLayout>

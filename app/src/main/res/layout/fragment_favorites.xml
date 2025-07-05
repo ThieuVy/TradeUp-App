@@ -9,37 +9,71 @@
     tools:context=".fragments.FavoritesFragment">
 
     <!-- Toolbar (Header with back arrow) -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar_favorites"
+    <!-- Dùng AppBarLayout để đảm bảo CoordinatorLayout hoạt động đúng với scrolling -->
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
-        android:elevation="4dp"
-        android:theme="@style/ThemeOverlay.Material3.Toolbar.Surface"
-        app:navigationIcon="@drawable/ic_arrow_back"
-        app:title="Favorites"
-        app:titleTextColor="@color/black" />
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
 
-    <!-- Main content -->
-    <androidx.core.widget.NestedScrollView
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar_favorites"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorSurface"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:title="Yêu thích"
+            app:titleTextColor="?attr/colorOnSurface" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- FrameLayout để chứa RecyclerView và các trạng thái (loading, empty) -->
+    <!-- Sử dụng app:layout_behavior để nó nằm dưới AppBarLayout -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="?attr/actionBarSize"
-        android:padding="16dp">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <LinearLayout
+        <!-- RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view_favorites"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="8dp"
+            android:visibility="gone"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:ignore="SpeakableTextPresentCheck"
+            tools:listitem="@layout/item_favorite_listing"
+            tools:visibility="visible" />
 
-            <!-- RecyclerView -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler_view_favorites"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                tools:listitem="@layout/item_favorite_listing" />
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+        <!-- ========== PHẦN THÊM VÀO Ở ĐÂY ========== -->
+
+        <!-- Loading Indicator (ProgressBar) -->
+        <ProgressBar
+            android:id="@+id/progress_bar_favorites"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Empty State (TextView) -->
+        <TextView
+            android:id="@+id/text_empty_state_favorites"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="Bạn chưa có sản phẩm yêu thích nào."
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:visibility="gone"
+            tools:ignore="HardcodedText" />
+
+        <!-- ========================================== -->
+
+    </FrameLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

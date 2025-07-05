@@ -24,13 +24,11 @@ import androidx.credentials.exceptions.GetCredentialException;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.utils.SharedPrefsHelper;
-import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
@@ -46,16 +44,13 @@ public class RegisterActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
     private SharedPrefsHelper prefsHelper;
+    private CredentialManager credentialManager;
 
-    private TextInputEditText editEmail;
-    private TextInputEditText editPassword;
-    private TextInputEditText editConfirmPassword;
+    private TextInputEditText editEmail, editPassword, editConfirmPassword;
     private MaterialButton signUpButton;
     private ProgressBar progressBar;
     private TextView loginLink;
     private ImageView googleLogin;
-    private CredentialManager credentialManager;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,21 +74,14 @@ public class RegisterActivity extends AppCompatActivity {
         signUpButton = findViewById(R.id.sign_up_button);
         progressBar = findViewById(R.id.progressBar);
         loginLink = findViewById(R.id.login_link);
-        googleLogin = findViewById(R.id.google_login);
+        googleLogin = findViewById(R.id.google_login); // Sửa lỗi: gán giá trị cho googleLogin
     }
 
     private void setupListeners() {
         TextWatcher textWatcher = new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                checkFieldsForEmptyValues();
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {}
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { checkFieldsForEmptyValues(); }
+            @Override public void afterTextChanged(Editable s) {}
         };
 
         editEmail.addTextChangedListener(textWatcher);
@@ -101,42 +89,21 @@ public class RegisterActivity extends AppCompatActivity {
         editConfirmPassword.addTextChangedListener(textWatcher);
 
         loginLink.setOnClickListener(v -> {
-            Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
-            startActivity(intent);
+            startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
             finish();
         });
 
-        signUpButton.setOnClickListener(v -> performRegistration());
+        signUpButton.setOnClickListener(v -> performEmailRegistration());
         googleLogin.setOnClickListener(v -> performGoogleSignIn());
     }
 
-    private void performRegistration() {
+    // Đăng ký bằng Email và Mật khẩu
+    private void performEmailRegistration() {
         String email = Objects.requireNonNull(editEmail.getText()).toString().trim();
         String password = Objects.requireNonNull(editPassword.getText()).toString();
         String confirmPassword = Objects.requireNonNull(editConfirmPassword.getText()).toString();
 
-        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password) || TextUtils.isEmpty(confirmPassword)) {
-            Toast.makeText(RegisterActivity.this, "Vui lòng nhập đầy đủ email, mật khẩu và xác nhận mật khẩu", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            Toast.makeText(RegisterActivity.this, "Email không hợp lệ", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (password.length() < 6) {
-            Toast.makeText(RegisterActivity.this, "Mật khẩu phải có ít nhất 6 ký tự", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (!password.equals(confirmPassword)) {
-            Toast.makeText(RegisterActivity.this, "Mật khẩu xác nhận không khớp", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (!isPasswordStrong(password)) {
-            Toast.makeText(RegisterActivity.this, "Mật khẩu phải chứa ít nhất một chữ cái và một số", Toast.LENGTH_SHORT).show();
+        if (!validateInputs(email, password, confirmPassword)) {
             return;
         }
 
@@ -147,62 +114,69 @@ public class RegisterActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         FirebaseUser firebaseUser = mAuth.getCurrentUser();
                         if (firebaseUser != null) {
-                            // <<< BẮT ĐẦU THAY ĐỔI >>>
-                            sendVerificationEmail(firebaseUser);
-                            // <<< KẾT THÚC THAY ĐỔI >>>
-
-                            String name = firebaseUser.getEmail() != null ? firebaseUser.getEmail().split("@")[0] : "Người dùng mới";
-                            saveUserToFirestore(firebaseUser.getUid(), name, firebaseUser.getEmail());
+                            saveUserToFirestoreAndSendVerification(firebaseUser);
                         }
                     } else {
                         showLoading(false);
-                        String errorMessage = getFirebaseErrorMessage(task);
+                        String errorMessage = getFirebaseErrorMessage(task.getException());
                         Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                     }
+                });
+    }
+
+    private void saveUserToFirestoreAndSendVerification(FirebaseUser firebaseUser) {
+        String name = firebaseUser.getEmail() != null ? firebaseUser.getEmail().split("@")[0] : "Người dùng mới";
+        User newUser = new User(firebaseUser.getUid(), name, firebaseUser.getEmail(), "", "", "", "", 0.0f, 0, false, "active", false, "not_connected", 0);
+
+        db.collection("users").document(firebaseUser.getUid())
+                .set(newUser)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Lưu người dùng mới vào Firestore thành công.");
+                    sendVerificationEmail(firebaseUser);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi lưu người dùng vào Firestore: ", e);
+                    showLoading(false);
+                    Toast.makeText(RegisterActivity.this, "Lỗi đăng ký. Vui lòng thử lại.", Toast.LENGTH_LONG).show();
                 });
     }
 
     private void sendVerificationEmail(FirebaseUser firebaseUser) {
         firebaseUser.sendEmailVerification()
                 .addOnCompleteListener(task -> {
+                    showLoading(false);
                     if (task.isSuccessful()) {
                         Log.d(TAG, "Email xác thực đã được gửi.");
-                        // Hiển thị một thông báo dài hơn để người dùng chú ý
-                        Toast.makeText(RegisterActivity.this,
-                                "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.",
-                                Toast.LENGTH_LONG).show();
+                        Toast.makeText(RegisterActivity.this, "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.", Toast.LENGTH_LONG).show();
+                        // Chuyển người dùng đến màn hình Login để họ đăng nhập lại sau khi xác thực
+                        Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        finish();
                     } else {
                         Log.e(TAG, "Lỗi gửi email xác thực.", task.getException());
-                        Toast.makeText(RegisterActivity.this,
-                                "Lỗi gửi email xác thực. Vui lòng thử đăng nhập lại và gửi lại.",
-                                Toast.LENGTH_SHORT).show();
+                        Toast.makeText(RegisterActivity.this, "Lỗi gửi email xác thực.", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
+    // Đăng nhập/Đăng ký bằng Google
     private void performGoogleSignIn() {
         showLoading(true);
-
         GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(false)
                 .setServerClientId(getString(R.string.default_web_client_id))
                 .build();
-
         GetCredentialRequest request = new GetCredentialRequest.Builder()
                 .addCredentialOption(googleIdOption)
                 .build();
 
-        credentialManager.getCredentialAsync(
-                this,
-                request,
-                null,
-                Executors.newSingleThreadExecutor(),
+        credentialManager.getCredentialAsync(this, request, null, Executors.newSingleThreadExecutor(),
                 new CredentialManagerCallback<>() {
                     @Override
                     public void onResult(GetCredentialResponse result) {
                         runOnUiThread(() -> handleGoogleCredentialResponse(result));
                     }
-
                     @Override
                     public void onError(@NonNull GetCredentialException e) {
                         runOnUiThread(() -> {
@@ -215,201 +189,120 @@ public class RegisterActivity extends AppCompatActivity {
         );
     }
 
-    private void handleGoogleCredentialResponse(GetCredentialResponse result) {
-        GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential
-                .createFrom(result.getCredential().getData());
-
-        String idToken = googleIdTokenCredential.getIdToken();
-        firebaseAuthWithGoogle(idToken);
+    private void handleGoogleCredentialResponse(@NonNull GetCredentialResponse result) {
+        try {
+            GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.getCredential().getData());
+            String idToken = googleIdTokenCredential.getIdToken();
+            firebaseAuthWithGoogle(idToken);
+        } catch (Exception e) {
+            showLoading(false);
+            Log.e(TAG, "handleGoogleCredentialResponse failed", e);
+            Toast.makeText(this, "Lỗi xử lý thông tin Google.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void firebaseAuthWithGoogle(String idToken) {
         AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
         mAuth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
-                    showLoading(false);
-
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
                         if (user != null) {
-                            if (task.getResult().getAdditionalUserInfo() != null && task.getResult().getAdditionalUserInfo().isNewUser()) {
-                                Log.d(TAG, "New Google user. Saving data to Firestore.");
-                                String name = user.getDisplayName() != null ? user.getDisplayName() : "Người dùng Google";
-                                String email = user.getEmail();
-                                String profileImageUrl = user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : "";
-                                saveUserToFirestoreAndNavigate(user.getUid(), name, email, profileImageUrl);
+                            boolean isNewUser = task.getResult().getAdditionalUserInfo() != null && task.getResult().getAdditionalUserInfo().isNewUser();
+                            if (isNewUser) {
+                                saveNewGoogleUserAndNavigate(user);
                             } else {
-                                Log.d(TAG, "Existing Google user. Navigating.");
-                                loadAndNavigateUser(user.getUid());
+                                loadExistingUserAndNavigate(user.getUid());
                             }
                         }
                     } else {
-                        String errorMessage = getFirebaseErrorMessage(task);
+                        showLoading(false);
+                        String errorMessage = getFirebaseErrorMessage(task.getException());
                         Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
-    private void saveUserToFirestore(String userId, String name, String email) {
-        User newUser = new User(userId, name, email, "", "", "", "", 0.0f, 0, false, "active", false, "not_connected", 0);
-
-        db.collection("users").document(userId)
-                .set(newUser)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Lưu dữ liệu người dùng mới vào Firestore thành công.");
-                    prefsHelper.saveCurrentUser(newUser); // Lưu vào local cache
-                    // Sau khi lưu xong, mới điều hướng
-                    navigateToMainActivity();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Lỗi lưu dữ liệu người dùng vào Firestore: ", e);
-                    Toast.makeText(RegisterActivity.this, "Lỗi lưu thông tin: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    // Vẫn điều hướng dù lỗi lưu, MainActivity sẽ xử lý fallback
-                    navigateToMainActivity();
-                });
-    }
-
-    private void saveUserToFirestoreAndNavigate(String userId, String name, String email, String profileImageUrl) {
+    private void saveNewGoogleUserAndNavigate(FirebaseUser firebaseUser) {
         User newUser = new User(
-                userId, name, email,
-                "", // phone default
-                "", // bio default
-                profileImageUrl,
-                "", // address default
-                0.0f, // rating default
-                0,    // reviewCount default
-                false, // isVerified default
-                "active", // accountStatus default
-                false, // isFlagged default
-                "not_connected", // walletStatus default
-                0    // notificationCount default
+                firebaseUser.getUid(),
+                firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "Người dùng Google",
+                firebaseUser.getEmail(),
+                "", "",
+                firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : "",
+                "", 0.0f, 0, true, "active", false, "not_connected", 0
         );
-
-        db.collection("users").document(userId)
-                .set(newUser)
+        db.collection("users").document(newUser.getId()).set(newUser)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "User data saved to Firestore successfully for UID: " + userId);
                     prefsHelper.saveCurrentUser(newUser);
-                    Toast.makeText(RegisterActivity.this, "Đăng ký thành công!", Toast.LENGTH_SHORT).show();
                     navigateToMainActivity();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error saving user data to Firestore: " + e.getMessage(), e);
-                    Toast.makeText(RegisterActivity.this, "Lỗi khi lưu thông tin người dùng: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    navigateToMainActivity();
+                    showLoading(false);
+                    Toast.makeText(this, "Lỗi lưu thông tin người dùng.", Toast.LENGTH_SHORT).show();
                 });
     }
 
-    private void loadAndNavigateUser(String userId) {
-        db.collection("users").document(userId)
-                .get()
+    private void loadExistingUserAndNavigate(String userId) {
+        db.collection("users").document(userId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         User user = documentSnapshot.toObject(User.class);
                         if (user != null) {
                             user.setId(userId);
                             prefsHelper.saveCurrentUser(user);
-                            Log.d(TAG, "User data loaded from Firestore and saved to SharedPrefs for UID: " + userId);
-                        } else {
-                            Log.e(TAG, "User object is null after conversion from Firestore for UID: " + userId);
-                            FirebaseUser firebaseUser = mAuth.getCurrentUser();
-                            if (firebaseUser != null) {
-                                User defaultUser = new User(
-                                        firebaseUser.getUid(),
-                                        firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "Người dùng",
-                                        firebaseUser.getEmail(),
-                                        "", "", // phone, bio
-                                        firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : "",
-                                        "", // address
-                                        0.0f, 0, false, "active", false, "not_connected", 0 // other defaults
-                                );
-                                prefsHelper.saveCurrentUser(defaultUser);
-                                Log.d(TAG, "Created fallback default user and saved to SharedPrefs.");
-                            }
-                        }
-                    } else {
-                        Log.w(TAG, "Firestore document not found for existing user: " + userId + ". Creating fallback default user.");
-                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
-                        if (firebaseUser != null) {
-                            User defaultUser = new User(
-                                    firebaseUser.getUid(),
-                                    firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "Người dùng",
-                                    firebaseUser.getEmail(),
-                                    "", "", // phone, bio
-                                    firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : "",
-                                    "", // address
-                                    0.0f, 0, false, "active", false, "not_connected", 0 // other defaults
-                            );
-                            prefsHelper.saveCurrentUser(defaultUser);
-                            Log.d(TAG, "Created fallback default user and saved to SharedPrefs.");
                         }
                     }
-                    navigateToMainActivity(); // Always navigate after attempting to load/create user data
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading user data from Firestore during navigation: " + e.getMessage(), e);
-                    Toast.makeText(RegisterActivity.this, "Lỗi tải thông tin người dùng: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     navigateToMainActivity();
-                });
+                })
+                .addOnFailureListener(e -> navigateToMainActivity());
     }
 
-    private boolean isPasswordStrong(String password) {
-        boolean hasLetter = false;
-        boolean hasDigit = false;
-
-        for (char c : password.toCharArray()) {
-            if (Character.isLetter(c)) {
-                hasLetter = true;
-            } else if (Character.isDigit(c)) {
-                hasDigit = true;
-            }
-            if (hasLetter && hasDigit) {
-                return true;
-            }
+    // Các hàm Helper
+    private boolean validateInputs(String email, String password, String confirmPassword) {
+        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password) || TextUtils.isEmpty(confirmPassword)) {
+            Toast.makeText(this, "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
+            return false;
         }
-        return false;
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(this, "Email không hợp lệ", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (password.length() < 6) {
+            Toast.makeText(this, "Mật khẩu phải có ít nhất 6 ký tự", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (!password.equals(confirmPassword)) {
+            Toast.makeText(this, "Mật khẩu xác nhận không khớp", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return true;
     }
 
-    @NonNull
-    private String getFirebaseErrorMessage(Task<AuthResult> task) {
-        String errorMessage = "Đăng ký thất bại";
-        if (task.getException() != null) {
-            String error = task.getException().getMessage();
-            if (error != null) {
-                if (error.contains("email address is already in use") || error.contains("email-already-in-use")) {
-                    errorMessage = "Email đã được sử dụng";
-                } else if (error.contains("weak password") || error.contains("weak-password")) {
-                    errorMessage = "Mật khẩu quá yếu";
-                } else if (error.contains("invalid email") || error.contains("invalid-email")) {
-                    errorMessage = "Email không hợp lệ";
-                } else if (error.contains("operation-not-allowed")) {
-                    errorMessage = "Đăng ký không được cho phép. Vui lòng kiểm tra cài đặt Firebase.";
-                } else if (error.contains("too-many-requests")) {
-                    errorMessage = "Quá nhiều lần thử. Vui lòng thử lại sau";
-                } else if (error.contains("network-request-failed")) {
-                    errorMessage = "Lỗi kết nối mạng. Vui lòng kiểm tra internet";
-                } else {
-                    errorMessage = "Lỗi không xác định: " + error;
-                }
-            }
+    private String getFirebaseErrorMessage(Exception exception) {
+        String defaultMessage = "Đăng ký thất bại. Vui lòng thử lại.";
+        if (exception == null) return defaultMessage;
+        String error = exception.getMessage();
+        if (error == null) return defaultMessage;
+
+        if (error.contains("email address is already in use")) {
+            return "Email đã được sử dụng";
         }
-        return errorMessage;
+        // ... thêm các mã lỗi khác nếu cần
+        return defaultMessage;
     }
 
     private void showLoading(boolean isLoading) {
-        if (isLoading) {
-            progressBar.setVisibility(View.VISIBLE);
-            signUpButton.setEnabled(false);
-            googleLogin.setEnabled(false);
-        } else {
-            progressBar.setVisibility(View.GONE);
-            googleLogin.setEnabled(true);
-            checkFieldsForEmptyValues();
-        }
+        progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        signUpButton.setEnabled(!isLoading);
+        googleLogin.setEnabled(!isLoading);
+        loginLink.setEnabled(!isLoading);
     }
 
     private void navigateToMainActivity() {
-        Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+        showLoading(false);
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
@@ -418,28 +311,6 @@ public class RegisterActivity extends AppCompatActivity {
         String email = Objects.requireNonNull(editEmail.getText()).toString().trim();
         String password = Objects.requireNonNull(editPassword.getText()).toString();
         String confirmPassword = Objects.requireNonNull(editConfirmPassword.getText()).toString();
-
-        boolean fieldsNotEmpty = !TextUtils.isEmpty(email) &&
-                !TextUtils.isEmpty(password) &&
-                !TextUtils.isEmpty(confirmPassword);
-
-        if (progressBar.getVisibility() != View.VISIBLE) {
-            signUpButton.setEnabled(fieldsNotEmpty);
-        }
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        FirebaseUser firebaseUser = mAuth.getCurrentUser();
-        if (firebaseUser != null) {
-            if (prefsHelper.getCurrentUser() == null) {
-                Log.d(TAG, "User logged in (Firebase Auth), but data not in SharedPrefs. Loading from Firestore.");
-                loadAndNavigateUser(firebaseUser.getUid());
-            } else {
-                Log.d(TAG, "User data already in SharedPrefs. Navigating to MainActivity.");
-                navigateToMainActivity();
-            }
-        }
+        signUpButton.setEnabled(!TextUtils.isEmpty(email) && !TextUtils.isEmpty(password) && !TextUtils.isEmpty(confirmPassword));
     }
 }

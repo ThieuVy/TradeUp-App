@@ -30,7 +30,8 @@ public class CategoryAdapter extends ListAdapter<Category, CategoryAdapter.Categ
     @NonNull
     @Override
     public CategoryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category_row, parent, false);
+        // Sửa lại để inflate layout mới
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.categories_section_layout, parent, false);
         return new CategoryViewHolder(view);
     }
 
