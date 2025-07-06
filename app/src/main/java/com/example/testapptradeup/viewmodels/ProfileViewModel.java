@@ -1,5 +1,7 @@
 package com.example.testapptradeup.viewmodels;
 
+import android.util.Log;
+
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -11,6 +13,7 @@ import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.repositories.UserRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.functions.FirebaseFunctions;
 
 import java.util.List;
 
@@ -25,6 +28,7 @@ public class ProfileViewModel extends ViewModel {
     // LiveData cuối cùng mà Fragment sẽ observe
     private final LiveData<User> userProfileData;
     private final LiveData<List<Review>> userReviewsData;
+    private final FirebaseFunctions functions = FirebaseFunctions.getInstance();
 
     public ProfileViewModel() {
         this.userRepository = new UserRepository();
@@ -76,4 +80,24 @@ public class ProfileViewModel extends ViewModel {
         // Thường sẽ dùng Cloud Function để đảm bảo tính toàn vẹn
     }
 
+    public LiveData<Boolean> deleteAccountPermanently() {
+        MutableLiveData<Boolean> deleteStatus = new MutableLiveData<>();
+        if (userId == null) {
+            deleteStatus.setValue(false);
+            return deleteStatus;
+        }
+
+        // Gọi Cloud Function
+        functions.getHttpsCallable("permanentlyDeleteUserAccount")
+                .call()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        deleteStatus.setValue(true);
+                    } else {
+                        Log.e("ProfileViewModel", "Lỗi xóa tài khoản: ", task.getException());
+                        deleteStatus.setValue(false);
+                    }
+                });
+        return deleteStatus;
+    }
 }

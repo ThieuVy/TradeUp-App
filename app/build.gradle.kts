@@ -82,6 +82,8 @@ dependencies {
     implementation (libs.lifecycle.common.java8)
     implementation (libs.navigation.safe.args.gradle.plugin)
     implementation (libs.circleimageview)
+
+    implementation (libs.lifecycle.process)
 }
 configurations.all {
     exclude(group = "xpp3", module = "xpp3")

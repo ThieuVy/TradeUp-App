@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Listing;
 import com.google.android.material.button.MaterialButton;
@@ -55,7 +56,7 @@ public class ListingsAdapter extends ListAdapter<Listing, ListingsAdapter.Produc
         private final TextView title;
         private final TextView price;
         private final TextView location;
-        private final MaterialButton favoriteButton; // SỬA LỖI: Khai báo đúng là MaterialButton
+        private final ImageView favoriteButton;
 
         @SuppressLint("WrongViewCast")
         ProductViewHolder(@NonNull View itemView) {
@@ -65,7 +66,7 @@ public class ListingsAdapter extends ListAdapter<Listing, ListingsAdapter.Produc
             title = itemView.findViewById(R.id.listing_title);
             price = itemView.findViewById(R.id.listing_price); // Giả sử ID là listing_product_price
             location = itemView.findViewById(R.id.listing_distance); // Giả sử ID là listing_product_location
-            favoriteButton = itemView.findViewById(R.id.favorite_icon); // ID này đã đúng
+            favoriteButton = itemView.findViewById(R.id.favorite_icon);; // ID này đã đúng
 
             // Listener không thay đổi
             itemView.setOnClickListener(v -> {
@@ -88,16 +89,28 @@ public class ListingsAdapter extends ListAdapter<Listing, ListingsAdapter.Produc
         }
 
         // Cập nhật hàm bind để hiển thị đầy đủ thông tin
+        @SuppressLint("SetTextI18n")
         void bind(Listing listing) {
             title.setText(listing.getTitle());
-            // Đảm bảo Product.getPrice() trả về String hoặc convert sang String
-            price.setText(String.format("%s đ", listing.getPrice())); // Ví dụ format giá
+            // Đổi lại cách format giá cho đúng
+            price.setText(listing.getFormattedPrice());
             location.setText(listing.getLocation());
-            // Cần có logic để tải ảnh bằng Glide/Picasso
-            // Glide.with(itemView.getContext()).load(product.getImageUrl()).into(productImage);
+
+            // Tải ảnh bằng Glide
+            if (listing.getPrimaryImageUrl() != null && !listing.getPrimaryImageUrl().isEmpty()) {
+                Glide.with(itemView.getContext())
+                        .load(listing.getPrimaryImageUrl())
+                        .placeholder(R.drawable.img_placeholder)
+                        .error(R.drawable.img_placeholder)
+                        .into(productImage);
+            } else {
+                productImage.setImageResource(R.drawable.img_placeholder);
+            }
 
             // Cập nhật trạng thái nút yêu thích (dựa vào trường isFavorite trong Product model)
-            // favoriteButton.setIconResource(product.isFavorite() ? R.drawable.ic_favorite_filled : R.drawable.ic_favorite_border);
+            // Ví dụ:
+            // boolean isFavorite = ... ; // Lấy trạng thái yêu thích
+            // favoriteButton.setImageResource(isFavorite ? R.drawable.ic_favorite_filled : R.drawable.ic_favorite_border);
         }
     }
 

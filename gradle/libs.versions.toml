@@ -15,6 +15,7 @@ espressoCore = "3.6.1"
 appcompat = "1.7.1"
 lifecycleCommonJava8 = "2.9.1"
 lifecycleLivedata = "2.9.1"
+lifecycleProcess = "2.9.1"
 lifecycleViewmodel = "2.9.1"
 material = "1.12.0"
 activity = "1.10.1"
@@ -55,6 +56,7 @@ espresso-core = { group = "androidx.test.espresso", name = "espresso-core", vers
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 lifecycle-common-java8 = { module = "androidx.lifecycle:lifecycle-common-java8", version.ref = "lifecycleCommonJava8" }
 lifecycle-livedata = { module = "androidx.lifecycle:lifecycle-livedata", version.ref = "lifecycleLivedata" }
+lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleProcess" }
 lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycleViewmodel" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }

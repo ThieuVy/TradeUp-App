@@ -32,6 +32,7 @@ public class User implements Parcelable {
     private Date memberSince;
     private int activeListingsCount;
     private int completedSalesCount;
+    private List<Review> reviews;
 
     public User() {
         // Public no-argument constructor needed for Firebase Firestore
@@ -56,6 +57,7 @@ public class User implements Parcelable {
         this.memberSince = new Date(); // Mặc định là thời gian hiện tại
         this.activeListingsCount = 0;
         this.completedSalesCount = 0;
+        this.reviews = new ArrayList<>();
     }
 
     // Comprehensive constructor
@@ -146,7 +148,13 @@ public class User implements Parcelable {
 
     public int getCompletedSalesCount() { return completedSalesCount; }
     public void setCompletedSalesCount(int completedSalesCount) { this.completedSalesCount = completedSalesCount; }
+    public List<Review> getReviews() {
+        return reviews;
+    }
 
+    public void setReviews(List<Review> reviews) {
+        this.reviews = reviews;
+    }
     // Parcelable implementation
     protected User(Parcel in) {
         id = in.readString();
@@ -169,6 +177,8 @@ public class User implements Parcelable {
         memberSince = tmpDate == -1 ? null : new java.util.Date(tmpDate);
         activeListingsCount = in.readInt();
         completedSalesCount = in.readInt();
+
+        reviews = in.createTypedArrayList(Review.CREATOR);
     }
 
     public static final Creator<User> CREATOR = new Creator<User>() {
@@ -209,6 +219,8 @@ public class User implements Parcelable {
         dest.writeLong(memberSince != null ? memberSince.getTime() : -1);
         dest.writeInt(activeListingsCount);
         dest.writeInt(completedSalesCount);
+
+        dest.writeTypedList(reviews);
     }
     public List<String> getFavoriteListingIds() {
         return favoriteListingIds;

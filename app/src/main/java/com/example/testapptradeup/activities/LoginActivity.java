@@ -320,15 +320,12 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
+        // Cơ chế mới sẽ xử lý việc đăng xuất.
+        // Logic này sẽ kiểm tra xem người dùng có còn phiên đăng nhập hợp lệ không
+        // (ví dụ: vừa mở lại app trong khoảng thời gian cho phép).
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
-        // Chỉ tự động đăng nhập nếu user đã đăng nhập VÀ đã xác thực email
         if (firebaseUser != null && firebaseUser.isEmailVerified()) {
-            // Tải dữ liệu nếu chưa có trong cache, sau đó vào app
-            if (prefsHelper.getCurrentUser() == null) {
-                loadAndNavigateUser(firebaseUser.getUid());
-            } else {
-                navigateToMainActivity();
-            }
+            navigateToMainActivity();
         }
     }
 }

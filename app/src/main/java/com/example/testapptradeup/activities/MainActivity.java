@@ -164,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         // Kiểm tra lại mỗi khi activity quay trở lại foreground
+        // Nếu người dùng đã bị đăng xuất do timeout, hãy đưa họ về màn hình login.
         if (mAuth.getCurrentUser() == null) {
             navigateToLogin();
         }

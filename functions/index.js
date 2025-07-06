@@ -101,3 +101,44 @@ exports.createEphemeralKey = functions.https.onCall(async (data, context) => {
     ephemeralKey: key.secret,
   };
 });
+
+/**
+ * Cloud Function 3: permanentlyDeleteUserAccount
+ * Xóa tài khoản người dùng khỏi Authentication và Firestore.
+ * Đây là một hành động không thể hoàn tác.
+ */
+exports.permanentlyDeleteUserAccount = functions.https.onCall(
+    async (data, context) => {
+      // Kiểm tra xác thực
+      if (!context.auth) {
+        throw new functions.https.HttpsError(
+            "unauthenticated",
+            "The function must be called while authenticated.",
+        );
+      }
+
+      const uid = context.auth.uid;
+
+      try {
+        // Bước 1: Xóa người dùng khỏi Firebase Authentication
+        await admin.auth().deleteUser(uid);
+        console.log("Successfully deleted user from Auth:", uid);
+
+        // Bước 2: Xóa document người dùng khỏi Firestore
+        await admin.firestore().collection("users").doc(uid).delete();
+        console.log("Successfully deleted user data from Firestore:", uid);
+
+        // (Tùy chọn nâng cao) Bước 3: Xóa các tin đăng của người dùng này
+        // Cần một batch write để xóa nhiều document
+
+        return {success: true, message: "Account deleted successfully."};
+      } catch (error) {
+        console.error("Error deleting user:", uid, error);
+        throw new functions.https.HttpsError(
+            "internal",
+            "Failed to delete user account.",
+            error,
+        );
+      }
+    },
+);
