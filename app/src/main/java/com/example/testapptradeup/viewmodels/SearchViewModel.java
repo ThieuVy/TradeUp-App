@@ -1,9 +1,12 @@
 package com.example.testapptradeup.viewmodels;
 
+import android.util.Log; // Thêm import này
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
-import androidx.lifecycle.Transformations;
+
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.PagedResult;
 import com.example.testapptradeup.models.SearchParams;
@@ -14,8 +17,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects; // Thêm import này
 import java.util.stream.Collectors;
 
 public class SearchViewModel extends ViewModel {
@@ -86,38 +89,39 @@ public class SearchViewModel extends ViewModel {
             return;
         }
 
+        // Tạo một LiveData mới cho mỗi lần tìm kiếm
         LiveData<PagedResult<Listing>> pagedResultLiveData = listingRepository.searchListings(params, lastVisibleDocument);
 
-        // Sử dụng Transformations.switchMap để kết hợp kết quả tìm kiếm và danh sách yêu thích
-        LiveData<List<SearchResult>> combinedData = Transformations.switchMap(pagedResultLiveData, pagedResult ->
-                Transformations.map(favoriteIds, favIds -> {
-                    if (pagedResult == null || !pagedResult.isSuccess() || pagedResult.getData() == null) {
-                        uiState.postValue(UiState.ERROR);
-                        return new ArrayList<>();
-                    }
+        pagedResultLiveData.observeForever(new Observer<PagedResult<Listing>>() {
+            @Override
+            public void onChanged(PagedResult<Listing> pagedResult) {
+                // Gỡ bỏ observer ngay sau khi nhận được kết quả để tránh memory leak
+                pagedResultLiveData.removeObserver(this);
 
-                    lastVisibleDocument = pagedResult.getLastVisible();
-                    // PAGE_SIZE cần được định nghĩa trong ListingRepository
-                    isLastPage = pagedResult.getData().size() < ListingRepository.PAGE_SIZE;
+                if (pagedResult == null || !pagedResult.isSuccess()) {
+                    // Xử lý lỗi
+                    Log.e("SearchViewModel", "Search failed", pagedResult != null ? pagedResult.getError() : new Exception("PagedResult is null"));
+                    uiState.postValue(UiState.ERROR);
+                    return;
+                }
 
-                    // Chuyển đổi Listing thành SearchResult, kiểm tra isFavorite
-                    return pagedResult.getData().stream()
-                            .map(listing -> new SearchResult(listing, favIds != null && favIds.contains(listing.getId())))
-                            .collect(Collectors.toList());
-                })
-        );
+                lastVisibleDocument = pagedResult.getLastVisible();
+                isLastPage = pagedResult.getData() == null || pagedResult.getData().size() < ListingRepository.PAGE_SIZE;
 
-        // Chỉ observe một lần để xử lý kết quả
-        combinedData.observeForever(newResults -> {
-            if (newResults != null) {
-                List<SearchResult> currentList = new ArrayList<>(searchResults.getValue() != null ? searchResults.getValue() : Collections.emptyList());
+                // Chuyển đổi Listing thành SearchResult
+                List<String> favIds = favoriteIds.getValue();
+                List<SearchResult> newResults = pagedResult.getData().stream()
+                        .map(listing -> new SearchResult(listing, favIds != null && favIds.contains(listing.getId())))
+                        .collect(Collectors.toList());
+
+                List<SearchResult> currentList = new ArrayList<>(Objects.requireNonNull(searchResults.getValue()));
                 if (isNewSearch) {
                     currentList.clear();
                 }
                 currentList.addAll(newResults);
                 searchResults.postValue(currentList);
 
-                if (currentList.isEmpty() && isNewSearch) {
+                if (currentList.isEmpty()) {
                     uiState.postValue(UiState.EMPTY);
                 } else {
                     uiState.postValue(UiState.SUCCESS);
@@ -141,10 +145,7 @@ public class SearchViewModel extends ViewModel {
             searchResults.setValue(new ArrayList<>(currentResults)); // Tạo list mới để trigger update
         }
 
-        // ========== SỬA LỖI Ở ĐÂY ==========
-        // Đổi tên phương thức được gọi từ 'updateFavoriteStatus' thành 'toggleFavorite'
         userRepository.toggleFavorite(currentUserId, listingId, isFavorite);
-        // ===================================
     }
 
     public boolean isLastPage() {

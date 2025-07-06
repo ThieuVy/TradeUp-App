@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -63,7 +64,7 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class); // Khởi tạo
+        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         navController = Navigation.findNavController(view);
         initViews(view);
         setupRecyclerView();
@@ -122,8 +123,8 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
         mainViewModel.getNewListingPosted().observe(getViewLifecycleOwner(), newListing -> {
             if (newListing != null) {
                 // Khi có bài đăng mới, yêu cầu ViewModel tải lại từ đầu
+                Log.d("MyListingsFragment", "Nhận được sự kiện đăng bài mới, đang làm mới danh sách...");
                 viewModel.refreshListings();
-                // Đánh dấu sự kiện đã được xử lý để không trigger lại
                 mainViewModel.onNewListingEventHandled();
             }
         });

@@ -173,13 +173,17 @@ public class SearchFragment extends Fragment {
         searchInput.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(Editable s) {
+
+            @Override
+            public void afterTextChanged(Editable s) {
                 clearSearch.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
                 handler.removeCallbacks(searchRunnable);
                 searchRunnable = () -> {
-                    SearchParams params = viewModel.getSearchParams().getValue();
-                    if(params == null) params = new SearchParams();
-                    params.setQuery(s.toString().trim());
+                    String query = s.toString().trim();
+                    SearchParams params = new SearchParams();
+                    params.setQuery(query);
+                    // Bất kể query rỗng hay không, vẫn gọi startNewSearch.
+                    // ViewModel sẽ xử lý việc hiển thị kết quả rỗng hoặc gợi ý.
                     viewModel.startNewSearch(params);
                 };
                 handler.postDelayed(searchRunnable, DEBOUNCE_DELAY_MS);

@@ -17,6 +17,8 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 public class ListingRepository {
@@ -64,18 +66,56 @@ public class ListingRepository {
         MutableLiveData<List<Listing>> data = new MutableLiveData<>();
         db.collection("listings")
                 .whereEqualTo("status", "available")
-                .orderBy("timePosted", Query.Direction.DESCENDING) // Sắp xếp theo mới nhất
+                .orderBy("timePosted", Query.Direction.DESCENDING)
                 .limit(limit)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Listing> listings = new ArrayList<>();
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        listings.add(doc.toObject(Listing.class));
+                    if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
+                        for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                            listings.add(doc.toObject(Listing.class));
+                        }
+                    } else {
+                        // *** NẾU FIRESTORE TRỐNG, TẠO DỮ LIỆU MẪU ***
+                        Log.d("ListingRepository", "Firestore trống, tạo dữ liệu mẫu.");
+                        listings.addAll(createMockListings());
                     }
                     data.setValue(listings);
                 })
-                .addOnFailureListener(e -> data.setValue(null));
+                .addOnFailureListener(e -> {
+                    // *** NẾU LỖI, CŨNG TẠO DỮ LIỆU MẪU ***
+                    Log.e("ListingRepository", "Lỗi tải listings, tạo dữ liệu mẫu.", e);
+                    data.setValue(createMockListings());
+                });
         return data;
+    }
+
+    private List<Listing> createMockListings() {
+        List<Listing> mockList = new ArrayList<>();
+
+        Listing item1 = new Listing("Máy ảnh Sony A6400 cũ", "Máy ảnh còn mới, ít dùng, fullbox. Tặng kèm thẻ nhớ 64GB.", 18500000.0,
+                Arrays.asList("https://images.unsplash.com/photo-1516739832250-7c2512a4f48a?q=80&w=2070"),
+                "Quận 1, TP. HCM", "cat_electronics", "mock_seller_1", "Người Bán An", "like_new", true);
+        item1.setId("mock_id_1");
+        item1.setTimePosted(new Date(System.currentTimeMillis() - 86400000)); // 1 ngày trước
+
+        Listing item2 = new Listing("Đàn Guitar Acoustic", "Đàn còn tốt, âm thanh hay, phù hợp cho người mới tập. Có vài vết xước nhỏ không ảnh hưởng.", 800000.0,
+                Arrays.asList("https://images.unsplash.com/photo-1550291652-6ea9114a47b1?q=80&w=2070"),
+                "Cầu Giấy, Hà Nội", "cat_other", "mock_seller_2", "Người Bán Bình", "used", true);
+        item2.setId("mock_id_2");
+        item2.setTimePosted(new Date(System.currentTimeMillis() - 172800000)); // 2 ngày trước
+
+        Listing item3 = new Listing("Giày chạy bộ Nike Pegasus 40", "Giày chính hãng, mới chạy 2-3 lần, không hợp size nên pass lại. Size 42.", 2100000.0,
+                Arrays.asList("https://images.unsplash.com/photo-1542291026-7eec264c27ab?q=80&w=2070"),
+                "Quận Hải Châu, Đà Nẵng", "cat_fashion", "mock_seller_3", "Người Bán Chi", "new", false);
+        item3.setId("mock_id_3");
+        item3.setTimePosted(new Date(System.currentTimeMillis() - 3600000)); // 1 giờ trước
+
+        mockList.add(item1);
+        mockList.add(item2);
+        mockList.add(item3);
+
+        return mockList;
     }
 
     public LiveData<PagedResult<Listing>> getMyListings(String userId, @Nullable DocumentSnapshot lastVisible) {
@@ -214,13 +254,10 @@ public class ListingRepository {
         MutableLiveData<PagedResult<Listing>> resultLiveData = new MutableLiveData<>();
         Query query = db.collection("listings").whereEqualTo("status", "available");
 
-        // ========== SỬA LỖI Ở ĐÂY ==========
         // QUAN TRỌNG: Phải orderBy TRƯỚC khi dùng startAt/endAt
         if (params.getQuery() != null && !params.getQuery().isEmpty()) {
             query = query.orderBy("title").startAt(params.getQuery()).endAt(params.getQuery() + '\uf8ff');
         }
-        // ===================================
-
         if (params.getCategory() != null && !params.getCategory().isEmpty()) {
             query = query.whereEqualTo("categoryId", params.getCategory());
         }
@@ -234,13 +271,7 @@ public class ListingRepository {
             query = query.whereEqualTo("condition", params.getCondition());
         }
 
-        if (params.getSortBy() != null && !params.getSortBy().isEmpty()) {
-            // Tránh lỗi khi orderBy("title") đã được gọi ở trên
-            if (!params.getSortBy().equals("title")) {
-                Query.Direction direction = params.isSortAscending() ? Query.Direction.ASCENDING : Query.Direction.DESCENDING;
-                query = query.orderBy(params.getSortBy(), direction);
-            }
-        } else if (params.getQuery() == null || params.getQuery().isEmpty()) {
+        if (params.getSortBy() == null || params.getSortBy().isEmpty() && (params.getQuery() == null || params.getQuery().isEmpty())) {
             query = query.orderBy("timePosted", Query.Direction.DESCENDING);
         }
 

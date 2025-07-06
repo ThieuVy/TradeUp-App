@@ -1,6 +1,7 @@
 package com.example.testapptradeup.fragments;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -71,19 +72,11 @@ public class HomeFragment extends Fragment {
     // Hàm này lắng nghe sự kiện từ MainViewModel
     private void observeSharedViewModel() {
         mainViewModel.getNewListingPosted().observe(getViewLifecycleOwner(), newListing -> {
-            // Kiểm tra newListing không null để tránh xử lý sự kiện đã được clear
             if (newListing != null) {
-                // 1. Thông báo cho HomeViewModel để xử lý logic thêm vào danh sách
+                Log.d("HomeFragment", "Nhận được sự kiện đăng bài mới, đang thêm vào đầu danh sách...");
                 viewModel.addNewListingToTop(newListing);
-
-                // 2. (UX) Cuộn RecyclerView lên đầu để người dùng thấy ngay bài đăng của mình
                 binding.listingsRecycler.scrollToPosition(0);
-
-                // 3. Thông báo cho MainViewModel rằng sự kiện đã được xử lý
-                // Điều này ngăn HomeFragment xử lý lại sự kiện này nếu nó xoay màn hình hoặc quay lại.
                 mainViewModel.onNewListingEventHandled();
-
-                Toast.makeText(getContext(), "Đã cập nhật tin đăng mới!", Toast.LENGTH_SHORT).show();
             }
         });
     }

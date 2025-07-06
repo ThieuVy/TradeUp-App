@@ -65,22 +65,19 @@ public class ChatListFragment extends Fragment implements ChatListAdapter.OnConv
     }
 
     private void setupListeners() {
+        // Gán sự kiện cho nút back trên toolbar
         toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
     }
 
     private void observeViewModel() {
         viewModel.getConversationList().observe(getViewLifecycleOwner(), conversations -> {
             boolean isEmpty = conversations == null || conversations.isEmpty();
+
+            // Xử lý ẩn/hiện UI
             recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
             emptyTextView.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
 
             if (!isEmpty) {
-                for (Conversation c : conversations) {
-                    if (c.getId() == null) {
-                        // Log lỗi để kiểm tra
-                        android.util.Log.w("ChatListFragment", "Conversation không có ID: " + c.getOtherUserName());
-                    }
-                }
                 adapter.submitList(conversations);
             }
         });
