@@ -8,6 +8,7 @@
     android:background="@color/white"
     tools:context=".fragments.ProductDetailFragment">
 
+    <!-- AppBarLayout và CollapsingToolbarLayout không thay đổi, đã đúng -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar"
         android:layout_width="match_parent"
@@ -41,10 +42,14 @@
         </com.google.android.material.appbar.CollapsingToolbarLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
+    <!-- ========== BẮT ĐẦU PHẦN SỬA ĐỔI ========== -->
+
+    <!-- NestedScrollView chứa nội dung chi tiết -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:layout_marginBottom="?attr/actionBarSize"> <!-- Thêm khoảng trống ở dưới cho thanh action -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -77,29 +82,48 @@
                 android:layout_marginTop="16dp"
                 android:lineSpacingExtra="4dp"
                 android:textColor="@color/text_secondary"
-                tools:text="Đây là phần mô tả chi tiết của sản phẩm..."/>
+                tools:text="Đây là phần mô tả chi tiết của sản phẩm... lặp đi lặp lại để có thể cuộn được. Đây là phần mô tả chi tiết của sản phẩm... lặp đi lặp lại để có thể cuộn được. Đây là phần mô tả chi tiết của sản phẩm... lặp đi lặp lại để có thể cuộn được."/>
+
+            <!-- Thêm các phần khác nếu cần -->
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/fab_chat"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:text="Nhắn tin"
-        app:icon="@drawable/ic_chat"
-        tools:ignore="HardcodedText" />
-
-    <Button
-        android:id="@+id/btn_make_offer"
-        style="@style/Widget.Material3.Button.OutlinedButton"
+    <!-- Thanh Action ở dưới cùng -->
+    <LinearLayout
+        android:id="@+id/bottom_action_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Trả giá"
-        app:icon="@drawable/ic_tag_outline"
-        tools:ignore="HardcodedText,TextContrastCheck,VisualLintButtonSize" />
+        android:orientation="horizontal"
+        android:layout_gravity="bottom"
+        android:padding="8dp"
+        android:background="@color/white"
+        android:elevation="4dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/fab_chat"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="99dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="8dp"
+            android:minWidth="64dp"
+            android:paddingHorizontal="12dp"
+            app:icon="@drawable/ic_chat"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            tools:ignore="SpeakableTextPresentCheck" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_make_offer"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="Trả giá"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            tools:ignore="HardcodedText,VisualLintButtonSize" />
+    </LinearLayout>
+
+    <!-- ======================================== -->
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

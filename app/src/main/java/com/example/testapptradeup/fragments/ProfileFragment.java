@@ -27,14 +27,14 @@ import com.example.testapptradeup.R;
 import com.example.testapptradeup.activities.LoginActivity;
 import com.example.testapptradeup.activities.MainActivity;
 import com.example.testapptradeup.adapters.ReviewAdapter;
-import com.example.testapptradeup.models.Review;
 import com.example.testapptradeup.models.User;
+import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.example.testapptradeup.viewmodels.ProfileViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 
-import java.util.List;
+import java.util.ArrayList;
 
 public class ProfileFragment extends Fragment {
 
@@ -54,13 +54,14 @@ public class ProfileFragment extends Fragment {
     private MaterialCardView cardSavedItems, cardOffers, cardPurchases, cardPayments;
     private LinearLayout menuReviews;
 
-    // SỬA Ở ĐÂY: Khai báo biến adapter
     private ReviewAdapter reviewAdapter;
+    private MainViewModel mainViewModel;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(requireActivity()).get(ProfileViewModel.class);
+        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
     }
 
     @Override
@@ -74,6 +75,7 @@ public class ProfileFragment extends Fragment {
         try {
             navController = Navigation.findNavController(view);
             initViews(view);
+            setupRecyclerView();
             setupClickListeners();
             observeViewModel();
         } catch (Exception e) {
@@ -137,38 +139,34 @@ public class ProfileFragment extends Fragment {
         menuPaymentMethods.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_paymentSettingsFragment));
         menuReviews.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_reviewsFragment));
         btnLogout.setOnClickListener(v -> showLogoutConfirmationDialog());
-        btnDeactivateAccount.setOnClickListener(v -> showDeactivateConfirmDialog());
-        btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
+//        btnDeactivateAccount.setOnClickListener(v -> showDeactivateConfirmDialog());
+//        btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
     }
 
     private void observeViewModel() {
-        viewModel.getUserProfileData().observe(getViewLifecycleOwner(), user -> {
+        // Lắng nghe dữ liệu người dùng từ MainViewModel
+        mainViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
                 this.currentUser = user;
                 updateUI(user);
-                // Giờ đây dòng này sẽ không báo lỗi nữa
-                setupRecyclerView(user.getReviews());
+
+                // Cập nhật danh sách cho adapter khi có dữ liệu
+                if (reviewAdapter != null && user.getReviews() != null) {
+                    reviewAdapter.setReviews(user.getReviews());
+                }
             } else {
                 Toast.makeText(getContext(), "Không thể tải dữ liệu người dùng.", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void setupRecyclerView(List<Review> reviews) {
-        if (getContext() == null) {
-            return;
-        }
-        if (reviews != null && !reviews.isEmpty()) {
-            recyclerViewReviews.setVisibility(View.VISIBLE);
-            emptyReviewsText.setVisibility(View.GONE);
-            // Giờ đây dòng này sẽ không báo lỗi nữa
-            reviewAdapter = new ReviewAdapter(reviews);
-            recyclerViewReviews.setLayoutManager(new LinearLayoutManager(getContext()));
-            recyclerViewReviews.setAdapter(reviewAdapter);
-        } else {
-            recyclerViewReviews.setVisibility(View.GONE);
-            emptyReviewsText.setVisibility(View.VISIBLE);
-        }
+    private void setupRecyclerView() {
+        if (getContext() == null) return;
+
+        recyclerViewReviews.setLayoutManager(new LinearLayoutManager(getContext()));
+        // Khởi tạo adapter với danh sách rỗng để tránh lỗi "No adapter attached"
+        reviewAdapter = new ReviewAdapter(new ArrayList<>());
+        recyclerViewReviews.setAdapter(reviewAdapter);
     }
 
     @SuppressLint({"SetTextI18n", "StringFormatMatches"})
@@ -186,7 +184,7 @@ public class ProfileFragment extends Fragment {
         textBio.setText(user.getBio() != null && !user.getBio().isEmpty() ? user.getBio() : "Chưa có tiểu sử.");
 
         if (user.getReviewCount() > 0) {
-            textRatingInfo.setText(getString(R.string.rating_info_format, user.getRating(), user.getReviewCount()));
+            textRatingInfo.setText(getString(R.string.profile_rating_info_format, user.getRating(), user.getReviewCount()));
         } else {
             textRatingInfo.setText("Chưa có đánh giá");
         }

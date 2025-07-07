@@ -39,7 +39,7 @@ public class PaymentSettingsViewModel extends ViewModel {
     public void fetchStripeKeys() {
         _isLoading.setValue(true);
         _errorMessage.setValue(null);
-        _stripeKeys.setValue(null); // Reset để trigger observer
+        _stripeKeys.setValue(null);
 
         callCreateSetupIntent().continueWithTask(task -> {
             if (!task.isSuccessful()) {
@@ -73,7 +73,7 @@ public class PaymentSettingsViewModel extends ViewModel {
                 _stripeKeys.setValue(task.getResult());
             } else {
                 Log.e(TAG, "Lỗi khi lấy thông tin thanh toán: ", task.getException());
-                _errorMessage.setValue("Lỗi khi lấy thông tin thanh toán: " + Objects.requireNonNull(task.getException()).getMessage());
+                _errorMessage.setValue("Lỗi: " + Objects.requireNonNull(task.getException()).getMessage());
             }
         });
     }
@@ -82,31 +82,17 @@ public class PaymentSettingsViewModel extends ViewModel {
     private Task<Map<String, String>> callCreateSetupIntent() {
         return functions.getHttpsCallable("createSetupIntent")
                 .call()
-                .continueWith(task -> {
-                    Object data = Objects.requireNonNull(task.getResult()).getData();
-                    if (data instanceof Map) {
-                        return (Map<String, String>) data;
-                    } else {
-                        throw new Exception("Kiểu dữ liệu trả về từ createSetupIntent không hợp lệ.");
-                    }
-                });
+                .continueWith(task -> (Map<String, String>) Objects.requireNonNull(task.getResult()).getData());
     }
 
     @NonNull
     private Task<Map<String, String>> callCreateEphemeralKey(String customerId) {
         Map<String, Object> requestData = new HashMap<>();
         requestData.put("customerId", customerId);
-        requestData.put("apiVersion", "2024-04-10"); // Dùng phiên bản API Stripe mới nhất
+        requestData.put("apiVersion", "2024-04-10");
 
         return functions.getHttpsCallable("createEphemeralKey")
                 .call(requestData)
-                .continueWith(task -> {
-                    Object data = Objects.requireNonNull(task.getResult()).getData();
-                    if (data instanceof Map) {
-                        return (Map<String, String>) data;
-                    } else {
-                        throw new Exception("Kiểu dữ liệu trả về từ createEphemeralKey không hợp lệ.");
-                    }
-                });
+                .continueWith(task -> (Map<String, String>) Objects.requireNonNull(task.getResult()).getData());
     }
 }

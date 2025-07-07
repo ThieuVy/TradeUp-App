@@ -33,7 +33,11 @@
         android:id="@+id/myListingsFragment"
         android:name="com.example.testapptradeup.fragments.MyListingsFragment"
         android:label="Quản Lý Tin"
-        tools:layout="@layout/fragment_my_listings" />
+        tools:layout="@layout/fragment_my_listings" >
+        <action
+            android:id="@+id/action_myListingsFragment_to_offerListFragment"
+            app:destination="@id/offerListFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/postFragment"
@@ -77,6 +81,7 @@
         <action
             android:id="@+id/action_navigation_profile_to_historyFragment"
             app:destination="@id/historyFragment"/>
+
     </fragment>
 
 
@@ -196,6 +201,7 @@
             android:id="@+id/action_historyFragment_to_addReviewFragment"
             app:destination="@id/addReviewFragment" />
     </fragment>
+
     <fragment
         android:id="@+id/addReviewFragment"
         android:name="com.example.testapptradeup.fragments.AddReviewFragment"
@@ -208,4 +214,18 @@
             android:name="reviewedUserId"
             app:argType="string" />
     </fragment>
+
+    <fragment
+        android:id="@+id/offerListFragment"
+        android:name="com.example.testapptradeup.fragments.OfferListFragment"
+        android:label="Danh sách Đề nghị"
+        tools:layout="@layout/fragment_offer_list">
+        <argument
+            android:name="listingId"
+            app:argType="string" />
+        <argument
+            android:name="listing"
+            app:argType="com.example.testapptradeup.models.Listing" />
+    </fragment>
+
 </navigation>

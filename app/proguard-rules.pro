@@ -47,9 +47,13 @@
   public <init>(...);
 }
 
-# Giữ lại các annotation của Stripe.
--keep @com.stripe.android.core.networking.StripeRequest$Method { *; }
--keep @com.stripe.android.core.networking.StripeRequest$MimeType { *; }
+# ========== BẮT ĐẦU PHẦN SỬA LỖI ==========
+#
+# CÁC DÒNG GÂY LỖI CÚ PHÁP ĐÃ ĐƯỢC XÓA BỎ
+# -keep @com.stripe.android.core.networking.StripeRequest$Method { *; }
+# -keep @com.stripe.android.core.networking.StripeRequest$MimeType { *; }
+#
+# =========================================
 
 # Quy tắc bổ sung để đảm bảo không có gì bị thiếu.
 -keepattributes Signature

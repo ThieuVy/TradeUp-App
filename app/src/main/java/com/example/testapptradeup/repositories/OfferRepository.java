@@ -1,10 +1,8 @@
 package com.example.testapptradeup.repositories;
 
 import android.util.Log;
-
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.Offer;
 import com.example.testapptradeup.models.Transaction;
@@ -15,7 +13,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
-
 import java.util.List;
 
 public class OfferRepository {
@@ -25,6 +22,12 @@ public class OfferRepository {
     private final CollectionReference listingsCollection = db.collection("listings");
     private final CollectionReference transactionsCollection = db.collection("transactions");
 
+    /**
+     * Tạo một đề nghị mới và tăng số lượng offers của tin đăng.
+     * Sử dụng WriteBatch để đảm bảo tính toàn vẹn dữ liệu.
+     * @param offer Đối tượng Offer cần tạo.
+     * @return LiveData<Boolean> báo hiệu thành công/thất bại.
+     */
     public LiveData<Boolean> createOffer(Offer offer) {
         MutableLiveData<Boolean> success = new MutableLiveData<>();
         WriteBatch batch = db.batch();
@@ -44,6 +47,11 @@ public class OfferRepository {
         return success;
     }
 
+    /**
+     * Lấy tất cả đề nghị cho một tin đăng cụ thể.
+     * @param listingId ID của tin đăng.
+     * @return LiveData chứa danh sách Offer.
+     */
     public LiveData<List<Offer>> getOffersForListing(String listingId) {
         MutableLiveData<List<Offer>> offersData = new MutableLiveData<>();
         offersCollection.whereEqualTo("listingId", listingId)
@@ -59,26 +67,34 @@ public class OfferRepository {
         return offersData;
     }
 
+    /**
+     * Chấp nhận một đề nghị. Hành động này sẽ:
+     * 1. Cập nhật trạng thái của đề nghị thành "accepted".
+     * 2. Cập nhật trạng thái của tất cả đề nghị khác cho cùng tin đăng thành "rejected".
+     * 3. Cập nhật trạng thái của tin đăng thành "sold".
+     * 4. Tạo một document giao dịch mới.
+     * @param offer Đề nghị được chấp nhận.
+     * @param listing Tin đăng liên quan.
+     * @return LiveData<Boolean> báo hiệu thành công/thất bại.
+     */
     public LiveData<Boolean> acceptOffer(Offer offer, Listing listing) {
         MutableLiveData<Boolean> success = new MutableLiveData<>();
 
-        // Bước 1: Đọc tất cả các offer khác cần được từ chối
         offersCollection.whereEqualTo("listingId", offer.getListingId())
-                .whereNotEqualTo("id", offer.getId())
+                .whereEqualTo("status", "pending") // Chỉ xử lý các offer đang chờ
                 .get()
                 .addOnSuccessListener(otherOffersSnapshot -> {
-                    // Bước 2: Tạo một WriteBatch để thực hiện các thao tác ghi một cách nguyên tử
                     WriteBatch batch = db.batch();
 
-                    // 2.1 Cập nhật offer được chấp nhận
+                    // Cập nhật offer được chấp nhận
                     DocumentReference acceptedOfferRef = offersCollection.document(offer.getId());
                     batch.update(acceptedOfferRef, "status", "accepted");
 
-                    // 2.2 Cập nhật tin đăng thành "đã bán"
+                    // Cập nhật tin đăng thành "sold" và isSold = true
                     DocumentReference listingRef = listingsCollection.document(listing.getId());
-                    batch.update(listingRef, "status", "sold", "sold", true);
+                    batch.update(listingRef, "status", "sold", "isSold", true);
 
-                    // 2.3 Tạo một document giao dịch mới
+                    // Tạo document giao dịch mới
                     DocumentReference transactionRef = transactionsCollection.document();
                     Transaction newTransaction = new Transaction();
                     newTransaction.setId(transactionRef.getId());
@@ -92,23 +108,22 @@ public class OfferRepository {
                     newTransaction.setFinalPrice(offer.getOfferPrice());
                     newTransaction.setSellerReviewed(false);
                     newTransaction.setBuyerReviewed(false);
-                    // Không cần set timestamp, vì đã có @ServerTimestamp trong model
                     batch.set(transactionRef, newTransaction);
 
-                    // 2.4 Từ chối tất cả các offer khác
+                    // Từ chối tất cả các offer khác
                     for (QueryDocumentSnapshot doc : otherOffersSnapshot) {
-                        batch.update(doc.getReference(), "status", "rejected");
+                        if (!doc.getId().equals(offer.getId())) {
+                            batch.update(doc.getReference(), "status", "rejected");
+                        }
                     }
 
-                    // 2.5 Commit toàn bộ batch
                     batch.commit().addOnSuccessListener(aVoid -> {
-                        Log.d(TAG, "Chấp nhận offer và cập nhật các trạng thái liên quan thành công.");
+                        Log.d(TAG, "Chấp nhận offer và xử lý giao dịch thành công.");
                         success.setValue(true);
                     }).addOnFailureListener(e -> {
                         Log.e(TAG, "Lỗi khi commit batch chấp nhận offer", e);
                         success.setValue(false);
                     });
-
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Lỗi khi lấy danh sách các offer khác để từ chối", e);

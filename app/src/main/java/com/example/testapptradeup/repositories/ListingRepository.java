@@ -1,4 +1,3 @@
-
 package com.example.testapptradeup.repositories;
 
 import android.util.Log;
@@ -17,7 +16,6 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -26,8 +24,16 @@ public class ListingRepository {
     public static final int PAGE_SIZE = 15;
     private Object lastVisible;
 
+    // ================== START: SỬA LỖI THEO TASK 1 ==================
+    // Khai báo các đối tượng MutableLiveData làm biến thành viên (member variables)
+    private final MutableLiveData<List<Listing>> featuredListingsData = new MutableLiveData<>();
+    private final MutableLiveData<List<Listing>> recommendedListingsData = new MutableLiveData<>();
+    private final MutableLiveData<List<Listing>> recentListingsData = new MutableLiveData<>();
+    // =================== END: SỬA LỖI THEO TASK 1 ===================
+
+
     public LiveData<List<Listing>> getFeaturedListings() {
-        MutableLiveData<List<Listing>> data = new MutableLiveData<>();
+        // Sửa lại: Không tạo mới MutableLiveData, sử dụng biến thành viên
         db.collection("listings")
                 .whereEqualTo("isFeatured", true) // Giả sử có trường isFeatured
                 .whereEqualTo("status", "available")
@@ -38,14 +44,14 @@ public class ListingRepository {
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         listings.add(doc.toObject(Listing.class));
                     }
-                    data.setValue(listings);
+                    featuredListingsData.setValue(listings); // Cập nhật vào biến thành viên
                 })
-                .addOnFailureListener(e -> data.setValue(null));
-        return data;
+                .addOnFailureListener(e -> featuredListingsData.setValue(null));
+        return featuredListingsData; // Trả về biến thành viên
     }
 
     public LiveData<List<Listing>> getRecommendedListings(int limit) {
-        MutableLiveData<List<Listing>> data = new MutableLiveData<>();
+        // Sửa lại: Không tạo mới MutableLiveData, sử dụng biến thành viên
         db.collection("listings")
                 .whereEqualTo("status", "available")
                 .orderBy("views", Query.Direction.DESCENDING) // Ví dụ: Đề xuất theo lượt xem
@@ -56,14 +62,14 @@ public class ListingRepository {
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         listings.add(doc.toObject(Listing.class));
                     }
-                    data.setValue(listings);
+                    recommendedListingsData.setValue(listings); // Cập nhật vào biến thành viên
                 })
-                .addOnFailureListener(e -> data.setValue(null));
-        return data;
+                .addOnFailureListener(e -> recommendedListingsData.setValue(null));
+        return recommendedListingsData; // Trả về biến thành viên
     }
 
     public LiveData<List<Listing>> getRecentListings(int limit) {
-        MutableLiveData<List<Listing>> data = new MutableLiveData<>();
+        // Sửa lại: Không tạo mới MutableLiveData, sử dụng biến thành viên
         db.collection("listings")
                 .whereEqualTo("status", "available")
                 .orderBy("timePosted", Query.Direction.DESCENDING)
@@ -73,40 +79,40 @@ public class ListingRepository {
                     List<Listing> listings = new ArrayList<>();
                     if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
                         for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                            listings.add(doc.toObject(Listing.class));
+                            Listing listing = doc.toObject(Listing.class);
+                            listing.setId(doc.getId()); // Đảm bảo ID được gán
+                            listings.add(listing);
                         }
                     } else {
-                        // *** NẾU FIRESTORE TRỐNG, TẠO DỮ LIỆU MẪU ***
                         Log.d("ListingRepository", "Firestore trống, tạo dữ liệu mẫu.");
                         listings.addAll(createMockListings());
                     }
-                    data.setValue(listings);
+                    recentListingsData.setValue(listings); // Cập nhật vào biến thành viên
                 })
                 .addOnFailureListener(e -> {
-                    // *** NẾU LỖI, CŨNG TẠO DỮ LIỆU MẪU ***
                     Log.e("ListingRepository", "Lỗi tải listings, tạo dữ liệu mẫu.", e);
-                    data.setValue(createMockListings());
+                    recentListingsData.setValue(createMockListings());
                 });
-        return data;
+        return recentListingsData; // Trả về biến thành viên
     }
 
     private List<Listing> createMockListings() {
         List<Listing> mockList = new ArrayList<>();
 
         Listing item1 = new Listing("Máy ảnh Sony A6400 cũ", "Máy ảnh còn mới, ít dùng, fullbox. Tặng kèm thẻ nhớ 64GB.", 18500000.0,
-                Arrays.asList("https://images.unsplash.com/photo-1516739832250-7c2512a4f48a?q=80&w=2070"),
+                List.of("https://images.unsplash.com/photo-1516739832250-7c2512a4f48a?q=80&w=2070"),
                 "Quận 1, TP. HCM", "cat_electronics", "mock_seller_1", "Người Bán An", "like_new", true);
         item1.setId("mock_id_1");
         item1.setTimePosted(new Date(System.currentTimeMillis() - 86400000)); // 1 ngày trước
 
         Listing item2 = new Listing("Đàn Guitar Acoustic", "Đàn còn tốt, âm thanh hay, phù hợp cho người mới tập. Có vài vết xước nhỏ không ảnh hưởng.", 800000.0,
-                Arrays.asList("https://images.unsplash.com/photo-1550291652-6ea9114a47b1?q=80&w=2070"),
+                List.of("https://images.unsplash.com/photo-1550291652-6ea9114a47b1?q=80&w=2070"),
                 "Cầu Giấy, Hà Nội", "cat_other", "mock_seller_2", "Người Bán Bình", "used", true);
         item2.setId("mock_id_2");
         item2.setTimePosted(new Date(System.currentTimeMillis() - 172800000)); // 2 ngày trước
 
         Listing item3 = new Listing("Giày chạy bộ Nike Pegasus 40", "Giày chính hãng, mới chạy 2-3 lần, không hợp size nên pass lại. Size 42.", 2100000.0,
-                Arrays.asList("https://images.unsplash.com/photo-1542291026-7eec264c27ab?q=80&w=2070"),
+                List.of("https://images.unsplash.com/photo-1542291026-7eec264c27ab?q=80&w=2070"),
                 "Quận Hải Châu, Đà Nẵng", "cat_fashion", "mock_seller_3", "Người Bán Chi", "new", false);
         item3.setId("mock_id_3");
         item3.setTimePosted(new Date(System.currentTimeMillis() - 3600000)); // 1 giờ trước
@@ -183,8 +189,32 @@ public class ListingRepository {
         return new MutableLiveData<>();
     }
     public LiveData<Listing> getListingById(String listingId) {
-        // ... Logic để lấy một document listing từ Firestore bằng ID
-        return null;
+        MutableLiveData<Listing> listingData = new MutableLiveData<>();
+        if (listingId == null || listingId.isEmpty()) {
+            listingData.setValue(null);
+            return listingData;
+        }
+
+        db.collection("listings").document(listingId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Listing listing = documentSnapshot.toObject(Listing.class);
+                        // Quan trọng: Gán ID của Document vào đối tượng
+                        if (listing != null) {
+                            listing.setId(documentSnapshot.getId());
+                        }
+                        listingData.setValue(listing);
+                    } else {
+                        Log.w("ListingRepository", "Không tìm thấy tin đăng với ID: " + listingId);
+                        listingData.setValue(null);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("ListingRepository", "Lỗi khi lấy tin đăng bằng ID", e);
+                    listingData.setValue(null);
+                });
+
+        return listingData;
     }
 
     // Phương thức mới để lấy danh sách sản phẩm theo bộ lọc
@@ -211,7 +241,15 @@ public class ListingRepository {
 
         // Có thể thêm .limit() nếu muốn giới hạn kết quả ban đầu
         query.get().addOnSuccessListener(queryDocumentSnapshots -> {
-            // ... (Logic chuyển đổi snapshots thành List<Listing> và post lên LiveData)
+            List<Listing> listings = new ArrayList<>();
+            if (queryDocumentSnapshots != null) {
+                for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                    Listing listing = doc.toObject(Listing.class);
+                    listing.setId(doc.getId()); // Đảm bảo ID được gán
+                    listings.add(listing);
+                }
+            }
+            listingsData.setValue(listings);
         }).addOnFailureListener(e -> listingsData.setValue(null));
 
         return listingsData;
@@ -253,10 +291,10 @@ public class ListingRepository {
     public LiveData<PagedResult<Listing>> searchListings(SearchParams params, @Nullable DocumentSnapshot lastVisible) {
         MutableLiveData<PagedResult<Listing>> resultLiveData = new MutableLiveData<>();
 
-        // Bắt đầu với query cơ bản
+        // Bắt đầu với query cơ bản, chỉ lấy các tin "available"
         Query query = db.collection("listings").whereEqualTo("status", "available");
 
-        // *** XÂY DỰNG QUERY ĐỘNG ***
+        // --- XÂY DỰNG QUERY ĐỘNG DỰA TRÊN PARAMS ---
 
         // 1. Lọc theo danh mục
         if (params.getCategory() != null && !params.getCategory().isEmpty()) {
@@ -269,9 +307,8 @@ public class ListingRepository {
         }
 
         // 3. Lọc theo giá
-        // Lưu ý: Firestore chỉ cho phép một range filter (>, <, >=, <=) trên MỘT trường
-        // Nếu bạn cần lọc theo giá và sắp xếp theo thời gian, bạn không thể làm trực tiếp.
-        // Giải pháp tạm thời là chỉ sắp xếp theo một trường.
+        // Lưu ý quan trọng của Firestore: Bạn chỉ có thể có MỘT bộ lọc theo khoảng (range filter: > < >= <=)
+        // trên MỘT trường trong một câu truy vấn. Nếu bạn đã lọc theo giá, bạn không thể sắp xếp theo trường khác (ví dụ: timePosted).
         if (params.getMinPrice() != null) {
             query = query.whereGreaterThanOrEqualTo("price", params.getMinPrice());
         }
@@ -279,42 +316,38 @@ public class ListingRepository {
             query = query.whereLessThanOrEqualTo("price", params.getMaxPrice());
         }
 
-        // 4. Lọc theo từ khóa (cách đơn giản)
-        // Lưu ý: Đây không phải là full-text search. Nó chỉ tìm các title bắt đầu bằng query.
-        // Để có full-text search, bạn cần dùng dịch vụ bên thứ 3 như Algolia hoặc Elasticsearch.
+        // 4. Lọc theo từ khóa (cách đơn giản nhất)
+        // Tìm các tiêu đề bắt đầu bằng từ khóa. Đây không phải là full-text search.
         if (params.getQuery() != null && !params.getQuery().isEmpty()) {
+            // Firestore yêu cầu phải orderBy cùng trường khi dùng startAt/endAt
             query = query.orderBy("title").startAt(params.getQuery()).endAt(params.getQuery() + '\uf8ff');
         }
 
         // 5. Sắp xếp
-        // QUAN TRỌNG: Nếu bạn đã dùng range filter trên 'price' (>, <), bạn không thể orderBy trường khác.
-        // Firestore sẽ báo lỗi. Chúng ta sẽ ưu tiên sắp xếp nếu có.
         if (params.getSortBy() != null && !params.getSortBy().isEmpty()) {
-            // Kiểm tra xem có đang lọc theo giá không
-            if(params.hasPriceFilter() && !params.getSortBy().equals("price")){
-                // Báo lỗi hoặc bỏ qua sắp xếp nếu không phải theo giá
-                Log.w("ListingRepository", "Cannot sort by a field other than 'price' when a price range filter is applied.");
+            // Nếu đã có bộ lọc khoảng giá, chỉ có thể sắp xếp theo giá.
+            if (params.hasPriceFilter() && !params.getSortBy().equals("price")) {
+                Log.w("ListingRepository", "Không thể sắp xếp theo trường khác khi đang lọc theo khoảng giá. Bỏ qua sắp xếp.");
             } else {
-                query = query.orderBy(params.getSortBy(), params.isSortAscending() ? Query.Direction.ASCENDING : Query.Direction.DESCENDING);
+                Query.Direction direction = params.isSortAscending() ? Query.Direction.ASCENDING : Query.Direction.DESCENDING;
+                query = query.orderBy(params.getSortBy(), direction);
             }
         } else if (params.getQuery() == null || params.getQuery().isEmpty()) {
-            // Sắp xếp mặc định nếu không có query tìm kiếm và không có yêu cầu sắp xếp cụ thể
+            // Sắp xếp mặc định theo thời gian nếu không có tìm kiếm từ khóa
             query = query.orderBy("timePosted", Query.Direction.DESCENDING);
         }
-        // Nếu có query tìm kiếm nhưng không có sắp xếp, Firestore sẽ tự dùng order by 'title' đã định nghĩa ở trên.
 
         // 6. Phân trang
         if (lastVisible != null) {
             query = query.startAfter(lastVisible);
         }
 
-        // 7. Giới hạn số lượng kết quả
+        // 7. Thực thi truy vấn
         query.limit(PAGE_SIZE).get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    // TODO: Xử lý lọc khoảng cách ở phía client nếu cần
-                    // Firestore không hỗ trợ truy vấn geo-location phức tạp trực tiếp
-                    // Bạn cần lấy tất cả kết quả trong một vùng lớn rồi lọc lại trên client
-                    // Hoặc sử dụng dịch vụ như GeoFire.
+                    // TODO: Xử lý lọc theo khoảng cách (distance) ở phía client
+                    // Vì Firestore không hỗ trợ geo-query phức tạp trực tiếp, logic này sẽ được thêm sau
+                    // nếu cần.
 
                     List<Listing> listings = new ArrayList<>();
                     DocumentSnapshot newLastVisible = null;
@@ -329,7 +362,9 @@ public class ListingRepository {
                     resultLiveData.setValue(new PagedResult<>(listings, newLastVisible, null));
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("ListingRepository", "Truy vấn Firestore thất bại. Bạn có thể cần tạo Chỉ mục tổng hợp trong Bảng điều khiển Firebase. Lỗi: " + e.getMessage(), e);
+                    Log.e("ListingRepository", "Lỗi truy vấn Firestore: " + e.getMessage(), e);
+                    // Gợi ý cho developer về lỗi phổ biến nhất
+                    Log.e("ListingRepository", "Gợi ý: Lỗi này thường xảy ra khi bạn chưa tạo Composite Index trong Firestore. Vui lòng kiểm tra Logcat để xem link tạo index tự động từ Firebase.");
                     resultLiveData.setValue(new PagedResult<>(null, null, e));
                 });
         return resultLiveData;

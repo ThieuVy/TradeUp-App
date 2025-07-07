@@ -36,7 +36,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:background="@null"
-                android:hint="@string/search_hint"
+                android:hint="@string/home_search_hint"
                 android:imeOptions="actionSearch"
                 android:inputType="text"
                 android:maxLines="1"
@@ -50,7 +50,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/clear_search_desc"
+                android:contentDescription="@string/search_clear_desc"
                 android:src="@drawable/ic_clear"
                 android:visibility="gone"
                 tools:visibility="visible"/>
@@ -68,7 +68,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/filter_toggle_desc"
+                android:contentDescription="@string/search_filter_toggle_desc"
                 android:src="@drawable/ic_filter" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

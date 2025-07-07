@@ -290,16 +290,19 @@
         </LinearLayout>
 
         <LinearLayout
-            style="@style/ProfileMenuItem"
-            android:id="@+id/menu_change_password">
+            android:id="@+id/menu_change_password"
+            style="@style/ProfileMenuItem">
+
             <ImageView
                 style="@style/ProfileMenuIcon"
                 android:src="@drawable/ic_key"
                 tools:ignore="ContentDescription" />
+
             <TextView
                 style="@style/ProfileMenuText"
                 android:text="Đổi mật khẩu"
                 tools:ignore="HardcodedText" />
+
             <ImageView
                 style="@style/ProfileMenuChevron"
                 tools:ignore="ContentDescription" />

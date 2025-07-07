@@ -18,11 +18,22 @@
         android:theme="@style/Theme.TestAppTradeUp"
         tools:targetApi="31">
 
+        <!-- ========== BẮT ĐẦU PHẦN SỬA LỖI ========== -->
+        <!--
+            Thêm thẻ meta-data này để vô hiệu hóa việc tự động thu thập dữ liệu
+            màn hình của Firebase Analytics, giải quyết xung đột với Stripe PaymentSheet.
+        -->
+        <meta-data
+            android:name="google_analytics_automatic_screen_reporting_enabled"
+            android:value="false" />
+        <!-- ======================================== -->
+
+
         <!-- SỬA LỖI: Đặt LoginActivity làm màn hình khởi động -->
         <activity
             android:name=".activities.LoginActivity"
             android:theme="@style/Theme.TestAppTradeUp"
-            android:exported="true">  <!-- SỬA LỖI: Chuyển thành 'true' cho LAUNCHER activity -->
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -37,16 +48,15 @@
         <activity
             android:name=".activities.RegisterActivity"
             android:theme="@style/Theme.TestAppTradeUp"
-            android:exported="false"> <!-- SỬA LỖI: Chuyển thành 'false' và xóa intent-filter -->
-            <!-- BỘ LỌC INTENT LAUNCHER ĐÃ ĐƯỢC XÓA TỪ ĐÂY -->
+            android:exported="false">
         </activity>
 
         <activity android:name=".activities.ForgotPasswordActivity"
             android:theme="@style/Theme.TestAppTradeUp"
-            android:exported="false"/> <!-- SỬA LỖI: Chuyển thành 'false' và xóa intent-filter -->
+            android:exported="false"/>
         <activity android:name=".activities.EmailVerificationActivity"
             android:theme="@style/Theme.TestAppTradeUp"
-            android:exported="false"/> <!-- SỬA LỖI: Chuyển thành 'false' và xóa intent-filter -->
+            android:exported="false"/>
     </application>
 
 </manifest>

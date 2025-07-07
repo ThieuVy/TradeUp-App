@@ -20,10 +20,12 @@ import androidx.credentials.CredentialManagerCallback;
 import androidx.credentials.GetCredentialRequest;
 import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.utils.SharedPrefsHelper;
+import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.android.material.button.MaterialButton;
@@ -41,6 +43,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = "LoginActivity";
 
+    private MainViewModel mainViewModel;
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private SharedPrefsHelper prefsHelper;
@@ -64,7 +67,7 @@ public class LoginActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         prefsHelper = new SharedPrefsHelper(this);
         credentialManager = CredentialManager.create(this);
-
+//        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         initViews();
         setupListeners();
     }
@@ -236,6 +239,7 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(LoginActivity.this, "Chào mừng bạn đến với TradeUp!", Toast.LENGTH_SHORT).show();
                     prefsHelper.saveCurrentUser(newUser);
+//                    mainViewModel.setCurrentUser(newUser);
                     navigateToMainActivity();
                 })
                 .addOnFailureListener(e -> {
@@ -252,25 +256,26 @@ public class LoginActivity extends AppCompatActivity {
                         User user = documentSnapshot.toObject(User.class);
                         if (user != null) {
                             user.setId(userId);
-                            prefsHelper.saveCurrentUser(user);
-                            Log.d(TAG, "User data loaded for UID: " + userId);
+                            prefsHelper.saveCurrentUser(user); // Lưu người dùng vào SharedPreferences
+//                            mainViewModel.setCurrentUser(user); // Cập nhật ViewModel
+                            Log.d(TAG, "Dữ liệu người dùng đã được tải cho UID: " + userId); // Log thông tin tải dữ liệu
                         } else {
-                            createFallbackUserAndSave(userId, "User object null from Firestore");
+                            createFallbackUserAndSave(userId, "Đối tượng người dùng null từ Firestore"); // Tạo người dùng dự phòng nếu đối tượng null
                         }
                     } else {
-                        createFallbackUserAndSave(userId, "Firestore document not found");
+                        createFallbackUserAndSave(userId, "Không tìm thấy tài liệu Firestore"); // Tạo người dùng dự phòng nếu tài liệu không tồn tại
                     }
-                    navigateToMainActivity();
+                    navigateToMainActivity(); // Điều hướng đến MainActivity
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading user data: " + e.getMessage(), e);
                     Toast.makeText(LoginActivity.this, "Lỗi tải thông tin người dùng.", Toast.LENGTH_SHORT).show();
-                    navigateToMainActivity();
+                    navigateToMainActivity(); // Điều hướng đến MainActivity ngay cả khi có lỗi
                 });
     }
 
-    private void createFallbackUserAndSave(String userId, String reason) {
-        Log.d(TAG, "Creating fallback user: " + reason);
+    private void createFallbackUserAndSave(String userId, String reason) { // userId là ID người dùng, reason là lý do tạo người dùng dự phòng
+        Log.d(TAG, "Tạo người dùng dự phòng: " + reason);
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser != null) {
             User fallbackUser = new User(

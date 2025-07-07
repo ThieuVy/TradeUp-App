@@ -64,6 +64,7 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
             btnReview = itemView.findViewById(R.id.btn_review);
         }
 
+        // ========== BẮT ĐẦU PHẦN SỬA ĐỔI ==========
         @SuppressLint("SetTextI18n")
         public void bind(final Transaction transaction, String currentUserId, final OnReviewButtonClickListener listener) {
             listingTitle.setText(transaction.getListingTitle());
@@ -80,9 +81,12 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
 
             if (currentUserId == null) return;
 
+            // Xác định vai trò của người dùng hiện tại trong giao dịch
             boolean amIBuyer = currentUserId.equals(transaction.getBuyerId());
-            if (amIBuyer) {
+
+            if (amIBuyer) { // Tôi là người mua
                 partnerLabel.setText("Đã mua từ: " + transaction.getSellerName());
+                // Hiển thị nút đánh giá nếu tôi (người mua) chưa đánh giá
                 if (!transaction.isBuyerReviewed()) {
                     btnReview.setVisibility(View.VISIBLE);
                     btnReview.setText("Đánh giá người bán");
@@ -90,8 +94,9 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
                 } else {
                     btnReview.setVisibility(View.GONE);
                 }
-            } else { // I am the seller
+            } else { // Tôi là người bán
                 partnerLabel.setText("Đã bán cho: " + transaction.getBuyerName());
+                // Hiển thị nút đánh giá nếu tôi (người bán) chưa đánh giá
                 if (!transaction.isSellerReviewed()) {
                     btnReview.setVisibility(View.VISIBLE);
                     btnReview.setText("Đánh giá người mua");

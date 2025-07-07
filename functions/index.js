@@ -13,30 +13,24 @@ const stripe = require("stripe")(functions.config().stripe.secret);
  * @return {Promise<string>} The customer ID.
  */
 const getOrCreateCustomer = async (userId) => {
-  const userDoc = await admin.firestore().collection("users").doc(userId).get();
-  const userData = userDoc.data();
+    const userDoc = await admin.firestore().collection("users").doc(userId).get();
+    const userData = userDoc.data();
 
-  // Nếu đã có stripeCustomerId trong Firestore, trả về nó
-  if (userData && userData.stripeCustomerId) {
-    return userData.stripeCustomerId;
-  }
+    if (userData && userData.stripeCustomerId) {
+        return userData.stripeCustomerId;
+    }
 
-  // Nếu chưa có, tạo một Customer mới trên Stripe
-  const customer = await stripe.customers.create({
-    // Gán email của user vào customer trên Stripe để dễ quản lý
-    email: userData.email,
-    // Metadata giúp liên kết customer này với Firebase user ID
-    metadata: {firebaseUID: userId},
-  });
+    const customer = await stripe.customers.create({
+        email: userData.email,
+        metadata: {firebaseUID: userId},
+    });
 
-  // Lưu stripeCustomerId mới vào Firestore cho lần sau
-  await admin.firestore().collection("users").doc(userId).update({
-    stripeCustomerId: customer.id,
-  });
+    await admin.firestore().collection("users").doc(userId).update({
+        stripeCustomerId: customer.id,
+    });
 
-  return customer.id;
+    return customer.id;
 };
-
 
 /**
  * Cloud Function 1: createSetupIntent
@@ -44,31 +38,26 @@ const getOrCreateCustomer = async (userId) => {
  * Client sẽ dùng `client_secret` từ đây để hiển thị PaymentSheet.
  */
 exports.createSetupIntent = functions.https.onCall(async (data, context) => {
-  // Kiểm tra xem người dùng đã xác thực chưa
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-        "unauthenticated",
-        "The function must be called while authenticated.",
-    );
-  }
+    if (!context.auth) {
+        throw new functions.https.HttpsError(
+            "unauthenticated",
+            "The function must be called while authenticated.",
+        );
+    }
 
-  const userId = context.auth.uid;
-  const customerId = await getOrCreateCustomer(userId);
+    const userId = context.auth.uid;
+    const customerId = await getOrCreateCustomer(userId);
 
-  // Tạo SetupIntent, nó sẽ cho phép lưu thẻ mà không cần thu tiền ngay
-  const setupIntent = await stripe.setupIntents.create({
-      customer: customerId,
-      // *** THÊM PHẦN NÀY VÀO ***
-      // Chỉ định các loại phương thức thanh toán bạn muốn hỗ trợ.
-      // 'card' là thẻ tín dụng/ghi nợ.
-      // Thêm các loại khác nếu cần, ví dụ: 'klarna', 'afterpay_clearpay'
-      // Đây là cách thay thế cho `allowsDelayedPaymentMethods`
-      payment_method_types: ["card"],
+    const setupIntent = await stripe.setupIntents.create({
+        customer: customerId,
+        // Chỉ định các loại phương thức thanh toán bạn muốn hỗ trợ. 'card' là thẻ.
+        // Đây là cách thay thế cho `allowsDelayedPaymentMethods` và là yêu cầu của các API mới.
+        payment_method_types: ["card"],
     });
 
     return {
-      clientSecret: setupIntent.client_secret,
-      customerId: customerId,
+        clientSecret: setupIntent.client_secret,
+        customerId: customerId,
     };
 });
 
@@ -79,27 +68,22 @@ exports.createSetupIntent = functions.https.onCall(async (data, context) => {
  * thay mặt cho customer một cách an toàn (hiển thị danh sách thẻ đã lưu).
  */
 exports.createEphemeralKey = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-        "unauthenticated",
-        "The function must be called while authenticated.",
+    if (!context.auth) {
+        throw new functions.https.HttpsError(
+          "unauthenticated",
+          "The function must be called while authenticated.",
+        );
+    }
+    const userId = context.auth.uid;
+    const customerId = await getOrCreateCustomer(userId);
+    const apiVersion = data.apiVersion;
+    const key = await stripe.ephemeralKeys.create(
+        {customer: customerId},
+        {apiVersion: apiVersion},
     );
-  }
-
-  const userId = context.auth.uid;
-  const customerId = await getOrCreateCustomer(userId);
-
-  // Stripe API version phải khớp với version mà Stripe SDK trên Android đang dùng
-  const apiVersion = data.apiVersion;
-
-  const key = await stripe.ephemeralKeys.create(
-      {customer: customerId},
-      {apiVersion: apiVersion},
-  );
-
-  return {
-    ephemeralKey: key.secret,
-  };
+    return {
+        ephemeralKey: key.secret,
+    };
 });
 
 /**
@@ -109,36 +93,36 @@ exports.createEphemeralKey = functions.https.onCall(async (data, context) => {
  */
 exports.permanentlyDeleteUserAccount = functions.https.onCall(
     async (data, context) => {
-      // Kiểm tra xác thực
-      if (!context.auth) {
-        throw new functions.https.HttpsError(
-            "unauthenticated",
-            "The function must be called while authenticated.",
-        );
-      }
+        // Kiểm tra xác thực
+        if (!context.auth) {
+            throw new functions.https.HttpsError(
+                "unauthenticated",
+                "The function must be called while authenticated.",
+            );
+        }
 
-      const uid = context.auth.uid;
+        const uid = context.auth.uid;
 
-      try {
-        // Bước 1: Xóa người dùng khỏi Firebase Authentication
-        await admin.auth().deleteUser(uid);
-        console.log("Successfully deleted user from Auth:", uid);
+        try {
+            // Bước 1: Xóa người dùng khỏi Firebase Authentication
+            await admin.auth().deleteUser(uid);
+            console.log("Successfully deleted user from Auth:", uid);
 
-        // Bước 2: Xóa document người dùng khỏi Firestore
-        await admin.firestore().collection("users").doc(uid).delete();
-        console.log("Successfully deleted user data from Firestore:", uid);
+            // Bước 2: Xóa document người dùng khỏi Firestore
+            await admin.firestore().collection("users").doc(uid).delete();
+            console.log("Successfully deleted user data from Firestore:", uid);
 
-        // (Tùy chọn nâng cao) Bước 3: Xóa các tin đăng của người dùng này
-        // Cần một batch write để xóa nhiều document
+            // (Tùy chọn nâng cao) Bước 3: Xóa các tin đăng của người dùng này
+            // Cần một batch write để xóa nhiều document
 
-        return {success: true, message: "Account deleted successfully."};
-      } catch (error) {
-        console.error("Error deleting user:", uid, error);
-        throw new functions.https.HttpsError(
-            "internal",
-            "Failed to delete user account.",
-            error,
-        );
-      }
+            return {success: true, message: "Account deleted successfully."};
+        } catch (error) {
+            console.error("Error deleting user:", uid, error);
+            throw new functions.https.HttpsError(
+                "internal",
+                "Failed to delete user account.",
+                error,
+            );
+        }
     },
 );

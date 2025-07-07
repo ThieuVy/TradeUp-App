@@ -11,8 +11,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import android.os.Parcelable;
 
-public class Listing {
+public class Listing implements Parcelable {
 
     @DocumentId
     private String id; // Firestore sẽ tự động điền ID của document vào đây
@@ -169,6 +170,7 @@ public class Listing {
     public int hashCode() {
         return Objects.hash(id);
     }
+
     protected Listing(Parcel in) {
         id = in.readString();
         title = in.readString();
@@ -177,7 +179,7 @@ public class Listing {
         imageUrls = in.createStringArrayList();
         location = in.readString();
         long tmpTimePosted = in.readLong();
-        timePosted = tmpTimePosted == -1 ? null : new Date(tmpTimePosted);
+        timePosted = tmpTimePosted == -1 ? null : new java.util.Date(tmpTimePosted);
         categoryId = in.readString();
         rating = in.readFloat();
         reviewCount = in.readInt();
@@ -189,8 +191,8 @@ public class Listing {
         views = in.readInt();
         offersCount = in.readInt();
         isSold = in.readByte() != 0;
+        tags = in.createStringArrayList();
     }
-
 
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(id);
@@ -211,6 +213,7 @@ public class Listing {
         dest.writeInt(views);
         dest.writeInt(offersCount);
         dest.writeByte((byte) (isSold ? 1 : 0));
+        dest.writeStringList(tags);
     }
 
     public int describeContents() {

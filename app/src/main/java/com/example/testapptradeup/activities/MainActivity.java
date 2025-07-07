@@ -10,11 +10,14 @@ import android.content.Intent;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.testapptradeup.R;
+import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.utils.SharedPrefsHelper;
+import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -35,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton fabAdd;
     private LinearLayout menuHome, menuManage, menuNotification, menuProfile;
     private List<LinearLayout> menuItems;
+    private MainViewModel mainViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,13 +47,13 @@ public class MainActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
         prefsHelper = new SharedPrefsHelper(this);
-
+        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         // Kiểm tra người dùng đăng nhập ngay từ đầu
         if (mAuth.getCurrentUser() == null) {
             navigateToLogin();
             return; // Rất quan trọng: Dừng thực thi nếu chưa đăng nhập
         }
-
+        loadUserIntoViewModel();
         setupUI();
         // Không cần tải lại dữ liệu user ở đây vì LoginActivity đã làm việc đó
     }
@@ -143,6 +147,17 @@ public class MainActivity extends AppCompatActivity {
                 icon.setColorFilter(unselectedColor);
                 text.setTextColor(unselectedColor);
             }
+        }
+    }
+
+    private void loadUserIntoViewModel() {
+        User user = prefsHelper.getCurrentUser();
+        if (user != null) {
+            mainViewModel.setCurrentUser(user);
+        } else {
+            // Trường hợp hiếm gặp: đã đăng nhập nhưng không có dữ liệu trong SharedPreferences.
+            // Có thể đăng xuất hoặc tải lại từ Firestore. Ở đây ta chọn đăng xuất cho an toàn.
+            performLogout();
         }
     }
 

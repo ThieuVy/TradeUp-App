@@ -1,654 +1,284 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">TradeUp App</string>
-    <string name="title_home">Trang chủ</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Thông báo</string>
-
-    <string name="email_verification_title">Xác minh Email</string>
-    <string name="return_arrow">Mũi tên quay lại</string>
-    <string name="return_text">Quay lại</string>
-    <string name="email_hint">Email</string>
-    <string name="send_verification">Gửi mã xác minh</string>
-    <string name="verification_code_hint">Mã xác minh (gửi qua email)</string>
-    <string name="verify_code">Xác minh mã</string>
-    <string name="back_to_email">Quay lại nhập Email</string>
-    <string name="email_sent">Mã xác minh đã được gửi tới %s</string>
-    <string name="email_invalid">Vui lòng nhập email hợp lệ</string>
-    <string name="code_invalid">Mã xác minh không hợp lệ</string>
-    <string name="verification_success">Xác minh email thành công!</string>
-
-    <string name="edit_profile_title">Chỉnh sửa hồ sơ</string>
-    <string name="back_button">Quay lại</string>
-    <string name="profile_picture">Ảnh đại diện</string>
-    <string name="change_image">Thay đổi ảnh</string>
-    <string name="name_hint">Họ và tên</string>
-    <string name="phone_hint">Số điện thoại</string>
-    <string name="bio_hint">Tiểu sử</string>
-    <string name="save">Lưu</string>
-    <string name="cancel">Hủy</string>
-    <string name="name_empty">Tên không được để trống</string>
-    <string name="profile_updated">Cập nhật hồ sơ thành công!</string>
-
-    <string name="title_search">Tìm kiếm</string>
-    <string name="title_post">Đăng tin</string>
-    <string name="title_profile">Hồ sơ</string>
-
-    <!-- Header Section -->
-    <string name="add_new_listing">Thêm tin đăng mới</string>
-    <string name="create_listing_subtitle">Tạo tin đăng bán hàng của bạn</string>
-    <string name="add_product_icon">Biểu tượng thêm sản phẩm</string>
-
-    <!-- Photos Section -->
-    <string name="photos_required">Hình ảnh sản phẩm</string>
-    <string name="photos_hint">Thêm ít nhất 1 hình ảnh để thu hút người mua</string>
-    <string name="photos_icon">Biểu tượng hình ảnh</string>
-    <string name="required_label">Bắt buộc</string>
-
-    <!-- Basic Information Section -->
-    <string name="basic_information">Thông tin cơ bản</string>
-    <string name="basic_info_icon">Biểu tượng thông tin</string>
-
-    <!-- Input Fields -->
-    <string name="title_hint">Tiêu đề tin đăng</string>
-    <string name="description_hint">Mô tả chi tiết sản phẩm</string>
-    <string name="price_hint">Giá bán</string>
-
-    <!-- Category & Condition Section -->
-    <string name="classification">Phân loại</string>
-    <string name="category_hint">Chọn danh mục</string>
-    <string name="condition_hint">Tình trạng sản phẩm</string>
-    <string name="category_icon">Biểu tượng danh mục</string>
-
-    <!-- Location Section -->
-    <string name="location_details">Thông tin vị trí</string>
-    <string name="location_hint">Địa chỉ</string>
-    <string name="location_privacy_note">Địa chỉ chính xác sẽ chỉ hiển thị với người mua quan tâm</string>
-    <string name="use_gps">Dùng GPS</string>
-    <string name="location_icon">Biểu tượng vị trí</string>
-
-    <!-- Additional Details Section -->
-    <string name="additional_details">Chi tiết bổ sung</string>
-    <string name="additional_details_icon">Biểu tượng chi tiết</string>
-    <string name="optional_label">Tùy chọn</string>
-    <string name="item_behavior_hint">Tình trạng hoạt động (nếu có)</string>
-    <string name="tags_hint">Từ khóa tìm kiếm</string>
-    <string name="tags_helper_text">Phân cách bằng dấu phẩy (VD: smartphone, samsung, mới)</string>
-
-    <!-- Action Buttons -->
-    <string name="preview">Xem trước</string>
-    <string name="publish_listing">Đăng tin</string>
-
-    <!-- Content Descriptions for Accessibility -->
-    <string name="ic_camera">Biểu tượng máy ảnh</string>
-    <string name="ic_info">Biểu tượng thông tin</string>
-    <string name="ic_title">Biểu tượng tiêu đề</string>
-    <string name="ic_description">Biểu tượng mô tả</string>
-    <string name="ic_price">Biểu tượng giá</string>
-    <string name="ic_category_outline">Biểu tượng danh mục</string>
-    <string name="ic_condition">Biểu tượng tình trạng</string>
-    <string name="ic_map_pin">Biểu tượng định vị</string>
-    <string name="ic_gps">Biểu tượng GPS</string>
-    <string name="ic_info_small">Biểu tượng thông tin nhỏ</string>
-    <string name="ic_behavior">Biểu tượng hoạt động</string>
-    <string name="ic_tags">Biểu tượng thẻ</string>
-    <string name="ic_preview">Biểu tượng xem trước</string>
-    <string name="ic_publish">Biểu tượng đăng tin</string>
-
-    <!-- Sample Category Options (for dropdown) -->
-    <string-array name="categories">
-        <item>Điện thoại &amp; Phụ kiện</item>
-        <item>Máy tính &amp; Laptop</item>
-        <item>Thời trang Nam</item>
-        <item>Thời trang Nữ</item>
-        <item>Đồ gia dụng</item>
-        <item>Xe cộ</item>
-        <item>Bất động sản</item>
-        <item>Thể thao &amp; Du lịch</item>
-        <item>Sách &amp; Văn phòng phẩm</item>
-        <item>Mẹ &amp; Bé</item>
-        <item>Thú cưng</item>
-        <item>Khác</item>
-    </string-array>
-
-    <!-- Sample Condition Options (for dropdown) -->
-    <string-array name="conditions">
-        <item>Mới 100%</item>
-        <item>Như mới</item>
-        <item>Còn tốt</item>
-        <item>Trung bình</item>
-        <item>Cần sửa chữa</item>
-    </string-array>
-
-    <!-- Validation Messages -->
-    <string name="error_title_required">Vui lòng nhập tiêu đề tin đăng</string>
-    <string name="error_description_required">Vui lòng nhập mô tả sản phẩm</string>
-    <string name="error_price_required">Vui lòng nhập giá bán</string>
-    <string name="error_price_invalid">Giá bán không hợp lệ</string>
-    <string name="error_category_required">Vui lòng chọn danh mục</string>
-    <string name="error_condition_required">Vui lòng chọn tình trạng sản phẩm</string>
-    <string name="error_location_required">Vui lòng nhập địa chỉ</string>
-    <string name="error_photos_required">Vui lòng thêm ít nhất 1 hình ảnh</string>
-
-    <!-- Success Messages -->
-    <string name="success_listing_created">Tin đăng đã được tạo thành công!</string>
-    <string name="success_photos_uploaded">Tải ảnh thành công</string>
-
-    <!-- Loading Messages -->
-    <string name="loading_creating_listing" tools:ignore="TypographyEllipsis">Đang tạo tin đăng...</string>
-    <string name="loading_uploading_photos" tools:ignore="TypographyEllipsis">Đang tải ảnh lên...</string>
-    <string name="loading_getting_location" tools:ignore="TypographyEllipsis">Đang lấy vị trí...</string>
-
-    <!-- Dialog Messages -->
-    <string name="dialog_discard_title">Hủy tin đăng?</string>
-    <string name="dialog_discard_message">Tất cả thông tin đã nhập sẽ bị mất. Bạn có chắc muốn thoát?</string>
-    <string name="dialog_discard_confirm">Hủy bỏ</string>
-    <string name="dialog_discard_cancel">Tiếp tục</string>
-
-    <!-- Permission Messages -->
-    <string name="permission_camera_title">Quyền truy cập Camera</string>
-    <string name="permission_camera_message">Ứng dụng cần quyền truy cập camera để chụp ảnh sản phẩm</string>
-    <string name="permission_location_title">Quyền truy cập Vị trí</string>
-    <string name="permission_location_message">Ứng dụng cần quyền truy cập vị trí để tự động điền địa chỉ</string>
-    <string name="permission_storage_title">Quyền truy cập Bộ nhớ</string>
-    <string name="permission_storage_message">Ứng dụng cần quyền truy cập bộ nhớ để chọn ảnh từ thư viện</string>
-
-    <!-- Common Actions -->
-    <string name="action_ok">Đồng ý</string>
-    <string name="action_cancel">Hủy</string>
-    <string name="action_retry">Thử lại</string>
-    <string name="action_close">Đóng</string>
-    <string name="action_save">Lưu</string>
-    <string name="action_delete">Xóa</string>
-    <string name="action_edit">Sửa</string>
-
-    <!-- Photo Picker Strings -->
-    <string name="selected_photo">Ảnh đã chọn</string>
-    <string name="add_photo_icon">Biểu tượng thêm ảnh</string>
-    <string name="add_photo">Thêm ảnh</string>
-    <string name="remove_photo">Xóa ảnh</string>
-
-    <!-- Photo related messages -->
-    <string name="photo_selection_error">Lỗi khi chọn ảnh</string>
-    <string name="photo_permission_required">Cần quyền truy cập camera</string>
-    <string name="photo_camera_error">Không có sẵn camera</string>
-    <string name="photo_max_limit">Tối đa 8 ảnh</string>
-    <string name="photo_size_error">Ảnh quá lớn</string>
-
-
-    <!-- Success messages -->
-    <string name="listing_created_success">Tin đăng đã được tạo thành công!</string>
-    <string name="listing_preview_title">Xem trước tin đăng</string>
-
-    <!-- General -->
+<!-- values/strings.xml (ĐÃ SỬA LỖI VÀ BỔ SUNG) -->
+<resources>
+    <!-- ===================================================================== -->
+    <!-- 1. GENERAL & COMMON STRINGS (Chuỗi chung & Phổ biến)                 -->
+    <!-- ===================================================================== -->
+    <string name="app_name">TradeUp</string>
     <string name="loading">Đang tải…</string>
-    <string name="retry">Thử lại</string>
-    <string name="ok">Đồng ý</string>
-    <string name="edit">Sửa</string>
-    <string name="delete">Xóa</string>
-
-    <!-- Dashboard Strings -->
-    <string name="my_listings">Tin đăng của tôi</string>
-    <string name="manage_your_products">Quản lý sản phẩm và theo dõi hiệu suất</string>
-    <string name="statistics">Thống kê</string>
-    <string name="total_views">Tổng lượt xem</string>
-    <string name="interactions">Tương tác</string>
-    <string name="active">Đang hiển thị</string>
-    <string name="filter_by_status">Lọc theo trạng thái</string>
-    <string name="sort_by">Sắp xếp theo</string>
-    <string name="your_listings">Danh sách sản phẩm của bạn</string>
-    <string name="add_new">Thêm mới</string>
-    <string name="no_listings_yet">Chưa có tin đăng</string>
-    <string name="create_first_listing">Tạo tin đăng đầu tiên để bắt đầu!</string>
-    <string name="empty_listings">Danh sách trống</string>
-    <string name="listings_icon">Biểu tượng tin đăng</string>
-    <string name="dashboard_icon">Biểu tượng bảng điều khiển</string>
-    <string name="statistics_icon">Biểu tượng thống kê</string>
-
-    <!-- Edit Listing Strings -->
-    <string name="edit_listing">Chỉnh sửa tin đăng</string>
-    <string name="update_your_product">Cập nhật chi tiết sản phẩm của bạn</string>
-    <string name="edit_listing_icon">Biểu tượng chỉnh sửa tin</string>
+    <string name="save">Lưu</string>
     <string name="save_changes">Lưu thay đổi</string>
-
-    <string name="view">View</string>
-    <string name="listing_image">Listing Image</string>
-
-    <!-- Phần Tiêu đề -->
-    <string name="search_products">Tìm kiếm sản phẩm</string>
-    <string name="toggle_filters">Bật/Tắt bộ lọc</string>
-
-    <!-- Phần Tìm kiếm -->
-    <string name="search_icon">Biểu tượng tìm kiếm</string>
-    <string name="search_hint">Tìm kiếm sản phẩm…</string>
-    <string name="clear_search">Xóa tìm kiếm</string>
-
-    <!-- Phần Bộ lọc -->
-    <string name="select_category">Chọn danh mục</string>
-    <string name="price_range">Khoảng giá</string>
-    <string name="min_price">Giá thấp nhất</string>
-    <string name="max_price">Giá cao nhất</string>
-    <string name="to">đến</string>
-    <string name="condition">Tình trạng</string>
-    <string name="distance_filter">Khoảng cách</string>
-    <string name="distance_any">Bất kỳ khoảng cách nào</string>
-    <string name="enter_location">Nhập vị trí</string>
-    <string name="clear_filters">Xóa bộ lọc</string>
-
-    <!-- Phần Sắp xếp -->
-    <string name="loading_results">Đang tải kết quả…</string>
-
-    <!-- Phần Kết quả -->
-    <string name="no_results">Không có kết quả</string>
-    <string name="no_results_found">Không tìm thấy kết quả nào</string>
-    <string name="try_different_keywords">Thử từ khóa khác hoặc điều chỉnh bộ lọc</string>
-    <string name="reset_search">Đặt lại tìm kiếm</string>
-    <string name="searching">Đang tìm kiếm…</string>
-    <string name="load_more_results">Tải thêm kết quả</string>
-
-    <!-- Tùy chọn Danh mục -->
-    <string name="category_all">Tất cả danh mục</string>
-    <string name="category_electronics">Điện tử</string>
-    <string name="category_clothing">Quần áo</string>
-    <string name="category_home">Nhà &amp; Vườn</string>
-    <string name="category_books">Sách</string>
-    <string name="category_sports">Thể thao</string>
-    <string name="category_toys">Đồ chơi</string>
-    <string name="category_automotive">Ô tô</string>
-    <string name="category_beauty">Làm đẹp</string>
-    <string name="category_jewelry">Trang sức</string>
-    <string name="category_other">Khác</string>
-
-    <!-- Tùy chọn Tình trạng -->
-    <string name="condition_all">Bất kỳ tình trạng nào</string>
-    <string name="condition_new">Mới</string>
-    <string name="condition_like_new">Gần như mới</string>
-    <string name="condition_good">Tốt</string>
-    <string name="condition_fair">Khá</string>
-    <string name="condition_poor">Kém</string>
-
-    <!-- Tùy chọn Sắp xếp -->
-    <string name="sort_relevance">Liên quan nhất</string>
-    <string name="sort_price_low">Giá: Thấp đến cao</string>
-    <string name="sort_price_high">Giá: Cao đến thấp</string>
-    <string name="sort_date_new">Mới nhất</string>
-    <string name="sort_date_old">Cũ nhất</string>
-    <string name="sort_distance">Khoảng cách</string>
-
-    <!-- Tùy chọn Khoảng cách -->
-    <string name="distance_1km">1 km</string>
-    <string name="distance_5km">5 km</string>
-    <string name="distance_10km">10 km</string>
-    <string name="distance_25km">25 km</string>
-    <string name="distance_50km">50 km</string>
-    <string name="distance_100km">100 km</string>
-
-    <!-- Chung -->
+    <string name="cancel">Hủy</string>
+    <string name="confirm">Xác nhận</string>
+    <string name="delete">Xóa</string>
+    <string name="edit">Sửa</string>
     <string name="apply">Áp dụng</string>
     <string name="reset">Đặt lại</string>
-
-    <string name="product_image">Hình ảnh sản phẩm</string>
-    <string name="product_title_placeholder">Tiêu đề sản phẩm</string>
-    <string name="price_placeholder">₫0.00</string>
-    <string name="original_price_placeholder">₫0.00 (giá gốc)</string>
-    <string name="condition_placeholder">Tình trạng</string>
-    <string name="location_placeholder">Vị trí • Khoảng cách</string>
-    <string name="posted_time_placeholder">Thời gian đăng</string>
-    <string name="add_to_favorites">Thêm vào yêu thích</string>
-    <string name="rating_icon">Biểu tượng đánh giá sao</string>
-    <string name="rating_placeholder">0.0 (0 đánh giá)</string>
+    <string name="retry">Thử lại</string>
+    <string name="ok">Đồng ý</string>
+    <string name="close">Đóng</string>
+    <string name="optional_label">(Tùy chọn)</string>
+    <string name="required_label">(Bắt buộc)</string>
+    <string name="view_all">Xem tất cả</string>
+    <string name="back">Quay lại</string>
+    <string name="product_image">Ảnh sản phẩm</string>
+    <!-- ========== BẮT ĐẦU PHẦN SỬA LỖI ========== -->
     <string name="message">Nhắn tin</string>
-    <string name="call">Gọi điện</string>
+    <string name="more_options">Tùy chọn khác</string>
+    <string name="profile">Hồ sơ</string>
+    <string name="trending">Thịnh hành</string>
+    <string name="listing_image">Ảnh tin đăng</string>
+    <string name="reviewer_avatar">Ảnh người đánh giá</string>
+    <string name="product_title">Tên sản phẩm</string>
+    <string name="product_price">Giá sản phẩm</string>
+    <string name="view_count">lượt xem</string>
+    <string name="product_time">thời gian đăng</string>
+    <!-- ======================================== -->
 
-    <!-- Content Descriptions -->
-    <string name="location_desc">Location</string>
-    <string name="notifications_desc">Notifications</string>
-    <string name="add_listing_desc">Add new listing</string>
+    <!-- ===================================================================== -->
+    <!-- 2. AUTHENTICATION (Xác thực: Đăng nhập, Đăng ký, Quên MK)            -->
+    <!-- ===================================================================== -->
+    <string name="auth_login">Đăng nhập</string>
+    <string name="auth_logout">Đăng xuất</string>
+    <string name="auth_register">Đăng ký</string>
+    <string name="auth_forgot_password">Quên mật khẩu?</string>
+    <string name="auth_email_hint">Email</string>
+    <string name="auth_password_hint">Mật khẩu</string>
+    <string name="auth_confirm_password_hint">Xác nhận mật khẩu</string>
+    <string name="auth_login_with_google">Đăng nhập với Google</string>
+    <string name="auth_dont_have_account">Chưa có tài khoản? Đăng ký</string>
+    <string name="auth_already_have_account">Đã có tài khoản? Đăng nhập</string>
+    <string name="auth_back_to_login">Quay lại đăng nhập</string>
 
-    <!-- Search -->
-    <string name="search_items_hint" tools:ignore="TypographyEllipsis">Tìm kiếm sản phẩm, danh mục...</string>
+    <!-- Email Verification -->
+    <string name="auth_verification_title">Xác thực Email</string>
+    <string name="auth_verification_message">Một email xác thực đã được gửi đến:\n%1$s\n\nVui lòng kiểm tra hộp thư và nhấn vào liên kết để kích hoạt tài khoản.</string>
+    <string name="auth_resend_email">Gửi lại Email</string>
+    <string name="auth_resend_cooldown">Bạn có thể gửi lại sau %d giây</string>
+    <string name="auth_i_have_verified">Tôi đã xác thực, tiếp tục</string>
 
-    <!-- Location -->
-    <string name="current_location_placeholder">Hồ Chí Minh, Việt Nam</string>
-    <string name="change">Thay đổi</string>
+    <!-- Forgot Password -->
+    <string name="auth_forgot_password_title">Quên Mật khẩu</string>
+    <string name="auth_send_request">Gửi yêu cầu</string>
 
-    <!-- Categories -->
-    <string name="quick_categories">Danh mục nổi bật</string>
-
-    <!-- Recommendations -->
-    <string name="recommended_for_you">Đề xuất cho bạn</string>
-    <string name="see_all">Xem tất cả</string>
-    <string name="no_recommendations_yet">Chưa có đề xuất\nHãy duyệt qua một vài sản phẩm để nhận đề xuất phù hợp!</string>
-
-    <!-- Trending -->
-    <string name="trending_near_you">Trending gần bạn</string>
-    <string name="trending_in_location">Trending tại %s</string>
-
-    <!-- Listings -->
-    <string name="all_listings">Tất cả sản phẩm</string>
-    <string name="filter">Lọc</string>
-    <string name="no_listings_found">Không tìm thấy sản phẩm nào\nThử thay đổi bộ lọc hoặc từ khóa tìm kiếm</string>
-
-    <!-- General Actions -->
-    <string name="refresh">Làm mới</string>
-
-    <!-- Error Messages -->
-    <string name="error_network">Không thể kết nối mạng</string>
-    <string name="error_location_permission">Cần quyền truy cập vị trí để hiển thị sản phẩm gần bạn</string>
-    <string name="error_loading_data">Lỗi tải dữ liệu</string>
-
-    <!-- Loading States -->
-    <string name="loading_recommendations" tools:ignore="TypographyEllipsis">Đang tải đề xuất...</string>
-    <string name="loading_listings" tools:ignore="TypographyEllipsis">Đang tải sản phẩm...</string>
-    <string name="loading_location" tools:ignore="TypographyEllipsis">Đang xác định vị trí...</string>
-
-    <!-- Categories -->
-    <string name="category_fashion">Thời trang</string>
-    <string name="category_home_garden">Nhà cửa &amp; Vườn</string>
-    <string name="category_health">Sức khỏe</string>
-    <string name="category_others">Khác</string>
-
-    <!-- Distance -->
-    <string name="distance_km">%s km</string>
-    <string name="distance_m">%s m</string>
-    <string name="nearby">Gần đây</string>
-
-    <!-- Time -->
-    <string name="time_just_now">Vừa xong</string>
-    <string name="time_minutes_ago">%d phút trước</string>
-    <string name="time_hours_ago">%d giờ trước</string>
-    <string name="time_days_ago">%d ngày trước</string>
-    <string name="time_weeks_ago">%d tuần trước</string>
-
-    <!-- Price -->
-    <string name="price_vnd">%s VNĐ</string>
-    <string name="price_free">Miễn phí</string>
-    <string name="price_negotiable">Thỏa thuận</string>
-
-    <!-- Recommendation Reasons -->
-    <string name="recommended_because_category">Dựa trên danh mục bạn quan tâm</string>
-    <string name="recommended_because_location">Gần vị trí của bạn</string>
-    <string name="recommended_because_popular">Được nhiều người quan tâm</string>
-    <string name="recommended_because_recent">Vừa được đăng</string>
-    <string name="recommended_because_price">Phù hợp với ngân sách</string>
-
-    <!-- Bottom Navigation -->
+    <!-- ===================================================================== -->
+    <!-- 3. MAIN NAVIGATION (Thanh điều hướng chính)                          -->
+    <!-- ===================================================================== -->
     <string name="nav_home">Trang chủ</string>
-    <string name="nav_search">Tìm kiếm</string>
-    <string name="nav_favorites">Yêu thích</string>
-    <string name="nav_messages">Tin nhắn</string>
+    <string name="nav_management">Quản lý</string>
+    <string name="nav_post">Đăng tin</string>
+    <string name="nav_notifications">Thông báo</string>
     <string name="nav_profile">Hồ sơ</string>
 
-    <!-- Menu Items -->
-    <string name="menu_notifications">Thông báo</string>
-    <string name="menu_settings">Cài đặt</string>
-    <string name="menu_help">Trợ giúp</string>
-    <string name="menu_about">Về chúng tôi</string>
+    <!-- ===================================================================== -->
+    <!-- 4. HOME FRAGMENT (Màn hình chính)                                    -->
+    <!-- ===================================================================== -->
+    <string name="home_search_hint">Tìm kiếm vật phẩm, danh mục…</string>
+    <string name="home_featured_items">Nổi bật</string>
+    <string name="home_categories">Danh mục</string>
+    <string name="home_recommendations">Đề xuất cho bạn</string>
+    <string name="home_recent_listings">Tin rao gần đây</string>
+    <string name="home_welcome_back">Chào mừng trở lại!</string>
 
-    <!-- Search Suggestions -->
-    <string name="search_recent">Tìm kiếm gần đây</string>
-    <string name="search_popular">Từ khóa phổ biến</string>
-    <string name="search_clear_history">Xóa lịch sử</string>
+    <!-- ===================================================================== -->
+    <!-- 5. SEARCH & FILTERS (Tìm kiếm & Bộ lọc)                              -->
+    <!-- ===================================================================== -->
+    <string name="search_title">Tìm kiếm</string>
+    <string name="search_clear_desc">Xóa tìm kiếm</string>
+    <string name="search_filter_toggle_desc">Hiện/ẩn bộ lọc</string>
+    <string name="search_results_count">Tìm thấy %d kết quả</string>
+    <string name="search_filter_price_range">Khoảng giá</string>
+    <string name="search_min_price_hint">Giá thấp nhất</string>
+    <string name="search_max_price_hint">Giá cao nhất</string>
+    <string name="search_filter_condition">Tình trạng</string>
+    <string name="search_filter_distance">Khoảng cách</string>
+    <string name="search_distance_in_km">Trong vòng %d km</string>
+    <string name="search_filter_location_hint">Nhập vị trí</string>
+    <string name="search_clear_filters">Xóa bộ lọc</string>
+    <string name="search_apply_filters">Áp dụng</string>
+    <string name="search_no_results_title">Không tìm thấy kết quả</string>
+    <string name="search_no_results_subtitle">Hãy thử thay đổi từ khóa hoặc bộ lọc của bạn.</string>
+    <string name="search_loading_results">Đang tải kết quả…</string>
+    <string name="search_load_more">Tải thêm</string>
+    <string name="search_category_all">Tất cả danh mục</string>
+    <string name="search_condition_all">Mọi tình trạng</string>
+    <string name="search_sort_relevance">Liên quan nhất</string>
+    <string name="search_sort_newest">Mới nhất</string>
+    <string name="search_sort_price_low_high">Giá: Thấp đến cao</string>
+    <string name="search_sort_price_high_low">Giá: Cao đến thấp</string>
+    <!-- ========== BẮT ĐẦU PHẦN SỬA LỖI ========== -->
+    <string name="product_title_placeholder">Tiêu đề sản phẩm</string>
+    <string name="price_placeholder">Giá</string>
+    <string name="condition_placeholder">Tình trạng</string>
+    <string name="location_placeholder">Địa điểm</string>
+    <string name="posted_time_placeholder">Thời gian đăng</string>
+    <!-- ======================================== -->
 
-    <!-- Product Details -->
-    <string name="seller">Người bán</string>
-    <string name="description">Mô tả</string>
-    <string name="location">Vị trí</string>
-    <string name="posted_time">Thời gian đăng</string>
-    <string name="views">Lượt xem</string>
-    <string name="interested">Quan tâm</string>
+    <string-array name="category_options">
+        <item>@string/search_category_all</item>
+        <item>@string/category_electronics</item>
+        <item>@string/category_laptops</item>
+        <item>@string/category_fashion</item>
+        <item>@string/category_home_goods</item>
+        <item>@string/category_cars</item>
+        <item>@string/category_other</item>
+    </string-array>
+    <string-array name="condition_options">
+        <item>@string/search_condition_all</item>
+        <item>@string/condition_new</item>
+        <item>@string/condition_like_new</item>
+        <item>@string/condition_good</item>
+        <item>@string/condition_used</item>
+    </string-array>
+    <string-array name="sort_options">
+        <item>@string/search_sort_relevance</item>
+        <item>@string/search_sort_newest</item>
+        <item>@string/search_sort_price_low_high</item>
+        <item>@string/search_sort_price_high_low</item>
+    </string-array>
 
-    <!-- Actions -->
-    <string name="contact_seller">Liên hệ người bán</string>
-    <string name="share">Chia sẻ</string>
-    <string name="report">Báo cáo</string>
+    <!-- ===================================================================== -->
+    <!-- 6. POSTING (Đăng tin)                                                 -->
+    <!-- ===================================================================== -->
+    <string name="post_title">Đăng tin mới</string>
+    <string name="post_preview">Xem trước</string>
+    <string name="post_add_images">Thêm hình ảnh (%1$d/%2$d)</string>
+    <string name="post_title_hint">Ví dụ: Laptop Dell XPS 15</string>
+    <string name="post_price_label">Giá bán</string>
+    <string name="post_price_hint">0</string>
+    <string name="post_currency_vnd">VNĐ</string>
+    <string name="post_category_label">Danh mục</string>
+    <string name="post_select_category_hint">Chọn danh mục</string>
+    <string name="post_condition_label">Tình trạng</string>
+    <string name="post_description_label">Mô tả</string>
+    <string name="post_description_hint">Mô tả chi tiết sản phẩm của bạn…</string>
+    <string name="post_location_label">Địa điểm</string>
+    <string name="post_location_hint">Nhập địa chỉ của bạn</string>
+    <string name="post_use_current_location">Sử dụng vị trí hiện tại</string>
+    <string name="post_tags_label">Thẻ</string>
+    <string name="post_add_tag_hint">Thêm thẻ (nhấn Enter)</string>
+    <string name="post_save_draft">Lưu nháp</string>
+    <string name="post_publish_button">Đăng tin</string>
+    <string name="post_dialog_discard_title">Hủy tin đăng?</string>
+    <string name="post_dialog_discard_message">Tất cả thông tin đã nhập sẽ bị mất. Bạn có chắc muốn thoát?</string>
+    <string name="post_dialog_confirm_discard">Hủy bỏ</string>
+    <string name="post_dialog_continue_editing">Tiếp tục</string>
 
-    <!-- Filters -->
-    <string name="filter_category">Danh mục</string>
-    <string name="filter_price_range">Khoảng giá</string>
-    <string name="filter_condition">Tình trạng</string>
-    <string name="filter_location">Vị trí</string>
-    <string name="filter_distance">Khoảng cách</string>
-    <string name="filter_sort_by">Sắp xếp theo</string>
-    <string name="filter_apply">Áp dụng</string>
-    <string name="filter_clear">Xóa bộ lọc</string>
+    <!-- Validation -->
+    <string name="post_error_title_required">Vui lòng nhập tiêu đề</string>
+    <string name="post_error_price_required">Vui lòng nhập giá bán</string>
+    <string name="post_error_category_required">Vui lòng chọn danh mục</string>
+    <string name="post_error_condition_required">Vui lòng chọn tình trạng sản phẩm</string>
+    <string name="post_error_description_required">Vui lòng nhập mô tả</string>
+    <string name="post_error_location_required">Vui lòng nhập địa điểm</string>
+    <string name="post_error_photos_required">Vui lòng thêm ít nhất 1 ảnh</string>
 
-    <!-- Sort Options -->
-    <string name="sort_newest">Mới nhất</string>
-    <string name="sort_oldest">Cũ nhất</string>
-    <string name="sort_price_low_high">Giá thấp đến cao</string>
-    <string name="sort_price_high_low">Giá cao đến thấp</string>
-    <string name="sort_popularity">Phổ biến</string>
+    <!-- ===================================================================== -->
+    <!-- 7. CATEGORIES & CONDITIONS (Danh mục & Tình trạng)                    -->
+    <!-- ===================================================================== -->
+    <string name="category_electronics">Điện tử</string>
+    <string name="category_laptops">Laptop</string>
+    <string name="category_fashion">Thời trang</string>
+    <string name="category_home_goods">Đồ gia dụng</string>
+    <string name="category_cars">Xe cộ</string>
+    <string name="category_sports">Thể thao</string>
+    <string name="category_books">Sách</string>
+    <string name="category_other">Khác</string>
 
-    <!-- Empty States -->
-    <string name="empty_favorites">Chưa có sản phẩm yêu thích</string>
-    <string name="empty_messages">Chưa có tin nhắn</string>
-    <string name="empty_search_results">Không tìm thấy kết quả</string>
+    <string name="condition_new">Mới</string>
+    <string name="condition_like_new">Như mới</string>
+    <string name="condition_good">Tốt</string>
+    <string name="condition_used">Đã sử dụng</string>
+    <string name="condition_fair">Khá</string>
+    <string name="condition_poor">Cần sửa chữa</string>
 
-    <!-- Notifications -->
-    <string name="notification_new_message">Tin nhắn mới từ %s</string>
-    <string name="notification_price_drop">Giá sản phẩm "%s" đã giảm!</string>
-    <string name="notification_new_listing_nearby">Có sản phẩm mới gần bạn</string>
-    <string name="notification_recommendation">Chúng tôi có đề xuất mới cho bạn</string>
+    <!-- ===================================================================== -->
+    <!-- 8. PROFILE & RELATED SCREENS (Hồ sơ & các màn hình liên quan)         -->
+    <!-- ===================================================================== -->
+    <string name="profile_edit_title">Chỉnh sửa hồ sơ</string>
+    <string name="profile_change_photo">Thay đổi ảnh</string>
+    <string name="profile_display_name_hint">Tên hiển thị</string>
+    <string name="profile_phone_hint">Số điện thoại</string>
+    <string name="profile_bio_hint">Tiểu sử</string>
+    <string name="profile_address_hint">Địa chỉ</string>
+    <string name="profile_updated_success">Cập nhật hồ sơ thành công!</string>
+    <string name="profile_no_reviews">Chưa có đánh giá nào.</string>
+    <string name="profile_deactivate_account">Tạm dừng tài khoản</string>
+    <string name="profile_delete_account">Xóa tài khoản vĩnh viễn</string>
+    <string name="profile_public_profile">Hồ sơ công khai</string>
+    <string name="profile_member_since_format">Thành viên từ %1$s</string>
+    <string name="profile_rating_info_format" translatable="false">%.1f (%d đánh giá)</string>
 
-    <string name="category_name">Category</string>
+    <!-- Profile Menu -->
+    <string name="profile_menu_activity">Lịch sử hoạt động</string>
+    <string name="profile_menu_saved_items">Đã lưu</string>
+    <string name="profile_menu_offers">Đề nghị</string>
+    <string name="profile_menu_purchases">Đã mua</string>
+    <string name="profile_menu_payments">Thanh toán</string>
+    <string name="profile_menu_account">Quản lý tài khoản</string>
+    <string name="profile_menu_personal_info">Thông tin cá nhân</string>
+    <string name="profile_menu_change_password">Đổi mật khẩu</string>
+    <string name="profile_menu_notifications">Cài đặt thông báo</string>
+    <string name="profile_menu_payment_methods">Phương thức thanh toán</string>
+    <string name="profile_menu_reviews">Đánh giá &amp; Nhận xét</string>
 
-    <!-- Categories -->
-
-    <!-- Recommendations -->
-    <string name="recommended">Recommended</string>
-
-    <!-- Trending -->
-    <string name="trending">Trending</string>
-
-    <!-- Product Details -->
-    <string name="product_title">Product Title</string>
-    <string name="product_price">$0</string>
-    <string name="original_price">$0</string>
-    <string name="discount_percent">0% OFF</string>
-    <string name="product_location">Location</string>
-    <string name="product_time">Time</string>
-    <string name="view_count">0 views</string>
-
-    <!-- Categories List -->
-    <string name="category_vehicles">Vehicles</string>
-    <string name="category_music">Music</string>
-    <string name="category_pets">Pets</string>
-    <string name="category_tools">Tools</string>
-    <string name="category_collectibles">Collectibles</string>
-
-    <!-- Bottom Navigation -->
-    <string name="nav_chat">Chat</string>
-
-    <!-- Common Actions -->
-    <string name="make_offer">Make Offer</string>
-
-    <!-- Loading States -->
-    <string name="no_internet">No internet connection</string>
-    <string name="try_again">Try Again</string>
-
-    <!-- Notifications -->
-    <string name="notification_item_sold">Your item %s has been sold!</string>
-
-    <!-- Product Tags -->
-    <string name="tag_featured">Featured</string>
-    <string name="tag_urgent">Urgent</string>
-    <string name="tag_negotiable">Negotiable</string>
-    <string name="tag_pickup_only">Pickup Only</string>
-    <string name="tag_delivery_available">Delivery Available</string>
-    <string name="tag_brand_new">Brand New</string>
-    <string name="tag_warranty">Warranty</string>
-
-    <!-- Search Filters -->
-    <string name="filter_clear_all">Clear All</string>
-
-    <string name="time_icon">Time</string>
-    <string name="default_web_client_id">203984469817-rrf9k82u876o2kl27e6nsr4jo87oge2c.apps.googleusercontent.com</string>
-
-
-    <!-- Product Information -->
-    <string name="seller_name">Người bán: %s</string>
-    <string name="asking_price">Giá yêu cầu: %s</string>
-
-    <!-- Offer Form -->
-    <string name="your_offer">Đề xuất của bạn</string>
-    <string name="offer_price">Giá đề xuất</string>
-    <string name="offer_price_hint">Nhập giá bạn muốn trả cho sản phẩm này</string>
-    <string name="offer_message_optional">Tin nhắn (không bắt buộc)</string>
-    <string name="offer_message_hint" tools:ignore="TypographyEllipsis">Thêm tin nhắn để thuyết phục người bán...</string>
-
-    <!-- Quick Offers -->
-    <string name="quick_offers">Đề xuất nhanh</string>
-    <string name="offer_90_percent">90%</string>
-    <string name="offer_85_percent">85%</string>
-    <string name="offer_80_percent">80%</string>
-
-    <!-- Terms and Conditions -->
-    <string name="offer_terms">Điều khoản đề xuất</string>
-    <string name="offer_terms_content">• Đề xuất của bạn có hiệu lực trong 48 giờ\n• Người bán có thể chấp nhận, từ chối hoặc đưa ra phản đề xuất\n• Bạn có thể rút lại đề xuất bất cứ lúc nào trước khi được chấp nhận\n• Khi đề xuất được chấp nhận, giao dịch sẽ được tiến hành theo quy định của nền tảng</string>
-
-    <!-- Action Buttons -->
-    <string name="send_offer">Gửi đề xuất</string>
-
-    <!-- Validation Messages -->
-    <string name="error_invalid_price">Vui lòng nhập giá hợp lệ</string>
-    <string name="error_price_too_low">Giá đề xuất quá thấp</string>
-    <string name="error_price_too_high">Giá đề xuất không thể cao hơn giá yêu cầu</string>
-    <string name="success_offer_sent">Đề xuất đã được gửi thành công</string>
-
-    <!-- Loading -->
-    <string name="sending_offer" tools:ignore="TypographyEllipsis">Đang gửi đề xuất...</string>
-
-    <!-- Currency -->
-    <string name="currency_vnd">đ</string>
-    <string name="price_format">%s %s</string>
-    <string name="product_image_desc">Hình ảnh sản phẩm</string>
-
-    <!-- Mô tả nội dung -->
-    <string name="app_logo">Logo ứng dụng</string>
-    <string name="profile_desc">Hồ sơ</string>
-
-    <!-- Vị trí -->
-    <string name="current_location">Vị trí hiện tại</string>
-
-    <!-- Gợi ý -->
-    <string name="recommendations_subtitle">Bắt đầu duyệt để nhận đề xuất phù hợp</string>
-
-    <!-- Tin đăng -->
-    <string name="no_listings_subtitle">Hãy là người đầu tiên đăng tin hấp dẫn!</string>
-
-    <!-- Hành động -->
-    <string name="add_listing">Đăng tin</string>
-
-    <!-- Danh sách danh mục -->
-    <string name="category_art">Nghệ thuật &amp; Thủ công</string>
-
-    <!-- Chi tiết sản phẩm -->
-    <string name="distance_format">Cách %1$.1f km</string>
-    <string name="time_ago_format">%1$s trước</string>
-    <string name="likes_format">%1$d lượt thích</string>
-    <string name="views_format">%1$d lượt xem</string>
-
-    <!-- Thông báo lỗi -->
-    <string name="error_no_internet">Không có kết nối mạng</string>
-
-    <!-- Trạng thái rỗng -->
-    <string name="empty_search_subtitle">Hãy thử thay đổi từ khóa tìm kiếm</string>
-    <string name="empty_favorites_subtitle">Lưu các mục bạn thích để xem lại sau</string>
-
-    <!-- Thông báo -->
-    <string name="notification_new_listing">Tin đăng mới gần bạn</string>
-
-    <!-- Trợ năng (accessibility) -->
-    <string name="accessibility_product_image">Hình ảnh sản phẩm</string>
-    <string name="accessibility_seller_avatar">Ảnh đại diện người bán</string>
-    <string name="accessibility_favorite_button">Thêm vào yêu thích</string>
-    <string name="accessibility_share_button">Chia sẻ sản phẩm</string>
-
-    <!-- Lời chào -->
-    <string name="welcome_back">Chào mừng trở lại!</string>
-    <string name="good_morning">Chào buổi sáng</string>
-    <string name="good_afternoon">Chào buổi chiều</string>
-    <string name="good_evening">Chào buổi tối</string>
-
-    <!-- Hành động nhanh -->
-    <string name="quick_sell">Bán nhanh</string>
-    <string name="quick_buy">Mua nhanh</string>
-    <string name="quick_search">Tìm nhanh</string>
-
-    <!-- Tính năng mạng xã hội -->
-    <string name="share_item">Chia sẻ sản phẩm này</string>
-    <string name="save_item">Lưu sản phẩm</string>
-    <string name="report_item">Báo cáo sản phẩm</string>
-
-    <!-- Mô tả cho biểu tượng vị trí -->
-    <string name="location_icon_desc">Biểu tượng vị trí</string>
-
-    <!-- Mô tả cho nút mở rộng vị trí -->
-    <string name="expand_location_desc">Mở rộng vị trí</string>
-
-    <!-- Mô tả cho biểu tượng đề xuất -->
-    <string name="recommend_icon_desc">Biểu tượng đề xuất</string>
-
-    <!-- Mô tả cho trạng thái rỗng của phần đề xuất -->
-    <string name="empty_recommendations_desc">Không có đề xuất</string>
-
-    <!-- Mô tả cho biểu tượng xu hướng -->
-    <string name="trending_icon_desc">Biểu tượng xu hướng</string>
-
-    <!-- Mô tả cho trạng thái rỗng của danh sách -->
-    <string name="empty_listings_desc">Không có danh sách</string>
-    <string name="results_found">Found %d results</string>
-    <string name="title_management">Quản lý tin</string>
-    <string name="title_discover">Khám phá</string>
-    <string name="scroll_to_top_desc">Mũi tên quay về đầu trang</string>
-
-    <string name="discover_search_hint" tools:ignore="TypographyEllipsis">Tìm kiếm bài đăng...</string>
-    <string name="no_posts_found">Không có bài đăng nào được tìm thấy</string>
-    <string name="explore_different_categories">Hãy thử khám phá các danh mục khác</string>
-    <string name="loading_posts" tools:ignore="TypographyEllipsis">Đang tải bài đăng...</string>
-    <string name="load_more_posts">Tải thêm bài đăng</string>
-    <string name="no_posts">Không có bài đăng\n</string>
-    <string name="clear_search_desc">Xóa tìm kiếm</string>
-    <string name="filter_toggle_desc">Bật/tắt bộ lọc</string>
-    <string name="min_price_hint">Giá tối thiểu</string>
-    <string name="max_price_hint">Giá tối đa</string>
-    <string name="no_distance_limit">Không giới hạn</string>
-    <string name="sort_hint">Sắp xếp</string>
-    <string name="load_more">Tải thêm..</string>
-    <string name="results_count">Tổng kết quả</string>
-
-    <string name="search_icon_desc">Tìm kiếm</string>
-    <string name="like_new">Như mới</string>
-    <string name="chat_desc">Chat</string>
-    <string name="title_news">Quản lý tin</string>
-    <string name="title_login">Đăng nhập</string>
-    <string name="title_register">Đăng ký</string>
-    <string name="title_forgot_password">Quên mật khẩu</string>
-
-
-
-    <string name="back">Quay lại</string>
-    <string name="more_options">Tùy chọn khác</string>
-    <string name="view_all">Xem tất cả</string>
-    <string name="reviews">Đánh giá</string>
-    <string name="profile">Hồ sơ</string>
-
-    <!-- Public Profile Screen -->
-    <string name="active_listings">Tin đang bán</string>
+    <!-- Public Profile -->
+    <string name="public_profile_active_listings">Tin đang bán</string>
+    <string name="public_profile_completed_sales">Giao dịch thành công</string>
+    <string name="public_profile_reviews">Đánh giá</string>
+    <string name="public_profile_report_user">Báo cáo người dùng này</string>
+    <!-- ========== BẮT ĐẦU PHẦN SỬA LỖI ========== -->
+    <string name="active_listings">Đang bán</string>
     <string name="completed_sales">Đã bán</string>
+    <string name="reviews">Đánh giá</string>
     <string name="report_user">Báo cáo người dùng</string>
+    <!-- ======================================== -->
 
-    <!-- Dynamic Format Strings -->
-    <string name="member_since_format">Thành viên từ %1$s</string>
-    <string name="rating_info_format">%.1f (%d đánh giá)</string>
+    <!-- ===================================================================== -->
+    <!-- 9. NOTIFICATIONS (Thông báo)                                          -->
+    <!-- ===================================================================== -->
+    <string name="notifications_title">Thông báo</string>
+    <string name="notifications_empty">Chưa có thông báo nào.</string>
+    <string name="notifications_mark_all_read">Đánh dấu đã đọc</string>
+    <string name="notifications_clear_all">Xóa tất cả</string>
+    <string name="notifications_settings">Cài đặt thông báo</string>
 
-    <!-- Item Layouts -->
+    <!-- ===================================================================== -->
+    <!-- 10. MY LISTINGS (Quản lý tin đăng)                                    -->
+    <!-- ===================================================================== -->
+    <string name="my_listings_title">Tin đăng của tôi</string>
+    <string name="my_listings_tab_all">Tất cả</string>
+    <string name="my_listings_tab_active">Đang bán</string>
+    <string name="my_listings_tab_sold">Đã bán</string>
+    <string name="my_listings_tab_paused">Tạm dừng</string>
+    <string name="my_listings_empty_state">Chưa có sản phẩm nào trong mục này.</string>
+
+    <!-- ===================================================================== -->
+    <!-- 11. CONTENT DESCRIPTIONS (Mô tả cho Trợ năng)                         -->
+    <!-- ===================================================================== -->
+    <string name="cd_app_logo">Logo ứng dụng TradeUp</string>
+    <string name="cd_profile_picture">Ảnh đại diện</string>
+    <string name="cd_seller_avatar">Ảnh đại diện người bán</string>
+    <string name="cd_favorite_button">Nút yêu thích</string>
+    <string name="cd_share_button">Nút chia sẻ</string>
+    <!-- ========== BẮT ĐẦU PHẦN SỬA LỖI ========== -->
+    <string name="location_icon_desc">Biểu tượng địa điểm</string>
+    <string name="add_to_favorites">Thêm vào yêu thích</string>
+    <string name="location_icon">Biểu tượng địa điểm</string>
+    <string name="time_icon">Biểu tượng thời gian</string>
+    <!-- ======================================== -->
+
+    <!-- ===================================================================== -->
+    <!-- 12. PERMISSIONS (Yêu cầu quyền)                                       -->
+    <!-- ===================================================================== -->
+    <string name="permission_location_message">Ứng dụng cần quyền truy cập vị trí để tự động điền địa chỉ của bạn.</string>
     <string name="listing_status_available">Còn hàng</string>
-    <string name="reviewer_avatar">Ảnh người đánh giá</string>
 
-    <!-- Error Messages -->
-    <string name="error_invalid_user_id">ID người dùng không hợp lệ.</string>
-    <string name="error_loading_profile">Lỗi tải hồ sơ.</string>
-
+    <!-- ========== BẮT ĐẦU PHẦN SỬA LỖI ========== -->
+    <!-- ===================================================================== -->
+    <!-- 13. ERROR & SUCCESS MESSAGES (Thông báo Lỗi & Thành công)             -->
+    <!-- ===================================================================== -->
+    <string name="error_invalid_user_id">Lỗi: ID người dùng không hợp lệ.</string>
+    <string name="error_loading_profile">Không thể tải hồ sơ người dùng.</string>
+    <!-- ======================================== -->
 
 </resources>

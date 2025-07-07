@@ -31,7 +31,6 @@ public class PurchaseHistoryFragment extends Fragment implements TransactionHist
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Lấy ViewModel từ scope của Fragment cha (HistoryFragment) hoặc Activity
         viewModel = new ViewModelProvider(requireActivity()).get(HistoryViewModel.class);
     }
 
@@ -44,6 +43,7 @@ public class PurchaseHistoryFragment extends Fragment implements TransactionHist
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        // Lấy NavController từ NavHostFragment của Activity
         navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment);
 
         emptyStateText = view.findViewById(R.id.text_empty_history);
@@ -76,11 +76,11 @@ public class PurchaseHistoryFragment extends Fragment implements TransactionHist
 
     @Override
     public void onReviewClick(Transaction transaction) {
-        // Điều hướng đến màn hình AddReview, truyền ID của người bán và ID của giao dịch
+        // Khi mua hàng, người cần đánh giá là người bán (seller)
         HistoryFragmentDirections.ActionHistoryFragmentToAddReviewFragment action =
                 HistoryFragmentDirections.actionHistoryFragmentToAddReviewFragment(
                         transaction.getId(),
-                        transaction.getSellerId()
+                        transaction.getSellerId() // <<< Truyền ID của người bán
                 );
         navController.navigate(action);
     }

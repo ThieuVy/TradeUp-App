@@ -21,7 +21,6 @@ import com.example.testapptradeup.adapters.FeaturedAdapter;
 import com.example.testapptradeup.adapters.ListingsAdapter;
 import com.example.testapptradeup.adapters.ProductGridAdapter;
 import com.example.testapptradeup.databinding.FragmentHomeBinding;
-import com.example.testapptradeup.models.Category;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.viewmodels.HomeViewModel;
 import com.example.testapptradeup.viewmodels.MainViewModel;
@@ -43,7 +42,6 @@ public class HomeFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Khởi tạo adapters ở đây hoặc trong onViewCreated nếu bạn muốn
         featuredAdapter = new FeaturedAdapter(this::navigateToProductDetail);
         recommendationsAdapter = new ProductGridAdapter(this::navigateToProductDetail);
         recentListingsAdapter = new ListingsAdapter(this::navigateToProductDetail, this::onFavoriteClick);
@@ -60,16 +58,14 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         navController = Navigation.findNavController(view);
         viewModel = new ViewModelProvider(this).get(HomeViewModel.class);
-        // Khởi tạo MainViewModel với scope của Activity
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         setupRecyclerViews();
         setupClickListeners();
         observeViewModel();
-        observeSharedViewModel(); // Lắng nghe ViewModel chia sẻ
+        observeSharedViewModel();
     }
 
-    // Hàm này lắng nghe sự kiện từ MainViewModel
     private void observeSharedViewModel() {
         mainViewModel.getNewListingPosted().observe(getViewLifecycleOwner(), newListing -> {
             if (newListing != null) {
@@ -82,32 +78,43 @@ public class HomeFragment extends Fragment {
     }
 
     private void setupRecyclerViews() {
-        // Nổi bật
-        featuredAdapter = new FeaturedAdapter(this::navigateToProductDetail);
         binding.featuredRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         binding.featuredRecycler.setAdapter(featuredAdapter);
 
-        // Đề xuất
-        recommendationsAdapter = new ProductGridAdapter(this::navigateToProductDetail);
         binding.recommendationsRecycler.setLayoutManager(new GridLayoutManager(getContext(), 2));
         binding.recommendationsRecycler.setAdapter(recommendationsAdapter);
 
-        // Gần đây
-        recentListingsAdapter = new ListingsAdapter(this::navigateToProductDetail, this::onFavoriteClick);
         binding.listingsRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.listingsRecycler.setAdapter(recentListingsAdapter);
     }
 
     private void setupClickListeners() {
-        // Toolbar and Search Bar
         binding.chatIcon.setOnClickListener(v -> navigateTo(R.id.action_home_to_chatList));
         binding.searchIcon.setOnClickListener(v -> navigateTo(R.id.action_home_to_search));
         binding.searchBarCard.setOnClickListener(v -> navigateTo(R.id.action_home_to_search));
 
-        // "See All" buttons
-        binding.seeAllRecommendations.setOnClickListener(v -> Toast.makeText(getContext(), "Xem tất cả Đề xuất", Toast.LENGTH_SHORT).show());
+        binding.seeAllRecommendations.setOnClickListener(v -> {
+            HomeFragmentDirections.ActionHomeToProductList action =
+                    HomeFragmentDirections.actionHomeToProductList("recommended");
+            action.setCategoryId(null);
+            navController.navigate(action);
+        });
 
-        binding.seeAllRecent.setOnClickListener(v -> Toast.makeText(getContext(), "Xem tất cả Gần đây", Toast.LENGTH_SHORT).show());
+        binding.seeAllRecent.setOnClickListener(v -> {
+            HomeFragmentDirections.ActionHomeToProductList action =
+                    HomeFragmentDirections.actionHomeToProductList("recent");
+            action.setCategoryId(null);
+            navController.navigate(action);
+        });
+
+        binding.categoriesSectionLayout.categoryElectronics.setOnClickListener(v -> navigateToCategory("electronics"));
+        binding.categoriesSectionLayout.categoryFashion.setOnClickListener(v -> navigateToCategory("fashion"));
+        binding.categoriesSectionLayout.categoryHome.setOnClickListener(v -> navigateToCategory("home_goods"));
+        binding.categoriesSectionLayout.categoryCars.setOnClickListener(v -> navigateToCategory("cars"));
+        binding.categoriesSectionLayout.categorySports.setOnClickListener(v -> navigateToCategory("sports"));
+        binding.categoriesSectionLayout.categoryBooks.setOnClickListener(v -> navigateToCategory("books"));
+        binding.categoriesSectionLayout.categoryLaptop.setOnClickListener(v -> navigateToCategory("laptops"));
+        binding.categoriesSectionLayout.categoryOther.setOnClickListener(v -> navigateToCategory("other"));
     }
 
     private void observeViewModel() {
@@ -118,21 +125,31 @@ public class HomeFragment extends Fragment {
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
             // TODO: Hiển thị/ẩn ProgressBar hoặc Shimmer effect
         });
-
-        // Hàm này lắng nghe danh sách "Tin rao gần đây" từ HomeViewModel
-        // Nó sẽ được kích hoạt cả khi tải dữ liệu ban đầu và khi có bài đăng mới được thêm vào
-        viewModel.getListings().observe(getViewLifecycleOwner(), listings -> recentListingsAdapter.submitList(listings != null ? listings : Collections.emptyList()));
     }
 
-    private void navigateToCategoryListings(Category category) {
-        Toast.makeText(getContext(), "Xem danh mục: " + category.getName(), Toast.LENGTH_SHORT).show();
-        // TODO: Điều hướng tới màn hình danh sách sản phẩm theo danh mục
+    private void navigateToCategory(String categoryId) {
+        if (navController != null) {
+            HomeFragmentDirections.ActionHomeToProductList action =
+                    HomeFragmentDirections.actionHomeToProductList("category");
+            action.setCategoryId(categoryId);
+            navController.navigate(action);
+        }
     }
 
+    // ================== START: SỬA LỖI THEO TASK 2 ==================
     private void navigateToProductDetail(Listing listing) {
-        Toast.makeText(getContext(), "Xem sản phẩm: " + listing.getTitle(), Toast.LENGTH_SHORT).show();
-        // TODO: Điều hướng tới màn hình chi tiết sản phẩm
+        if (navController != null && listing != null && listing.getId() != null) {
+            // Sử dụng lớp Directions được tạo tự động để đảm bảo type-safety
+            HomeFragmentDirections.ActionHomeToProductDetail action =
+                    HomeFragmentDirections.actionHomeToProductDetail(listing.getId());
+            navController.navigate(action);
+        } else {
+            // Log lỗi nếu listing hoặc ID của nó bị null để dễ dàng debug
+            Log.e("HomeFragment", "Không thể điều hướng: listing hoặc listing ID là null.");
+            Toast.makeText(getContext(), "Không thể mở chi tiết sản phẩm.", Toast.LENGTH_SHORT).show();
+        }
     }
+    // =================== END: SỬA LỖI THEO TASK 2 ===================
 
     private void onFavoriteClick(Listing listing) {
         // TODO: Xử lý logic yêu thích thông qua ViewModel
@@ -140,7 +157,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void navigateTo(int destinationId) {
-        if (navController.getCurrentDestination() != null && navController.getCurrentDestination().getId() != destinationId) {
+        if (navController != null && navController.getCurrentDestination() != null && navController.getCurrentDestination().getId() != destinationId) {
             navController.navigate(destinationId);
         }
     }
@@ -154,6 +171,6 @@ public class HomeFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding = null;
+        binding = null; // Tránh memory leak
     }
 }

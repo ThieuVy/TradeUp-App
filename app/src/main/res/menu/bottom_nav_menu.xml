@@ -4,26 +4,26 @@
     <item
         android:id="@+id/navigation_home"
         android:icon="@drawable/ic_home"
-        android:title="@string/title_home" />
+        android:title="@string/nav_home" />
 
     <item
         android:id="@+id/navigation_management"
         android:icon="@drawable/ic_management"
-        android:title="@string/title_management" />
+        android:title="@string/nav_management" />
 
     <item
         android:id="@+id/navigation_post"
         android:icon="@drawable/ic_post"
-        android:title="@string/title_post" />
+        android:title="@string/nav_post" />
 
     <item
         android:id="@+id/navigation_notifications"
         android:icon="@drawable/ic_notifications"
-        android:title="@string/title_notifications" />
+        android:title="@string/nav_notifications" />
 
     <item
         android:id="@+id/navigation_profile"
         android:icon="@drawable/ic_profile"
-        android:title="@string/title_profile" />
+        android:title="@string/nav_profile" />
 
 </menu>

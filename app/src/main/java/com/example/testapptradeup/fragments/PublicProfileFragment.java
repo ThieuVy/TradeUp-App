@@ -67,10 +67,9 @@ public class PublicProfileFragment extends Fragment {
         initViews(view);
         setupRecyclerViews();
         setupClickListeners();
-
+        observeViewModel();
         if (userId != null && !userId.isEmpty()) {
-            observeViewModel();
-            viewModel.loadProfileData(userId); // Yêu cầu ViewModel tải dữ liệu
+            viewModel.loadProfileData(userId);
         } else {
             Toast.makeText(getContext(), R.string.error_invalid_user_id, Toast.LENGTH_SHORT).show();
             navController.popBackStack();
@@ -78,6 +77,7 @@ public class PublicProfileFragment extends Fragment {
     }
 
     private void observeViewModel() {
+        // Các lời gọi .observe() giờ đây hoàn toàn an toàn vì các LiveData trong ViewModel không bao giờ null
         viewModel.getUserProfile().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
                 updateProfileUI(user);
@@ -142,7 +142,7 @@ public class PublicProfileFragment extends Fragment {
             SimpleDateFormat sdf = new SimpleDateFormat("MMMM yyyy", vietnameseLocale);
             String formattedDate = sdf.format(user.getMemberSince());
             // Sử dụng format string từ strings.xml
-            textMemberSince.setText(getString(R.string.member_since_format, formattedDate));
+            textMemberSince.setText(getString(R.string.profile_member_since_format, formattedDate));
         }
 
         if (getContext() != null && user.getProfileImageUrl() != null) {
@@ -155,7 +155,7 @@ public class PublicProfileFragment extends Fragment {
         }
 
         // THAY ĐỔI 2: Sử dụng format string cho thông tin đánh giá
-        textRatingInfo.setText(getString(R.string.rating_info_format, user.getRating(), user.getReviewCount()));
+        textRatingInfo.setText(getString(R.string.profile_rating_info_format, user.getRating(), user.getReviewCount()));
         textRatingStars.setText(getStarString(user.getRating()));
 
         statsActiveListings.setText(String.valueOf(user.getActiveListingsCount()));

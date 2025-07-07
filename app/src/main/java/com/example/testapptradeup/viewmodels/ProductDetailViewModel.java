@@ -32,6 +32,14 @@ public class ProductDetailViewModel extends ViewModel {
         return listingDetail;
     }
 
+    /**
+     * Tạo một đề nghị mua hàng từ người dùng hiện tại.
+     * @param listingId ID của tin đăng
+     * @param sellerId ID của người bán
+     * @param price Giá đề nghị
+     * @param message Tin nhắn kèm theo (tùy chọn)
+     * @return LiveData<Boolean> để theo dõi trạng thái gửi
+     */
     public LiveData<Boolean> makeOffer(String listingId, String sellerId, double price, String message) {
         if (currentUserId == null) {
             MutableLiveData<Boolean> failure = new MutableLiveData<>();
@@ -43,10 +51,12 @@ public class ProductDetailViewModel extends ViewModel {
         offer.setListingId(listingId);
         offer.setSellerId(sellerId);
         offer.setBuyerId(currentUserId);
-        // Lấy thông tin người mua (tên, avatar)
-        // Trong một app thực tế, bạn nên lấy từ SharedPreferences hoặc ViewModel chung
-        offer.setBuyerName("Current User Name");
-        offer.setBuyerAvatarUrl("url_to_avatar");
+
+        // TODO: Lấy tên và avatar người dùng hiện tại từ SharedPreferences hoặc một ViewModel chung
+        // Ví dụ: User currentUser = SharedPrefsHelper.getInstance(getApplication()).getCurrentUser();
+        offer.setBuyerName("Tên người mua"); // Thay thế bằng dữ liệu thật
+        offer.setBuyerAvatarUrl("url_avatar_nguoi_mua"); // Thay thế bằng dữ liệu thật
+
         offer.setOfferPrice(price);
         offer.setMessage(message);
         offer.setStatus("pending");

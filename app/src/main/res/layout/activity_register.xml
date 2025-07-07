@@ -31,15 +31,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-        android:fontFamily="@font/adlam_display"
-        android:text="Sign Up"
+        android:fontFamily="@font/roboto_mono"
+        android:text="@string/auth_register"
         android:textColor="@android:color/white"
         android:textSize="32sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/logo"
-        tools:ignore="HardcodedText" />
+        app:layout_constraintTop_toBottomOf="@id/logo" />
 
     <!-- Ô nhập Email -->
     <com.google.android.material.textfield.TextInputLayout
@@ -47,7 +46,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="48dp"
-        android:hint="Email"
+        android:hint="@string/auth_email_hint"
         app:boxBackgroundColor="@android:color/white"
         app:boxCornerRadiusBottomEnd="12dp"
         app:boxCornerRadiusBottomStart="12dp"
@@ -57,14 +56,13 @@
         app:startIconDrawable="@drawable/ic_email"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/sign_up_title"
-        tools:ignore="HardcodedText">
+        app:layout_constraintTop_toBottomOf="@id/sign_up_title">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/email"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/adlam_display"
+            android:fontFamily="@font/roboto_mono"
             android:inputType="textEmailAddress"
             android:textColor="@color/charcoal_black"
             android:textSize="16sp"
@@ -77,7 +75,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:hint="Password"
+        android:hint="@string/auth_password_hint"
         app:boxBackgroundColor="@android:color/white"
         app:boxCornerRadiusBottomEnd="12dp"
         app:boxCornerRadiusBottomStart="12dp"
@@ -88,13 +86,13 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/email_input_layout"
-        tools:ignore="HardcodedText">
+        app:passwordToggleEnabled="true">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/adlam_display"
+            android:fontFamily="@font/roboto_mono"
             android:inputType="textPassword"
             android:textColor="@color/charcoal_black"
             android:textSize="16sp"
@@ -107,7 +105,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:hint="Confirm Password"
+        android:hint="@string/auth_confirm_password_hint"
         app:boxBackgroundColor="@android:color/white"
         app:boxCornerRadiusBottomEnd="12dp"
         app:boxCornerRadiusBottomStart="12dp"
@@ -118,43 +116,53 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/password_input_layout"
-        tools:ignore="HardcodedText">
+        app:passwordToggleEnabled="true">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/confirm_password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/adlam_display"
+            android:fontFamily="@font/roboto_mono"
             android:inputType="textPassword"
             android:textColor="@color/charcoal_black"
             android:textSize="16sp"
             tools:ignore="VisualLintTextFieldSize" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:visibility="gone"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        tools:ignore="MissingConstraints" />
-
-    <!-- Nút Sign Up -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/sign_up_button"
+    <!-- Sử dụng FrameLayout để xếp chồng Button và ProgressBar -->
+    <FrameLayout
+        android:id="@+id/sign_up_button_container"
         android:layout_width="235dp"
         android:layout_height="54dp"
         android:layout_marginTop="32dp"
-        android:enabled="false"
-        android:fontFamily="@font/adlam_display"
-        android:text="Sign Up"
-        android:textColor="@android:color/white"
-        android:textSize="20sp"
-        app:backgroundTint="@color/muted_gold"
-        app:cornerRadius="12dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/confirm_password_input_layout"
-        tools:ignore="HardcodedText" />
+        app:layout_constraintTop_toBottomOf="@id/confirm_password_input_layout">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/sign_up_button"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:enabled="false"
+            android:fontFamily="@font/roboto_mono"
+            android:text="@string/auth_register"
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/muted_gold"
+            app:cornerRadius="12dp" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:elevation="8dp"
+            android:indeterminateTint="@android:color/white"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </FrameLayout>
+
 
     <!-- Container cho các nút đăng nhập xã hội -->
     <LinearLayout
@@ -165,7 +173,7 @@
         android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/sign_up_button">
+        app:layout_constraintTop_toBottomOf="@+id/sign_up_button_container">
 
         <ImageView
             android:id="@+id/google_login"
@@ -173,9 +181,9 @@
             android:layout_height="40dp"
             android:contentDescription="Google Login"
             android:src="@drawable/logo_gg"
-            tools:ignore="HardcodedText,MissingConstraints"
-            tools:layout_editor_absoluteX="166dp"
-            tools:layout_editor_absoluteY="598dp" />
+            android:clickable="true"
+            android:focusable="true"
+            tools:ignore="HardcodedText,MissingConstraints" />
 
     </LinearLayout>
 
@@ -185,14 +193,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:fontFamily="@font/adlam_display"
-        android:text="Already have an account? Login"
+        android:fontFamily="@font/roboto_mono"
+        android:text="@string/auth_already_have_account"
         android:textColor="@android:color/white"
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/social_login_container"
-        tools:ignore="HardcodedText" />
+        app:layout_constraintTop_toBottomOf="@id/social_login_container" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -94,7 +94,7 @@
                     android:id="@+id/listing_condition"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/like_new"
+                    android:text="@string/condition_like_new"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     app:chipBackgroundColor="@color/chip_background"

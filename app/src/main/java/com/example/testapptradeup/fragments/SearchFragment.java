@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,39 +47,30 @@ import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
 import java.util.Locale;
-import android.util.Log;
 
 public class SearchFragment extends Fragment {
 
-    private static final int DEBOUNCE_DELAY_MS = 500;
-
-    // ViewModel
+    private static final int DEBOUNCE_DELAY_MS = 300;
     private SearchViewModel viewModel;
 
     // UI Components
     private EditText searchInput;
     private ImageButton clearSearch, filterToggle;
     private ScrollView filtersContainer;
-    private LinearLayout sortHeaderCard;
+    private LinearLayout sortHeaderCard, emptyState, loadingState;
     private AutoCompleteTextView categoryFilter, conditionFilter, sortFilter;
     private EditText minPriceInput, maxPriceInput, locationInput;
     private SeekBar distanceSeekbar;
     private TextView distanceValue, resultsCount;
-    private Button useGpsButton, clearFiltersButton, applyFiltersButton;
+    private Button useGpsButton, clearFiltersButton, applyFiltersButton, loadMoreButton;
     private RecyclerView searchResultsRecyclerView;
-    private LinearLayout emptyState, loadingState;
     private ProgressBar loadMoreProgress;
-    private Button loadMoreButton;
-
-    // Adapter
     private SearchResultsAdapter searchResultsAdapter;
 
-    // Location
+    // Location & Utils
     private FusedLocationProviderClient fusedLocationClient;
     private Location currentLocation;
     private ActivityResultLauncher<String> locationPermissionLauncher;
-
-    // Utils
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
     private boolean isFiltersVisible = false;
@@ -88,15 +80,11 @@ public class SearchFragment extends Fragment {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(this).get(SearchViewModel.class);
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
-
         locationPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
-                    if (isGranted) {
-                        fetchCurrentLocation();
-                    } else {
-                        Toast.makeText(requireContext(), "Quyền vị trí bị từ chối.", Toast.LENGTH_SHORT).show();
-                    }
+                    if (isGranted) fetchCurrentLocation();
+                    else Toast.makeText(requireContext(), "Quyền vị trí bị từ chối.", Toast.LENGTH_SHORT).show();
                 }
         );
     }
@@ -106,13 +94,9 @@ public class SearchFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_search, container, false);
         initViews(view);
-        setupAdaptersAndData();
+        setupAdapters();
         setupListeners();
         observeViewModel();
-
-        if (viewModel.getSearchResults().getValue() == null || viewModel.getSearchResults().getValue().isEmpty()) {
-            viewModel.startNewSearch(new SearchParams());
-        }
         return view;
     }
 
@@ -141,76 +125,39 @@ public class SearchFragment extends Fragment {
         loadMoreProgress = view.findViewById(R.id.load_more_progress);
     }
 
-    private void setupAdaptersAndData() {
-        searchResultsAdapter = new SearchResultsAdapter(new ArrayList<>(), this::onProductClick, this::onFavoriteClick);
-        searchResultsRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        searchResultsRecyclerView.setAdapter(searchResultsAdapter);
-
-        String[] categories = {"Tất cả", "Điện thoại", "Laptop", "Thời trang", "Đồ gia dụng", "Khác"};
-        categoryFilter.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, categories));
-
-        String[] conditions = {"Tất cả", "Mới", "Như mới", "Tốt", "Đã dùng"};
-        conditionFilter.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, conditions));
-
-        String[] sortOptions = {"Liên quan nhất", "Mới nhất", "Giá: Thấp đến cao", "Giá: Cao đến thấp"};
-        sortFilter.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, sortOptions));
-    }
-
     private void setupAdapters() {
         searchResultsAdapter = new SearchResultsAdapter(new ArrayList<>(), this::onProductClick, this::onFavoriteClick);
         searchResultsRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         searchResultsRecyclerView.setAdapter(searchResultsAdapter);
 
-        // Setup các dropdown adapters
-        String[] categories = {"Điện thoại", "Laptop", "Thời trang", "Đồ gia dụng", "Khác"};
-        categoryFilter.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, categories));
-        String[] conditions = {"Mới", "Như mới", "Tốt", "Đã dùng"};
-        conditionFilter.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, conditions));
-        String[] sortOptions = {"Liên quan nhất", "Mới nhất", "Giá: Thấp đến cao", "Giá: Cao đến thấp"};
-        sortFilter.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, sortOptions));
+        // SỬA LỖI: Sử dụng string-array từ resources
+        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.category_options));
+        categoryFilter.setAdapter(categoryAdapter);
+
+        ArrayAdapter<String> conditionAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.condition_options));
+        conditionFilter.setAdapter(conditionAdapter);
+
+        ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.sort_options));
+        sortFilter.setAdapter(sortAdapter);
     }
 
     private void setupListeners() {
-        // Debounce cho ô tìm kiếm
         searchInput.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
             @Override
             public void afterTextChanged(Editable s) {
-                clearSearch.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
                 handler.removeCallbacks(searchRunnable);
-                searchRunnable = () -> {
-                    String query = s.toString().trim();
-                    SearchParams params = new SearchParams();
-                    params.setQuery(query);
-                    // Bất kể query rỗng hay không, vẫn gọi startNewSearch.
-                    // ViewModel sẽ xử lý việc hiển thị kết quả rỗng hoặc gợi ý.
-                    viewModel.startNewSearch(params);
-                };
+                searchRunnable = () -> viewModel.startNewSearch(collectSearchParamsFromUi());
                 handler.postDelayed(searchRunnable, DEBOUNCE_DELAY_MS);
             }
         });
 
-        clearSearch.setOnClickListener(v -> searchInput.setText(""));
-
-        // Nút bật/tắt bộ lọc
-        filterToggle.setOnClickListener(v -> {
-            isFiltersVisible = !isFiltersVisible;
-            filtersContainer.setVisibility(isFiltersVisible ? View.VISIBLE : View.GONE);
-            // Ẩn các view chính khi bộ lọc hiện ra
-            sortHeaderCard.setVisibility(isFiltersVisible ? View.GONE : View.VISIBLE);
-            searchResultsRecyclerView.setVisibility(isFiltersVisible ? View.GONE : View.VISIBLE);
-        });
-
-        // Áp dụng bộ lọc
         applyFiltersButton.setOnClickListener(v -> {
-            SearchParams params = collectSearchParamsFromUi(); // Gọi hàm thu thập dữ liệu
-            viewModel.startNewSearch(params); // Bắt đầu tìm kiếm với tham số mới
-            toggleFilterVisibility(false); // Ẩn bộ lọc sau khi áp dụng
+            viewModel.startNewSearch(collectSearchParamsFromUi());
+            toggleFilterVisibility(false);
         });
 
-        //Xóa bộ lọc
         clearFiltersButton.setOnClickListener(v -> {
             clearFilterInputs();
             viewModel.startNewSearch(new SearchParams());
@@ -219,34 +166,43 @@ public class SearchFragment extends Fragment {
 
         filterToggle.setOnClickListener(v -> toggleFilterVisibility(!isFiltersVisible));
         useGpsButton.setOnClickListener(v -> checkLocationPermissionAndFetch());
-    }
 
-    private void toggleFilterVisibility(boolean show) {
-        isFiltersVisible = show;
-        filtersContainer.setVisibility(isFiltersVisible ? View.VISIBLE : View.GONE);
-        sortHeaderCard.setVisibility(isFiltersVisible ? View.GONE : View.VISIBLE);
-        searchResultsRecyclerView.setVisibility(isFiltersVisible ? View.GONE : View.VISIBLE);
-        if(isFiltersVisible) {
-            emptyState.setVisibility(View.GONE);
-            loadingState.setVisibility(View.GONE);
-        }
-    }
-
-    @SuppressLint("DefaultLocale")
-    private void observeViewModel() {
-        // Lắng nghe kết quả tìm kiếm
-        viewModel.getSearchResults().observe(getViewLifecycleOwner(), results -> {
-            searchResultsAdapter.updateResults(results);
-            resultsCount.setText(String.format("Tìm thấy %d kết quả", results.size()));
+        distanceSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @SuppressLint("DefaultLocale")
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                distanceValue.setText(getString(R.string.search_distance_in_km, progress));
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        // Lắng nghe trạng thái UI (loading, empty, success...)
-        viewModel.getUiState().observe(getViewLifecycleOwner(), this::updateUiState);
+        sortFilter.setOnItemClickListener((parent, view, position, id) -> viewModel.startNewSearch(collectSearchParamsFromUi()));
     }
 
-    // Cập nhật giao diện dựa trên trạng thái từ ViewModel
+    private void observeViewModel() {
+        viewModel.getSearchResults().observe(getViewLifecycleOwner(), results -> {
+            searchResultsAdapter.updateResults(results);
+            resultsCount.setText(getString(R.string.search_results_count, results.size()));
+        });
+
+        viewModel.getUiState().observe(getViewLifecycleOwner(), this::updateUiState);
+        viewModel.getSearchParams().observe(getViewLifecycleOwner(), this::updateUiFromParams);
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void updateUiFromParams(SearchParams params) {
+        if (params == null) return;
+        searchInput.setText(params.getQuery());
+        // Hiển thị "Tất cả danh mục" nếu category là null
+        categoryFilter.setText(params.getCategory() != null ? params.getCategory() : getString(R.string.search_category_all), false);
+        minPriceInput.setText(params.getMinPrice() != null ? String.valueOf(params.getMinPrice()) : "");
+        maxPriceInput.setText(params.getMaxPrice() != null ? String.valueOf(params.getMaxPrice()) : "");
+        conditionFilter.setText(mapValueToCondition(params.getCondition()), false);
+        // Cập nhật các UI khác nếu cần...
+    }
+
     private void updateUiState(SearchViewModel.UiState state) {
-        // Ẩn/hiện bộ lọc
         if (isFiltersVisible) {
             loadingState.setVisibility(View.GONE);
             emptyState.setVisibility(View.GONE);
@@ -254,18 +210,85 @@ public class SearchFragment extends Fragment {
             return;
         }
 
-        // Quản lý trạng thái loading chính
         loadingState.setVisibility(state == SearchViewModel.UiState.LOADING ? View.VISIBLE : View.GONE);
-
-        // Quản lý trạng thái rỗng
         emptyState.setVisibility(state == SearchViewModel.UiState.EMPTY ? View.VISIBLE : View.GONE);
-
-        // Quản lý RecyclerView
         searchResultsRecyclerView.setVisibility(state == SearchViewModel.UiState.SUCCESS || state == SearchViewModel.UiState.LOADING_MORE ? View.VISIBLE : View.GONE);
-
-        // Quản lý loading more
         loadMoreProgress.setVisibility(state == SearchViewModel.UiState.LOADING_MORE ? View.VISIBLE : View.GONE);
         loadMoreButton.setVisibility(state == SearchViewModel.UiState.SUCCESS && !viewModel.isLastPage() ? View.VISIBLE : View.GONE);
+    }
+
+    private SearchParams collectSearchParamsFromUi() {
+        SearchParams params = new SearchParams();
+        params.setQuery(searchInput.getText().toString().trim());
+
+        String category = categoryFilter.getText().toString();
+        // SỬA LỖI: So sánh với R.string
+        if (!category.equals(getString(R.string.search_category_all))) {
+            params.setCategory(category);
+        }
+
+        try {
+            if (!TextUtils.isEmpty(minPriceInput.getText())) {
+                params.setMinPrice(Double.parseDouble(minPriceInput.getText().toString()));
+            }
+            if (!TextUtils.isEmpty(maxPriceInput.getText())) {
+                params.setMaxPrice(Double.parseDouble(maxPriceInput.getText().toString()));
+            }
+        } catch (NumberFormatException e) {
+            Log.e("SearchFragment", "Invalid price format", e);
+        }
+
+        String condition = conditionFilter.getText().toString();
+        // SỬA LỖI: So sánh với R.string
+        if (!condition.equals(getString(R.string.search_category_all))) {
+            params.setCondition(mapConditionToValue(condition));
+        }
+
+        String[] sortOptions = getResources().getStringArray(R.array.sort_options);
+        String selectedSort = sortFilter.getText().toString();
+        if (selectedSort.equals(sortOptions[1])) {
+            params.setSortBy("timePosted");
+            params.setSortAscending(false);
+        } else if (selectedSort.equals(sortOptions[2])) {
+            params.setSortBy("price");
+            params.setSortAscending(true);
+        } else if (selectedSort.equals(sortOptions[3])) {
+            params.setSortBy("price");
+            params.setSortAscending(false);
+        }
+
+        if (currentLocation != null) {
+            params.setUserLocation(currentLocation);
+            params.setMaxDistance(distanceSeekbar.getProgress());
+        }
+
+        return params;
+    }
+
+    private void clearFilterInputs() {
+        categoryFilter.setText(getString(R.string.search_category_all), false);
+        minPriceInput.setText("");
+        maxPriceInput.setText("");
+        conditionFilter.setText(getString(R.string.search_category_all), false);
+        sortFilter.setText(getString(R.string.search_category_all), false);
+        locationInput.setText("");
+        distanceSeekbar.setProgress(50);
+        currentLocation = null;
+    }
+
+    private void toggleFilterVisibility(boolean show) {
+        isFiltersVisible = show;
+        filtersContainer.setVisibility(show ? View.VISIBLE : View.GONE);
+        sortHeaderCard.setVisibility(show ? View.GONE : View.VISIBLE);
+        searchResultsRecyclerView.setVisibility(show ? View.GONE : View.VISIBLE);
+        if (show) {
+            emptyState.setVisibility(View.GONE);
+            loadingState.setVisibility(View.GONE);
+        } else {
+            if(viewModel.getUiState().getValue() != null) {
+                updateUiState(viewModel.getUiState().getValue());
+            }
+        }
     }
 
     private void checkLocationPermissionAndFetch() {
@@ -281,7 +304,7 @@ public class SearchFragment extends Fragment {
         fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
             if (location != null) {
                 this.currentLocation = location;
-                locationInput.setText(String.format(Locale.US, "Vị trí hiện tại (%.4f, %.4f)", location.getLatitude(), location.getLongitude()));
+                locationInput.setText(String.format(Locale.US, "Vị trí GPS (%.4f, %.4f)", location.getLatitude(), location.getLongitude()));
                 Toast.makeText(requireContext(), "Đã cập nhật vị trí.", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(requireContext(), "Không thể lấy vị trí. Vui lòng bật GPS.", Toast.LENGTH_LONG).show();
@@ -291,108 +314,39 @@ public class SearchFragment extends Fragment {
 
     private void onProductClick(SearchResult result) {
         Toast.makeText(requireContext(), "Xem: " + result.getTitle(), Toast.LENGTH_SHORT).show();
-        // TODO: Điều hướng đến trang chi tiết sản phẩm
     }
 
     private void onFavoriteClick(SearchResult result, boolean isFavorite) {
         if (FirebaseAuth.getInstance().getUid() == null) {
             Toast.makeText(requireContext(), "Vui lòng đăng nhập để yêu thích.", Toast.LENGTH_SHORT).show();
-            // Yêu cầu adapter vẽ lại item này để trả lại trạng thái cũ
             int position = searchResultsAdapter.getResults().indexOf(result);
             if (position != -1) {
-                result.setFavorite(!isFavorite); // Đảo ngược lại
+                result.setFavorite(!isFavorite);
                 searchResultsAdapter.notifyItemChanged(position);
             }
             return;
         }
-        // Gọi ViewModel để xử lý logic
         viewModel.toggleFavorite(result.getId(), isFavorite);
     }
 
-    // Thu thập dữ liệu từ các trường filter trên UI
-    private SearchParams collectSearchParamsFromUi() {
-        SearchParams params = new SearchParams();
-
-        // 1. Lấy từ khóa tìm kiếm
-        params.setQuery(searchInput.getText().toString().trim());
-
-        // 2. Lấy danh mục
-        String category = categoryFilter.getText().toString();
-        if (!TextUtils.isEmpty(category) && !category.equals("Tất cả")) {
-            params.setCategory(category); // Firestore sẽ cần tên chính xác, ví dụ "Điện thoại"
-        }
-
-        // 3. Lấy khoảng giá
-        try {
-            if (!TextUtils.isEmpty(minPriceInput.getText())) {
-                params.setMinPrice(Double.parseDouble(minPriceInput.getText().toString()));
-            }
-            if (!TextUtils.isEmpty(maxPriceInput.getText())) {
-                params.setMaxPrice(Double.parseDouble(maxPriceInput.getText().toString()));
-            }
-        } catch (NumberFormatException e) {
-            Log.e("SearchFragment", "Invalid price format", e);
-        }
-
-        // 4. Lấy tình trạng
-        String conditionText = conditionFilter.getText().toString();
-        if (!TextUtils.isEmpty(conditionText) && !conditionText.equals("Tất cả")) {
-            params.setCondition(mapConditionToValue(conditionText));
-        }
-
-        // 5. Lấy sắp xếp
-        String selectedSort = sortFilter.getText().toString();
-        // Giả sử bạn có một string-array trong strings.xml tên là 'sort_options'
-        String[] sortOptions = getResources().getStringArray(R.array.sort_options);
-
-        if (selectedSort.equals(sortOptions[1])) { // Mới nhất
-            params.setSortBy("timePosted");
-            params.setSortAscending(false);
-        } else if (selectedSort.equals(sortOptions[2])) { // Giá: Thấp đến cao
-            params.setSortBy("price");
-            params.setSortAscending(true);
-        } else if (selectedSort.equals(sortOptions[3])) { // Giá: Cao đến thấp
-            params.setSortBy("price");
-            params.setSortAscending(false);
-        } else { // Liên quan nhất (mặc định)
-            params.setSortBy(null); // Để repository tự quyết định
-        }
-
-        // 6. Lấy vị trí và khoảng cách (nếu có)
-        if (currentLocation != null) {
-            params.setUserLocation(currentLocation);
-            params.setMaxDistance(distanceSeekbar.getProgress()); // Giá trị từ 0-100 km
-        } else if (!TextUtils.isEmpty(locationInput.getText())) {
-            params.setLocation(locationInput.getText().toString().trim());
-        }
-
-        return params;
-    }
-
-    //Ánh xạ text hiển thị sang giá trị lưu trong DB
     private String mapConditionToValue(String conditionText) {
-        switch (conditionText) {
-            case "Mới":
-                return "new";
-            case "Như mới":
-                return "like_new";
-            case "Tốt":
-                return "good";
-            case "Đã dùng":
-                return "used";
-        }
-        return null; // hoặc "" tùy vào cách bạn xử lý
+        String[] conditions = getResources().getStringArray(R.array.condition_options);
+        if (conditionText.equals(conditions[1])) return "new";
+        if (conditionText.equals(conditions[2])) return "like_new";
+        if (conditionText.equals(conditions[3])) return "good";
+        if (conditionText.equals(conditions[4])) return "used";
+        return null;
     }
 
-    // Xóa trắng các trường input trong bộ lọc
-    private void clearFilterInputs() {
-        categoryFilter.setText("", false);
-        minPriceInput.setText("");
-        maxPriceInput.setText("");
-        conditionFilter.setText("", false);
-        sortFilter.setText("", false);
-        locationInput.setText("");
-        distanceSeekbar.setProgress(distanceSeekbar.getMax() / 2); // Reset về giữa
-        currentLocation = null;
+    private String mapValueToCondition(String value) {
+        if (value == null) return getString(R.string.search_category_all);
+        String[] conditions = getResources().getStringArray(R.array.condition_options);
+        switch (value) {
+            case "new": return conditions[1];
+            case "like_new": return conditions[2];
+            case "good": return conditions[3];
+            case "used": return conditions[4];
+            default: return getString(R.string.search_category_all);
+        }
     }
 }

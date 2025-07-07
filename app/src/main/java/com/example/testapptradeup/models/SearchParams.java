@@ -1,11 +1,9 @@
 package com.example.testapptradeup.models;
 
 import android.location.Location;
-import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
 import java.util.Objects;
 
 public class SearchParams {
@@ -14,34 +12,21 @@ public class SearchParams {
     private Double minPrice;
     private Double maxPrice;
     private String condition;
-    private int maxDistance = -1;
-    private String location;
-    private Location userLocation;
-    private String sortBy = String.valueOf(0); // 0 = Relevance, 1 = Price Low to High, etc.
-    private int page = 1;
-    private int pageSize = 20;
-    private boolean sortAscending = false; // Mặc định là giảm dần (DESC)
+    private String sortBy;
+    private boolean sortAscending; // true = ASC, false = DESC
+    private String location; // Địa chỉ do người dùng nhập
+    private Location userLocation; // Vị trí GPS của người dùng
+    private int maxDistance; // Khoảng cách tối đa (km)
+
+    // Constructors, Getters, Setters...
 
     public SearchParams() {
-        // Default constructor
+        // Mặc định
+        this.sortAscending = false;
+        this.maxDistance = -1; // -1 có nghĩa là không lọc theo khoảng cách
     }
 
-    // Copy constructor
-    public SearchParams(SearchParams other) {
-        this.query = other.query;
-        this.category = other.category;
-        this.minPrice = other.minPrice;
-        this.maxPrice = other.maxPrice;
-        this.condition = other.condition;
-        this.maxDistance = other.maxDistance;
-        this.location = other.location;
-        this.userLocation = other.userLocation;
-        this.sortBy = other.sortBy;
-        this.page = other.page;
-        this.pageSize = other.pageSize;
-    }
-
-    // Getters and Setters
+    // Getters and Setters for all fields
     public String getQuery() { return query; }
     public void setQuery(String query) { this.query = query; }
     public String getCategory() { return category; }
@@ -52,58 +37,36 @@ public class SearchParams {
     public void setMaxPrice(Double maxPrice) { this.maxPrice = maxPrice; }
     public String getCondition() { return condition; }
     public void setCondition(String condition) { this.condition = condition; }
-    public int getMaxDistance() { return maxDistance; }
-    public void setMaxDistance(int maxDistance) { this.maxDistance = maxDistance; }
-    public String getLocation() { return location; }
-    public void setLocation(String location) { this.location = location; }
-    public Location getUserLocation() { return userLocation; }
-    public void setUserLocation(Location userLocation) { this.userLocation = userLocation; }
     @Nullable
-    public String getSortBy() { return String.valueOf(sortBy); }
+    public String getSortBy() { return sortBy; }
     public void setSortBy(@Nullable String sortBy) { this.sortBy = sortBy; }
     public boolean isSortAscending() { return sortAscending; }
     public void setSortAscending(boolean sortAscending) { this.sortAscending = sortAscending; }
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
+    @Nullable
+    public Location getUserLocation() { return userLocation; }
+    public void setUserLocation(@Nullable Location userLocation) { this.userLocation = userLocation; }
+    public int getMaxDistance() { return maxDistance; }
+    public void setMaxDistance(int maxDistance) { this.maxDistance = maxDistance; }
 
-    // Utility methods
-    public boolean isEmpty() {
-        return TextUtils.isEmpty(query) &&
-                TextUtils.isEmpty(category) &&
-                minPrice == null &&
-                maxPrice == null &&
-                TextUtils.isEmpty(condition) &&
-                maxDistance == -1 &&
-                TextUtils.isEmpty(location);
-    }
-
-    public void clearFilters() {
-        category = null;
-        minPrice = null;
-        maxPrice = null;
-        condition = null;
-        maxDistance = -1;
-        location = null;
-        userLocation = null;
-        sortBy = String.valueOf(0);
-    }
-
-    public void reset() {
-        query = null;
-        clearFilters();
-        page = 1;
-    }
-
+    // Helper methods
     public boolean hasPriceFilter() {
         return minPrice != null || maxPrice != null;
     }
 
-    public boolean hasLocationFilter() {
-        return !TextUtils.isEmpty(location) || userLocation != null;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SearchParams that = (SearchParams) o;
+        return sortAscending == that.sortAscending && maxDistance == that.maxDistance && Objects.equals(query, that.query) && Objects.equals(category, that.category) && Objects.equals(minPrice, that.minPrice) && Objects.equals(maxPrice, that.maxPrice) && Objects.equals(condition, that.condition) && Objects.equals(sortBy, that.sortBy) && Objects.equals(location, that.location) && Objects.equals(userLocation, that.userLocation);
     }
 
-    public boolean hasDistanceFilter() {
-        return maxDistance > 0;
+    @Override
+    public int hashCode() {
+        return Objects.hash(query, category, minPrice, maxPrice, condition, sortBy, sortAscending, location, userLocation, maxDistance);
     }
-
 
     @NonNull
     @Override
@@ -114,33 +77,11 @@ public class SearchParams {
                 ", minPrice=" + minPrice +
                 ", maxPrice=" + maxPrice +
                 ", condition='" + condition + '\'' +
-                ", maxDistance=" + maxDistance +
+                ", sortBy='" + sortBy + '\'' +
+                ", sortAscending=" + sortAscending +
                 ", location='" + location + '\'' +
                 ", userLocation=" + userLocation +
-                ", sortBy=" + sortBy +
-                ", page=" + page +
-                ", pageSize=" + pageSize +
+                ", maxDistance=" + maxDistance +
                 '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SearchParams that = (SearchParams) o;
-        return maxDistance == that.maxDistance &&
-                sortAscending == that.sortAscending &&
-                Objects.equals(query, that.query) &&
-                Objects.equals(category, that.category) &&
-                Objects.equals(minPrice, that.minPrice) &&
-                Objects.equals(maxPrice, that.maxPrice) &&
-                Objects.equals(condition, that.condition) &&
-                Objects.equals(location, that.location) &&
-                Objects.equals(userLocation, that.userLocation) &&
-                Objects.equals(sortBy, that.sortBy);
-    }
-    @Override
-    public int hashCode() {
-        return Objects.hash(query, category, minPrice, maxPrice, condition, maxDistance, location, userLocation, sortBy, sortAscending);
     }
 }

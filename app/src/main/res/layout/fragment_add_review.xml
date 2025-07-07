@@ -1,50 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:gravity="center_horizontal"
+    android:background="@color/background_light"
     tools:context=".fragments.AddReviewFragment">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Để lại đánh giá của bạn"
-        android:textAppearance="?attr/textAppearanceHeadline5"
-        android:layout_marginBottom="24dp"
-        tools:ignore="HardcodedText" />
-
-    <RatingBar
-        android:id="@+id/rating_bar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:numStars="5"
-        android:stepSize="1.0"
-        android:layout_marginBottom="16dp"/>
-
-    <com.google.android.material.textfield.TextInputLayout
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_add_review"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Bình luận của bạn (tùy chọn)"
-        tools:ignore="HardcodedText">
+        android:layout_height="?attr/actionBarSize"
+        app:title="Gửi đánh giá"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        android:layout_marginStart="-16dp"
+        android:layout_marginEnd="-16dp"
+        android:layout_marginTop="-16dp"
+        android:background="@color/white"
+        app:elevation="4dp"/>
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/edit_text_comment"
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingTop="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Trải nghiệm của bạn thế nào?"
+            android:textAppearance="?attr/textAppearanceHeadline6"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="16dp"
+            tools:ignore="HardcodedText" />
+
+        <RatingBar
+            android:id="@+id/rating_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:numStars="5"
+            android:stepSize="1.0"
+            android:layout_marginBottom="24dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="top"
-            android:minLines="4"
-            tools:ignore="TextContrastCheck,VisualLintTextFieldSize" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:hint="Chia sẻ cảm nhận của bạn (tùy chọn)"
+            tools:ignore="HardcodedText">
 
-    <Button
-        android:id="@+id/btn_submit_review"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Gửi đánh giá"
-        android:layout_marginTop="24dp"
-        tools:ignore="HardcodedText,VisualLintButtonSize" />
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_text_comment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="top"
+                android:minLines="5"
+                tools:ignore="TextContrastCheck,VisualLintTextFieldSize" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp">
+
+            <Button
+                android:id="@+id/btn_submit_review"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Gửi đánh giá"
+                tools:ignore="HardcodedText,VisualLintButtonSize,DuplicateSpeakableTextCheck" />
+
+            <ProgressBar
+                android:id="@+id/submit_progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone"/>
+        </FrameLayout>
+    </LinearLayout>
 </LinearLayout>
