@@ -74,6 +74,9 @@
         <action
             android:id="@+id/action_navigation_profile_to_reviewsFragment"
             app:destination="@id/reviewsFragment" />
+        <action
+            android:id="@+id/action_navigation_profile_to_historyFragment"
+            app:destination="@id/historyFragment"/>
     </fragment>
 
 
@@ -183,4 +186,26 @@
         android:name="com.example.testapptradeup.fragments.NotificationSettingsFragment"
         android:label="Cài đặt thông báo"
         tools:layout="@layout/fragment_notification_settings" />
+
+    <fragment
+        android:id="@+id/historyFragment"
+        android:name="com.example.testapptradeup.fragments.HistoryFragment"
+        android:label="Lịch sử Giao dịch"
+        tools:layout="@layout/fragment_history">
+        <action
+            android:id="@+id/action_historyFragment_to_addReviewFragment"
+            app:destination="@id/addReviewFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/addReviewFragment"
+        android:name="com.example.testapptradeup.fragments.AddReviewFragment"
+        android:label="Gửi đánh giá"
+        tools:layout="@layout/fragment_add_review">
+        <argument
+            android:name="transactionId"
+            app:argType="string" />
+        <argument
+            android:name="reviewedUserId"
+            app:argType="string" />
+    </fragment>
 </navigation>

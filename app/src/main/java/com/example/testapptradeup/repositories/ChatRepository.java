@@ -44,7 +44,7 @@ public class ChatRepository {
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((snapshots, error) -> {
                     if (error != null) {
-                        Log.e(TAG, "Lỗi lắng nghe conversations: ", error);
+                        Log.e(TAG, "Lắng nghe danh sách cuộc trò chuyện thất bại: ", error);
                         conversationsData.postValue(new ArrayList<>());
                         return;
                     }
@@ -54,6 +54,7 @@ public class ChatRepository {
                     }
 
                     List<Conversation> tempConversations = new ArrayList<>();
+                    // Dùng AtomicInteger để đếm số lượng tác vụ bất đồng bộ (lấy thông tin user)
                     AtomicInteger pendingUserFetches = new AtomicInteger(snapshots.size());
 
                     for (QueryDocumentSnapshot doc : snapshots) {
@@ -62,36 +63,42 @@ public class ChatRepository {
 
                         List<String> members = (List<String>) doc.get("members");
                         if (members != null) {
+                            // Tìm ID của người còn lại
                             String otherUserId = members.stream()
                                     .filter(id -> !id.equals(currentUserId))
                                     .findFirst()
                                     .orElse(null);
 
                             if (otherUserId != null) {
+                                // Thực hiện truy vấn con để lấy thông tin của người đó
                                 db.collection("users").document(otherUserId).get()
                                         .addOnSuccessListener(userDoc -> {
                                             if (userDoc.exists()) {
                                                 User otherUser = userDoc.toObject(User.class);
                                                 if (otherUser != null) {
+                                                    // Gán thông tin lấy được vào đối tượng Conversation
                                                     convo.setOtherUserId(otherUserId);
                                                     convo.setOtherUserName(otherUser.getName());
                                                     convo.setOtherUserAvatarUrl(otherUser.getProfileImageUrl());
                                                 }
                                             }
+                                            // Dù lấy được hay không, vẫn thêm vào list và giảm bộ đếm
                                             tempConversations.add(convo);
                                             if (pendingUserFetches.decrementAndGet() == 0) {
+                                                // Khi tất cả các tác vụ con đã xong, post giá trị lên LiveData
                                                 conversationsData.postValue(tempConversations);
                                             }
                                         })
                                         .addOnFailureListener(e -> {
-                                            Log.e(TAG, "Lỗi lấy thông tin người dùng " + otherUserId, e);
+                                            Log.e(TAG, "Lấy thông tin người dùng thất bại cho " + otherUserId, e);
+                                            // Vẫn thêm convo vào và giảm bộ đếm
                                             tempConversations.add(convo);
                                             if (pendingUserFetches.decrementAndGet() == 0) {
                                                 conversationsData.postValue(tempConversations);
                                             }
                                         });
                             } else {
-                                // Trường hợp chat với chính mình hoặc dữ liệu lỗi
+                                // Xử lý trường hợp chat với chính mình hoặc dữ liệu lỗi
                                 tempConversations.add(convo);
                                 if (pendingUserFetches.decrementAndGet() == 0) {
                                     conversationsData.postValue(tempConversations);

@@ -23,8 +23,6 @@ import com.example.testapptradeup.viewmodels.FavoritesViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.auth.FirebaseAuth;
 
-import java.util.ArrayList;
-
 public class FavoritesFragment extends Fragment {
 
     private RecyclerView recyclerView;
@@ -82,26 +80,25 @@ public class FavoritesFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        // Khởi tạo Adapter với một danh sách rỗng ban đầu
-        adapter = new FavoritesAdapter(getContext(), new ArrayList<>());
+        // Khởi tạo Adapter không cần tham số
+        adapter = new FavoritesAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
     }
 
-    // ========== PHẦN CODE ĐÚNG CHO FavoritesFragment ==========
     private void observeViewModel() {
         // Bắt đầu quá trình tải dữ liệu
         showLoading(true);
 
         // Lắng nghe dữ liệu danh sách yêu thích từ ViewModel
         viewModel.getFavoriteListings().observe(getViewLifecycleOwner(), listings -> {
-            showLoading(false); // Dữ liệu đã về, ẩn loading
+            showLoading(false);
             if (listings != null) {
                 if (listings.isEmpty()) {
                     showEmptyState("Bạn chưa có sản phẩm yêu thích nào.");
                 } else {
-                    // Cập nhật dữ liệu cho adapter và hiển thị RecyclerView
-                    adapter.updateListings(listings); // Cần có phương thức này trong Adapter
+                    // SỬA ĐỔI: Dùng submitList() thay vì updateListings()
+                    adapter.submitList(listings);
                     recyclerView.setVisibility(View.VISIBLE);
                     emptyStateText.setVisibility(View.GONE);
                 }

@@ -7,31 +7,30 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.viewmodels.PaymentSettingsViewModel;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.stripe.android.PaymentConfiguration;
 import com.stripe.android.paymentsheet.PaymentSheet;
 import com.stripe.android.paymentsheet.PaymentSheetResult;
 
 public class PaymentSettingsFragment extends Fragment {
-
     private PaymentSettingsViewModel viewModel;
     private PaymentSheet paymentSheet;
-
     private Button managePaymentsButton;
     private ProgressBar progressBar;
+    private NavController navController;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(this).get(PaymentSettingsViewModel.class);
-
-        // Khởi tạo PaymentSheet, truyền this (fragment) và callback
         paymentSheet = new PaymentSheet(this, this::onPaymentSheetResult);
     }
 
@@ -44,14 +43,14 @@ public class PaymentSettingsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        navController = Navigation.findNavController(view);
 
+        MaterialToolbar toolbar = view.findViewById(R.id.toolbar);
         managePaymentsButton = view.findViewById(R.id.btn_manage_payments);
         progressBar = view.findViewById(R.id.progress_bar);
 
-        managePaymentsButton.setOnClickListener(v -> {
-            // Yêu cầu ViewModel lấy các khóa từ backend
-            viewModel.fetchStripeKeys();
-        });
+        toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
+        managePaymentsButton.setOnClickListener(v -> viewModel.fetchStripeKeys());
 
         observeViewModel();
     }
@@ -70,43 +69,31 @@ public class PaymentSettingsFragment extends Fragment {
 
         viewModel.getStripeKeys().observe(getViewLifecycleOwner(), keys -> {
             if (keys != null) {
-                // Khi nhận được các khóa, cấu hình và hiển thị PaymentSheet
+                // PublishableKey cần được cấu hình một lần, thường là trong Application class
+                // nhưng để đơn giản, ta đặt ở đây.
+                // THAY THẾ BẰNG PUBLISHABLE KEY CỦA BẠN
+                PaymentConfiguration.init(requireContext(), "pk_test_YOUR_PUBLISHABLE_KEY");
                 presentPaymentSheet(keys);
             }
         });
     }
 
     private void presentPaymentSheet(PaymentSettingsViewModel.StripeKeys keys) {
-        // Cấu hình PaymentSheet
-        PaymentSheet.Configuration configuration = new PaymentSheet.Configuration(
-                "TradeUp", // Tên công ty của bạn
-                new PaymentSheet.CustomerConfiguration(
-                        keys.customerId,
-                        keys.ephemeralKeySecret
-                )
-        );
+        final PaymentSheet.Configuration configuration = new PaymentSheet.Configuration.Builder("TradeUp, Inc.")
+                .customer(new PaymentSheet.CustomerConfiguration(keys.customerId, keys.ephemeralKeySecret))
+                .allowsDelayedPaymentMethods(true)
+                .build();
 
-        // *** XÓA DÒNG GÂY LỖI NÀY ĐI ***
-        // configuration.setAllowsDelayedPaymentMethods(true);
-
-        // Hiển thị PaymentSheet
-        // Dùng `setupIntentClientSecret` vì chúng ta chỉ đang lưu thẻ, không thu tiền
-        paymentSheet.presentWithSetupIntent(
-                keys.setupIntentClientSecret,
-                configuration
-        );
+        paymentSheet.presentWithSetupIntent(keys.setupIntentClientSecret, configuration);
     }
 
-    // Callback này sẽ được gọi khi người dùng đóng PaymentSheet
     private void onPaymentSheetResult(final PaymentSheetResult paymentSheetResult) {
         if (paymentSheetResult instanceof PaymentSheetResult.Completed) {
             Toast.makeText(getContext(), "Thiết lập thành công!", Toast.LENGTH_SHORT).show();
-            // Người dùng đã thêm/chọn một phương thức thanh toán thành công.
         } else if (paymentSheetResult instanceof PaymentSheetResult.Canceled) {
             Toast.makeText(getContext(), "Đã hủy", Toast.LENGTH_SHORT).show();
         } else if (paymentSheetResult instanceof PaymentSheetResult.Failed) {
-            PaymentSheetResult.Failed result = (PaymentSheetResult.Failed) paymentSheetResult;
-            Toast.makeText(getContext(), "Lỗi: " + result.getError().getLocalizedMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), "Lỗi: " + ((PaymentSheetResult.Failed) paymentSheetResult).getError().getLocalizedMessage(), Toast.LENGTH_LONG).show();
         }
     }
 }

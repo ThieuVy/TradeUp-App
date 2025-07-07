@@ -92,4 +92,14 @@
         app:icon="@drawable/ic_chat"
         tools:ignore="HardcodedText" />
 
+    <Button
+        android:id="@+id/btn_make_offer"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Trả giá"
+        app:icon="@drawable/ic_tag_outline"
+        tools:ignore="HardcodedText,TextContrastCheck,VisualLintButtonSize" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

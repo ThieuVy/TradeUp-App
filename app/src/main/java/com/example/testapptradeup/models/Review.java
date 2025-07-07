@@ -15,6 +15,7 @@ public class Review implements Parcelable {
     private String reviewerImageUrl;
     private float rating;
     private String comment;
+    private String transactionId;
     @ServerTimestamp
     private Date reviewDate;
 
@@ -37,11 +38,8 @@ public class Review implements Parcelable {
     public void setComment(String comment) { this.comment = comment; }
     public Date getReviewDate() { return reviewDate; }
     public void setReviewDate(Date reviewDate) { this.reviewDate = reviewDate; }
-
-
-    // ==========================================================
-    // <<< BẮT ĐẦU PHẦN MÃ PARCELABLE CẦN THÊM
-    // ==========================================================
+    public String getTransactionId() { return transactionId; }
+    public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
 
     protected Review(Parcel in) {
         reviewId = in.readString();
@@ -51,6 +49,7 @@ public class Review implements Parcelable {
         reviewerImageUrl = in.readString();
         rating = in.readFloat();
         comment = in.readString();
+        transactionId = in.readString();
         long tmpDate = in.readLong();
         reviewDate = tmpDate == -1 ? null : new Date(tmpDate);
     }
@@ -64,6 +63,7 @@ public class Review implements Parcelable {
         dest.writeString(reviewerImageUrl);
         dest.writeFloat(rating);
         dest.writeString(comment);
+        dest.writeString(transactionId);
         dest.writeLong(reviewDate != null ? reviewDate.getTime() : -1);
     }
 

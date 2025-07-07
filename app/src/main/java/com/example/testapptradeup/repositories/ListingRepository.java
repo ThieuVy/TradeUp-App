@@ -252,33 +252,63 @@ public class ListingRepository {
 
     public LiveData<PagedResult<Listing>> searchListings(SearchParams params, @Nullable DocumentSnapshot lastVisible) {
         MutableLiveData<PagedResult<Listing>> resultLiveData = new MutableLiveData<>();
+
+        // Bắt đầu với query cơ bản
         Query query = db.collection("listings").whereEqualTo("status", "available");
 
-        // QUAN TRỌNG: Phải orderBy TRƯỚC khi dùng startAt/endAt
-        if (params.getQuery() != null && !params.getQuery().isEmpty()) {
-            query = query.orderBy("title").startAt(params.getQuery()).endAt(params.getQuery() + '\uf8ff');
-        }
+        // *** XÂY DỰNG QUERY ĐỘNG ***
+
+        // 1. Lọc theo danh mục
         if (params.getCategory() != null && !params.getCategory().isEmpty()) {
             query = query.whereEqualTo("categoryId", params.getCategory());
         }
-        if (params.getMinPrice() != null && params.getMinPrice() > 0) {
-            query = query.whereGreaterThanOrEqualTo("price", params.getMinPrice());
-        }
-        if (params.getMaxPrice() != null && params.getMaxPrice() > 0) {
-            query = query.whereLessThanOrEqualTo("price", params.getMaxPrice());
-        }
+
+        // 2. Lọc theo tình trạng
         if (params.getCondition() != null && !params.getCondition().isEmpty()) {
             query = query.whereEqualTo("condition", params.getCondition());
         }
 
-        if (params.getSortBy() == null || params.getSortBy().isEmpty() && (params.getQuery() == null || params.getQuery().isEmpty())) {
-            query = query.orderBy("timePosted", Query.Direction.DESCENDING);
+        // 3. Lọc theo giá
+        // Lưu ý: Firestore chỉ cho phép một range filter (>, <, >=, <=) trên MỘT trường
+        // Nếu bạn cần lọc theo giá và sắp xếp theo thời gian, bạn không thể làm trực tiếp.
+        // Giải pháp tạm thời là chỉ sắp xếp theo một trường.
+        if (params.getMinPrice() != null) {
+            query = query.whereGreaterThanOrEqualTo("price", params.getMinPrice());
+        }
+        if (params.getMaxPrice() != null) {
+            query = query.whereLessThanOrEqualTo("price", params.getMaxPrice());
         }
 
+        // 4. Lọc theo từ khóa (cách đơn giản)
+        // Lưu ý: Đây không phải là full-text search. Nó chỉ tìm các title bắt đầu bằng query.
+        // Để có full-text search, bạn cần dùng dịch vụ bên thứ 3 như Algolia hoặc Elasticsearch.
+        if (params.getQuery() != null && !params.getQuery().isEmpty()) {
+            query = query.orderBy("title").startAt(params.getQuery()).endAt(params.getQuery() + '\uf8ff');
+        }
+
+        // 5. Sắp xếp
+        // QUAN TRỌNG: Nếu bạn đã dùng range filter trên 'price' (>, <), bạn không thể orderBy trường khác.
+        // Firestore sẽ báo lỗi. Chúng ta sẽ ưu tiên sắp xếp nếu có.
+        if (params.getSortBy() != null && !params.getSortBy().isEmpty()) {
+            // Kiểm tra xem có đang lọc theo giá không
+            if(params.hasPriceFilter() && !params.getSortBy().equals("price")){
+                // Báo lỗi hoặc bỏ qua sắp xếp nếu không phải theo giá
+                Log.w("ListingRepository", "Cannot sort by a field other than 'price' when a price range filter is applied.");
+            } else {
+                query = query.orderBy(params.getSortBy(), params.isSortAscending() ? Query.Direction.ASCENDING : Query.Direction.DESCENDING);
+            }
+        } else if (params.getQuery() == null || params.getQuery().isEmpty()) {
+            // Sắp xếp mặc định nếu không có query tìm kiếm và không có yêu cầu sắp xếp cụ thể
+            query = query.orderBy("timePosted", Query.Direction.DESCENDING);
+        }
+        // Nếu có query tìm kiếm nhưng không có sắp xếp, Firestore sẽ tự dùng order by 'title' đã định nghĩa ở trên.
+
+        // 6. Phân trang
         if (lastVisible != null) {
             query = query.startAfter(lastVisible);
         }
 
+        // 7. Giới hạn số lượng kết quả
         query.limit(PAGE_SIZE).get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     // TODO: Xử lý lọc khoảng cách ở phía client nếu cần
@@ -299,7 +329,7 @@ public class ListingRepository {
                     resultLiveData.setValue(new PagedResult<>(listings, newLastVisible, null));
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("ListingRepository", "Lỗi truy vấn Firestore. Có thể bạn cần tạo Composite Index trong Firebase Console. Lỗi: " + e.getMessage(), e);
+                    Log.e("ListingRepository", "Truy vấn Firestore thất bại. Bạn có thể cần tạo Chỉ mục tổng hợp trong Bảng điều khiển Firebase. Lỗi: " + e.getMessage(), e);
                     resultLiveData.setValue(new PagedResult<>(null, null, e));
                 });
         return resultLiveData;

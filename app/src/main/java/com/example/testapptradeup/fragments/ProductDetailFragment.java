@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -14,6 +15,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
+import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.viewmodels.ProductDetailViewModel;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -27,6 +29,8 @@ public class ProductDetailFragment extends Fragment {
     private TextView productTitle, productPrice, productDescription;
     private CollapsingToolbarLayout collapsingToolbar;
     private MaterialToolbar toolbar;
+    private Button btnMakeOffer;
+    private Listing currentListing;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -54,6 +58,14 @@ public class ProductDetailFragment extends Fragment {
             viewModel.loadListingDetail(listingId);
             observeViewModel();
         }
+
+        btnMakeOffer.setOnClickListener(v -> {
+            if (currentListing != null) {
+                OfferBottomSheetDialogFragment bottomSheet =
+                        OfferBottomSheetDialogFragment.newInstance(currentListing.getId(), currentListing.getSellerId());
+                bottomSheet.show(getChildFragmentManager(), bottomSheet.getTag());
+            }
+        });
     }
 
     private void initViews(View view) {
@@ -63,11 +75,13 @@ public class ProductDetailFragment extends Fragment {
         productDescription = view.findViewById(R.id.product_description);
         collapsingToolbar = view.findViewById(R.id.collapsing_toolbar);
         toolbar = view.findViewById(R.id.toolbar);
+        btnMakeOffer = view.findViewById(R.id.btn_make_offer);
     }
 
     private void observeViewModel() {
-        viewModel.listingDetail.observe(getViewLifecycleOwner(), listing -> {
+        viewModel.getListingDetail().observe(getViewLifecycleOwner(), listing -> {
             if (listing != null) {
+                this.currentListing = listing;
                 collapsingToolbar.setTitle(listing.getTitle());
                 productTitle.setText(listing.getTitle());
                 productPrice.setText(listing.getFormattedPrice());

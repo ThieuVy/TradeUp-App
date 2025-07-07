@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -45,6 +46,7 @@ import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
 import java.util.Locale;
+import android.util.Log;
 
 public class SearchFragment extends Fragment {
 
@@ -203,11 +205,9 @@ public class SearchFragment extends Fragment {
 
         // Áp dụng bộ lọc
         applyFiltersButton.setOnClickListener(v -> {
-            // ========== SỬA LỖI Ở ĐÂY ==========
-            SearchParams params = collectSearchParamsFromUi();
-            viewModel.startNewSearch(params);
-            // ===================================
-            toggleFilterVisibility(false);
+            SearchParams params = collectSearchParamsFromUi(); // Gọi hàm thu thập dữ liệu
+            viewModel.startNewSearch(params); // Bắt đầu tìm kiếm với tham số mới
+            toggleFilterVisibility(false); // Ẩn bộ lọc sau khi áp dụng
         });
 
         //Xóa bộ lọc
@@ -312,34 +312,37 @@ public class SearchFragment extends Fragment {
     // Thu thập dữ liệu từ các trường filter trên UI
     private SearchParams collectSearchParamsFromUi() {
         SearchParams params = new SearchParams();
+
+        // 1. Lấy từ khóa tìm kiếm
         params.setQuery(searchInput.getText().toString().trim());
 
-        // Lấy giá trị từ các trường lọc và set vào params
+        // 2. Lấy danh mục
         String category = categoryFilter.getText().toString();
-        if (!category.isEmpty() && !category.equals("Tất cả")) {
-            params.setCategory(category);
+        if (!TextUtils.isEmpty(category) && !category.equals("Tất cả")) {
+            params.setCategory(category); // Firestore sẽ cần tên chính xác, ví dụ "Điện thoại"
         }
 
+        // 3. Lấy khoảng giá
         try {
-            double minPrice = Double.parseDouble(minPriceInput.getText().toString());
-            params.setMinPrice(minPrice);
-        } catch (NumberFormatException e) { /* Bỏ qua */ }
-
-        try {
-            double maxPrice = Double.parseDouble(maxPriceInput.getText().toString());
-            params.setMaxPrice(maxPrice);
-        } catch (NumberFormatException e) { /* Bỏ qua */ }
-
-        String condition = conditionFilter.getText().toString();
-        // Ánh xạ từ text trên UI sang giá trị lưu trong DB (ví dụ: "Mới" -> "new")
-        if (!condition.isEmpty() && !condition.equals("Tất cả")) {
-            params.setCondition(mapConditionToValue(condition));
+            if (!TextUtils.isEmpty(minPriceInput.getText())) {
+                params.setMinPrice(Double.parseDouble(minPriceInput.getText().toString()));
+            }
+            if (!TextUtils.isEmpty(maxPriceInput.getText())) {
+                params.setMaxPrice(Double.parseDouble(maxPriceInput.getText().toString()));
+            }
+        } catch (NumberFormatException e) {
+            Log.e("SearchFragment", "Invalid price format", e);
         }
 
-        // Trong phương thức collectSearchParamsFromUi()
+        // 4. Lấy tình trạng
+        String conditionText = conditionFilter.getText().toString();
+        if (!TextUtils.isEmpty(conditionText) && !conditionText.equals("Tất cả")) {
+            params.setCondition(mapConditionToValue(conditionText));
+        }
+
+        // 5. Lấy sắp xếp
         String selectedSort = sortFilter.getText().toString();
-
-        // Dòng này sẽ không còn báo lỗi
+        // Giả sử bạn có một string-array trong strings.xml tên là 'sort_options'
         String[] sortOptions = getResources().getStringArray(R.array.sort_options);
 
         if (selectedSort.equals(sortOptions[1])) { // Mới nhất
@@ -351,27 +354,34 @@ public class SearchFragment extends Fragment {
         } else if (selectedSort.equals(sortOptions[3])) { // Giá: Cao đến thấp
             params.setSortBy("price");
             params.setSortAscending(false);
+        } else { // Liên quan nhất (mặc định)
+            params.setSortBy(null); // Để repository tự quyết định
         }
 
-        // Xử lý logic cho Vị trí và Khoảng cách
+        // 6. Lấy vị trí và khoảng cách (nếu có)
         if (currentLocation != null) {
             params.setUserLocation(currentLocation);
-            params.setMaxDistance(distanceSeekbar.getProgress());
-        } else {
+            params.setMaxDistance(distanceSeekbar.getProgress()); // Giá trị từ 0-100 km
+        } else if (!TextUtils.isEmpty(locationInput.getText())) {
             params.setLocation(locationInput.getText().toString().trim());
         }
 
         return params;
     }
 
+    //Ánh xạ text hiển thị sang giá trị lưu trong DB
     private String mapConditionToValue(String conditionText) {
         switch (conditionText) {
-            case "Mới": return "new";
-            case "Như mới": return "like_new";
-            case "Tốt": return "good";
-            case "Đã dùng": return "used";
-            default: return null;
+            case "Mới":
+                return "new";
+            case "Như mới":
+                return "like_new";
+            case "Tốt":
+                return "good";
+            case "Đã dùng":
+                return "used";
         }
+        return null; // hoặc "" tùy vào cách bạn xử lý
     }
 
     // Xóa trắng các trường input trong bộ lọc
