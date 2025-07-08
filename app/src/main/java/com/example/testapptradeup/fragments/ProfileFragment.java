@@ -2,7 +2,6 @@ package com.example.testapptradeup.fragments;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -24,7 +23,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
-import com.example.testapptradeup.activities.LoginActivity;
 import com.example.testapptradeup.activities.MainActivity;
 import com.example.testapptradeup.adapters.ReviewAdapter;
 import com.example.testapptradeup.models.User;
@@ -32,7 +30,6 @@ import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.example.testapptradeup.viewmodels.ProfileViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
-import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
 
@@ -139,8 +136,8 @@ public class ProfileFragment extends Fragment {
         menuPaymentMethods.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_paymentSettingsFragment));
         menuReviews.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_reviewsFragment));
         btnLogout.setOnClickListener(v -> showLogoutConfirmationDialog());
-//        btnDeactivateAccount.setOnClickListener(v -> showDeactivateConfirmDialog());
-//        btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
+        btnDeactivateAccount.setOnClickListener(v -> showDeactivateConfirmDialog());
+        btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
     }
 
     private void observeViewModel() {
@@ -156,6 +153,20 @@ public class ProfileFragment extends Fragment {
                 }
             } else {
                 Toast.makeText(getContext(), "Không thể tải dữ liệu người dùng.", Toast.LENGTH_SHORT).show();
+            }
+        });
+        viewModel.getUserProfileData().observe(getViewLifecycleOwner(), user -> {
+            if (user != null) {
+                this.currentUser = user;
+                updateUI(user);
+            }
+            // Không cần xử lý lỗi ở đây nữa vì đã có observer riêng
+        });
+
+        // Observer mới để lắng nghe và hiển thị lỗi
+        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty()) {
+                Toast.makeText(getContext(), "Lỗi: " + error, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -184,6 +195,7 @@ public class ProfileFragment extends Fragment {
         textBio.setText(user.getBio() != null && !user.getBio().isEmpty() ? user.getBio() : "Chưa có tiểu sử.");
 
         if (user.getReviewCount() > 0) {
+            // Sử dụng format string từ strings.xml để dễ dàng dịch thuật và quản lý
             textRatingInfo.setText(getString(R.string.profile_rating_info_format, user.getRating(), user.getReviewCount()));
         } else {
             textRatingInfo.setText("Chưa có đánh giá");
@@ -196,9 +208,9 @@ public class ProfileFragment extends Fragment {
         }
 
         textSavedItemsCount.setText(String.valueOf(user.getFavoriteListingIds() != null ? user.getFavoriteListingIds().size() : 0));
-        textOffersCount.setText("0");
+        textOffersCount.setText("0"); // Cần logic riêng để đếm
         textPurchasesCount.setText(String.valueOf(user.getCompletedSalesCount()));
-        textPaymentsCount.setText("0");
+        textPaymentsCount.setText("0"); // Cần logic riêng để đếm
     }
 
     private void showDeactivateConfirmDialog() {
@@ -250,12 +262,9 @@ public class ProfileFragment extends Fragment {
     }
 
     private void logout() {
-        FirebaseAuth.getInstance().signOut();
-        Intent intent = new Intent(getActivity(), LoginActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        if (getActivity() != null) {
-            getActivity().finish();
+        // Sử dụng phương thức logout từ MainActivity để đảm bảo tính nhất quán
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).performLogout();
         }
     }
 }

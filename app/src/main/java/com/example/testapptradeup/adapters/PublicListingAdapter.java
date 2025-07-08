@@ -1,6 +1,5 @@
 package com.example.testapptradeup.adapters;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,45 +7,36 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Listing;
+import java.util.Objects;
 
-import java.text.NumberFormat;
-import java.util.List;
-import java.util.Locale;
+public class PublicListingAdapter extends ListAdapter<Listing, PublicListingAdapter.ListingViewHolder> {
 
-public class PublicListingAdapter extends RecyclerView.Adapter<PublicListingAdapter.ListingViewHolder> {
+    // Bỏ Context và List, ListAdapter sẽ tự quản lý
 
-    private final Context context;
-    private final List<Listing> listingList;
-
-    public PublicListingAdapter(Context context, List<Listing> listingList) {
-        this.context = context;
-        this.listingList = listingList;
+    public PublicListingAdapter() {
+        super(DIFF_CALLBACK);
     }
 
     @NonNull
     @Override
     public ListingViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.item_public_listing, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_public_listing, parent, false);
         return new ListingViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ListingViewHolder holder, int position) {
-        Listing listing = listingList.get(position);
+        Listing listing = getItem(position); // Lấy item từ ListAdapter
         holder.bind(listing);
     }
 
-    @Override
-    public int getItemCount() {
-        return listingList.size();
-    }
-
-    class ListingViewHolder extends RecyclerView.ViewHolder {
+    static class ListingViewHolder extends RecyclerView.ViewHolder {
         ImageView listingImage;
         TextView listingTitle, listingPrice, listingStatus;
 
@@ -59,35 +49,42 @@ public class PublicListingAdapter extends RecyclerView.Adapter<PublicListingAdap
         }
 
         void bind(final Listing listing) {
+            Context context = itemView.getContext();
             listingTitle.setText(listing.getTitle());
+            listingPrice.setText(listing.getFormattedPrice());
 
-            // Định dạng giá tiền theo đơn vị VNĐ
-            NumberFormat format = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
-            listingPrice.setText(format.format(listing.getPrice()));
-
-            // Hiển thị trạng thái (giả sử có trường status trong model Listing)
-            if ("active".equalsIgnoreCase(listing.getStatus())) {
+            if ("available".equalsIgnoreCase(listing.getStatus())) {
                 listingStatus.setText(R.string.listing_status_available);
-                listingStatus.setTextColor(context.getResources().getColor(R.color.success));
+                listingStatus.setTextColor(context.getResources().getColor(R.color.success, null));
+                listingStatus.setVisibility(View.VISIBLE);
             } else {
-                listingStatus.setText(listing.getStatus());
+                listingStatus.setVisibility(View.GONE);
             }
 
-            // Tải ảnh bằng Glide
-            if (listing.getImageUrls() != null && !listing.getImageUrls().isEmpty()) {
+            if (listing.getPrimaryImageUrl() != null && !listing.getPrimaryImageUrl().isEmpty()) {
                 Glide.with(context)
-                        .load(listing.getImageUrls().get(0)) // Lấy ảnh đầu tiên
-                        .placeholder(R.drawable.img)
-                        .error(R.drawable.img)
+                        .load(listing.getPrimaryImageUrl())
+                        .placeholder(R.drawable.img_placeholder)
+                        .error(R.drawable.img_placeholder)
                         .centerCrop()
                         .into(listingImage);
+            } else {
+                listingImage.setImageResource(R.drawable.img_placeholder);
             }
         }
     }
-    @SuppressLint("NotifyDataSetChanged")
-    public void updateData(List<Listing> newListings) {
-        listingList.clear();
-        listingList.addAll(newListings);
-        notifyDataSetChanged();
-    }
+
+    // DiffUtil giúp RecyclerView cập nhật hiệu quả
+    private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
+            return Objects.equals(oldItem.getId(), newItem.getId());
+        }
+
+        @Override
+        public boolean areContentsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
+            // So sánh nội dung để biết có cần vẽ lại item không
+            return oldItem.equals(newItem);
+        }
+    };
 }

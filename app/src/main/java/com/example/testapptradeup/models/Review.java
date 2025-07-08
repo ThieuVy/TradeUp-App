@@ -1,12 +1,12 @@
 package com.example.testapptradeup.models;
 
 import android.os.Parcel;
-import android.os.Parcelable; // <<< THÊM IMPORT NÀY
+import android.os.Parcelable;
 
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
+import java.util.Objects;
 
-// <<< THÊM "implements Parcelable"
 public class Review implements Parcelable {
     private String reviewId;
     private String reviewedUserId;
@@ -21,7 +21,6 @@ public class Review implements Parcelable {
 
     public Review() {}
 
-    // Getters và Setters của bạn vẫn giữ nguyên...
     public String getReviewId() { return reviewId; }
     public void setReviewId(String reviewId) { this.reviewId = reviewId; }
     public String getReviewedUserId() { return reviewedUserId; }
@@ -36,10 +35,10 @@ public class Review implements Parcelable {
     public void setRating(float rating) { this.rating = rating; }
     public String getComment() { return comment; }
     public void setComment(String comment) { this.comment = comment; }
-    public Date getReviewDate() { return reviewDate; }
-    public void setReviewDate(Date reviewDate) { this.reviewDate = reviewDate; }
     public String getTransactionId() { return transactionId; }
     public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
+    public Date getReviewDate() { return reviewDate; }
+    public void setReviewDate(Date reviewDate) { this.reviewDate = reviewDate; }
 
     protected Review(Parcel in) {
         reviewId = in.readString();
@@ -72,7 +71,7 @@ public class Review implements Parcelable {
         return 0;
     }
 
-    public static final Creator<Review> CREATOR = new Creator<Review>() {
+    public static final Creator<Review> CREATOR = new Creator<>() {
         @Override
         public Review createFromParcel(Parcel in) {
             return new Review(in);
@@ -83,4 +82,25 @@ public class Review implements Parcelable {
             return new Review[size];
         }
     };
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Review review = (Review) o;
+        return Float.compare(review.rating, rating) == 0 &&
+                Objects.equals(reviewId, review.reviewId) &&
+                Objects.equals(reviewedUserId, review.reviewedUserId) &&
+                Objects.equals(reviewerId, review.reviewerId) &&
+                Objects.equals(reviewerName, review.reviewerName) &&
+                Objects.equals(reviewerImageUrl, review.reviewerImageUrl) &&
+                Objects.equals(comment, review.comment) &&
+                Objects.equals(transactionId, review.transactionId) &&
+                Objects.equals(reviewDate, review.reviewDate);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(reviewId, reviewedUserId, reviewerId, reviewerName, reviewerImageUrl, rating, comment, transactionId, reviewDate);
+    }
 }

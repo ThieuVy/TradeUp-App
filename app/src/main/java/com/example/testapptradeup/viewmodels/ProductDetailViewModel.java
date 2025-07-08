@@ -22,6 +22,17 @@ public class ProductDetailViewModel extends ViewModel {
         this.offerRepository = new OfferRepository();
         this.userRepository = new UserRepository();
         this.currentUserId = FirebaseAuth.getInstance().getUid();
+        // Thêm một observer vào LiveData chi tiết sản phẩm.
+        // Mỗi khi có một listing mới được tải thành công, nó sẽ gọi hàm incrementViewCount.
+        listingDetail.observeForever(listing -> {
+            if (listing != null && listing.getId() != null) {
+                // Tăng lượt xem chỉ khi người dùng xem tin của người khác
+                String currentUserId = FirebaseAuth.getInstance().getUid();
+                if (currentUserId != null && !currentUserId.equals(listing.getSellerId())) {
+                    listingRepository.incrementViewCount(listing.getId());
+                }
+            }
+        });
     }
 
     public void loadListingDetail(String listingId) {

@@ -83,7 +83,7 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
             txtPrice.setText(listing.getFormattedPrice());
             txtLocation.setText(listing.getLocation() != null ? listing.getLocation() : "N/A");
             txtViews.setText(String.valueOf(listing.getViews()));
-            txtOffers.setText(listing.getOffersCount() + " đề nghị");
+            txtOffers.setText(String.format("%d đề nghị", listing.getOffersCount()));
 
             if (listing.getTimePosted() != null) {
                 txtPostedTime.setText(android.text.format.DateUtils.getRelativeTimeSpanString(listing.getTimePosted().getTime()));
@@ -143,7 +143,7 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
     }
 
     // DiffUtil giúp RecyclerView cập nhật hiệu quả
-    private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<Listing>() {
+    private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
             return oldItem.getId().equals(newItem.getId());

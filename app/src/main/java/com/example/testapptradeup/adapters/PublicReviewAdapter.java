@@ -1,7 +1,5 @@
 package com.example.testapptradeup.adapters;
 
-import android.annotation.SuppressLint;
-import android.content.Context;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,59 +7,36 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Review;
-import java.util.List;
+import java.util.Objects;
 
-public class PublicReviewAdapter extends RecyclerView.Adapter<PublicReviewAdapter.ReviewViewHolder> {
+public class PublicReviewAdapter extends ListAdapter<Review, PublicReviewAdapter.ReviewViewHolder> {
 
-    private final Context context;
-    private final List<Review> reviewList;
-
-    public PublicReviewAdapter(Context context, List<Review> reviewList) {
-        this.context = context;
-        this.reviewList = reviewList;
+    public PublicReviewAdapter() {
+        super(DIFF_CALLBACK);
     }
-
-    // ========== PHẦN SỬA LỖI Ở ĐÂY ==========
-    // Di chuyển phương thức này ra ngoài lớp ViewHolder
-    @SuppressLint("NotifyDataSetChanged")
-    public void updateData(List<Review> newReviews) {
-        reviewList.clear();
-        reviewList.addAll(newReviews);
-        notifyDataSetChanged();
-    }
-    // ======================================
 
     @NonNull
     @Override
     public ReviewViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.item_public_review, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_public_review, parent, false);
         return new ReviewViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ReviewViewHolder holder, int position) {
-        Review review = reviewList.get(position);
+        Review review = getItem(position);
         holder.bind(review);
-
         // Ẩn đường kẻ ở item cuối cùng
-        if (position == reviewList.size() - 1) {
-            holder.divider.setVisibility(View.GONE);
-        } else {
-            holder.divider.setVisibility(View.VISIBLE);
-        }
+        holder.divider.setVisibility(position == getItemCount() - 1 ? View.GONE : View.VISIBLE);
     }
 
-    @Override
-    public int getItemCount() {
-        return reviewList.size();
-    }
-
-    // Lớp ViewHolder chỉ chứa các thành phần và logic của một item
-    class ReviewViewHolder extends RecyclerView.ViewHolder {
+    static class ReviewViewHolder extends RecyclerView.ViewHolder {
         ImageView reviewerImage;
         TextView reviewerName, reviewDate, reviewRatingStars, reviewComment;
         View divider;
@@ -81,19 +56,16 @@ public class PublicReviewAdapter extends RecyclerView.Adapter<PublicReviewAdapte
             reviewComment.setText(review.getComment());
             reviewRatingStars.setText(getStarString(review.getRating()));
 
-            // Hiển thị thời gian tương đối (e.g., "2 days ago")
             if (review.getReviewDate() != null) {
-                long now = System.currentTimeMillis();
                 CharSequence relativeTime = DateUtils.getRelativeTimeSpanString(
-                        review.getReviewDate().getTime(), now, DateUtils.MINUTE_IN_MILLIS);
+                        review.getReviewDate().getTime(), System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS);
                 reviewDate.setText(relativeTime);
             }
 
-            // Tải ảnh người đánh giá
-            Glide.with(context)
+            Glide.with(itemView.getContext())
                     .load(review.getReviewerImageUrl())
-                    .placeholder(R.drawable.img)
-                    .error(R.drawable.img)
+                    .placeholder(R.drawable.ic_profile_placeholder)
+                    .error(R.drawable.ic_profile_placeholder)
                     .circleCrop()
                     .into(reviewerImage);
         }
@@ -102,13 +74,21 @@ public class PublicReviewAdapter extends RecyclerView.Adapter<PublicReviewAdapte
             int fullStars = Math.round(rating);
             StringBuilder stars = new StringBuilder();
             for (int i = 0; i < 5; i++) {
-                if (i < fullStars) {
-                    stars.append("★");
-                } else {
-                    stars.append("☆");
-                }
+                stars.append(i < fullStars ? "★" : "☆");
             }
             return stars.toString();
         }
-    } // Kết thúc lớp ReviewViewHolder
+    }
+
+    private static final DiffUtil.ItemCallback<Review> DIFF_CALLBACK = new DiffUtil.ItemCallback<Review>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull Review oldItem, @NonNull Review newItem) {
+            return Objects.equals(oldItem.getReviewId(), newItem.getReviewId());
+        }
+
+        @Override
+        public boolean areContentsTheSame(@NonNull Review oldItem, @NonNull Review newItem) {
+            return oldItem.equals(newItem);
+        }
+    };
 }

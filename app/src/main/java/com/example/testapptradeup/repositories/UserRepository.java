@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.example.testapptradeup.models.Review;
 import com.example.testapptradeup.models.User;
+import com.example.testapptradeup.utils.Result;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -17,10 +18,10 @@ public class UserRepository {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
-    public LiveData<User> getUserProfile(String userId) {
-        MutableLiveData<User> userLiveData = new MutableLiveData<>();
+    public LiveData<Result<User>> getUserProfile(String userId) {
+        MutableLiveData<Result<User>> userLiveData = new MutableLiveData<>();
         if (userId == null) {
-            userLiveData.setValue(null);
+            userLiveData.setValue(Result.error(new IllegalArgumentException("User ID is null")));
             return userLiveData;
         }
 
@@ -30,12 +31,17 @@ public class UserRepository {
                         User user = documentSnapshot.toObject(User.class);
                         if (user != null) {
                             user.setId(documentSnapshot.getId());
+                            userLiveData.setValue(Result.success(user)); // <<< TRẢ VỀ SUCCESS
+                        } else {
+                            userLiveData.setValue(Result.error(new Exception("Failed to parse user data.")));
                         }
-                        userLiveData.setValue(user);
                     } else {
-                        userLiveData.setValue(null);
+                        userLiveData.setValue(Result.error(new Exception("User not found.")));
                     }
-                }).addOnFailureListener(e -> userLiveData.setValue(null));
+                }).addOnFailureListener(e -> {
+                    // <<< TRẢ VỀ ERROR
+                    userLiveData.setValue(Result.error(e));
+                });
         return userLiveData;
     }
 

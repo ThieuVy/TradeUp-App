@@ -102,6 +102,7 @@ exports.permanentlyDeleteUserAccount = functions.https.onCall(
         }
 
         const uid = context.auth.uid;
+        const db = admin.firestore();
 
         try {
             // Bước 1: Xóa người dùng khỏi Firebase Authentication
@@ -109,18 +110,29 @@ exports.permanentlyDeleteUserAccount = functions.https.onCall(
             console.log("Successfully deleted user from Auth:", uid);
 
             // Bước 2: Xóa document người dùng khỏi Firestore
-            await admin.firestore().collection("users").doc(uid).delete();
+            await db.collection("users").doc(uid).delete();
             console.log("Successfully deleted user data from Firestore:", uid);
 
             // (Tùy chọn nâng cao) Bước 3: Xóa các tin đăng của người dùng này
-            // Cần một batch write để xóa nhiều document
+            // Sử dụng batch write để xóa nhiều document một cách hiệu quả.
+            const listingsQuery = db.collection("listings").where("sellerId", "==", uid);
+            const listingsSnapshot = await listingsQuery.get();
+
+            const batch = db.batch();
+            listingsSnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+            console.log(`Successfully deleted ${listingsSnapshot.size} listings for user:`, uid);
+
+            // TODO: Có thể thêm logic để xóa các reviews, offers, chats... của người dùng này.
 
             return {success: true, message: "Account deleted successfully."};
         } catch (error) {
             console.error("Error deleting user:", uid, error);
-            throw new functions.https.HttpsError(
-                "internal",
-                "Failed to delete user account.",
+                throw new functions.https.HttpsError(
+                    "internal",
+                    "Failed to delete user account.",
                 error,
             );
         }

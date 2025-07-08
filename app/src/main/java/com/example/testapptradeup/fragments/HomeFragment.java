@@ -25,8 +25,6 @@ import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.viewmodels.HomeViewModel;
 import com.example.testapptradeup.viewmodels.MainViewModel;
 
-import java.util.Collections;
-
 public class HomeFragment extends Fragment {
 
     private FragmentHomeBinding binding;
@@ -118,12 +116,30 @@ public class HomeFragment extends Fragment {
     }
 
     private void observeViewModel() {
-        viewModel.getFeaturedItems().observe(getViewLifecycleOwner(), listings -> featuredAdapter.submitList(listings != null ? listings : Collections.emptyList()));
-        viewModel.getRecommendations().observe(getViewLifecycleOwner(), listings -> recommendationsAdapter.submitList(listings != null ? listings : Collections.emptyList()));
-        viewModel.getListings().observe(getViewLifecycleOwner(), listings -> recentListingsAdapter.submitList(listings != null ? listings : Collections.emptyList()));
+        viewModel.getFeaturedItems().observe(getViewLifecycleOwner(), listings -> {
+            // Cập nhật adapter cho featured items
+            featuredAdapter.submitList(listings);
+        });
+
+        viewModel.getRecommendations().observe(getViewLifecycleOwner(), listings -> {
+            // Cập nhật adapter cho recommendations
+            recommendationsAdapter.submitList(listings);
+        });
+
+        viewModel.getListings().observe(getViewLifecycleOwner(), listings -> {
+            // Cập nhật adapter cho recent listings
+            recentListingsAdapter.submitList(listings);
+        });
 
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
-            // TODO: Hiển thị/ẩn ProgressBar hoặc Shimmer effect
+            // Hiển thị hoặc ẩn ProgressBar/Shimmer effect
+            // binding.swipeRefreshLayout.setRefreshing(isLoading);
+        });
+
+        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
+            if (error != null) {
+                Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
+            }
         });
     }
 

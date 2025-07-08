@@ -11,61 +11,126 @@ import com.example.testapptradeup.models.PagedResult;
 import com.example.testapptradeup.models.SearchParams;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldPath;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ListingRepository {
+    private static final String TAG = "ListingRepository";
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     public static final int PAGE_SIZE = 15;
-    private Object lastVisible;
 
-    // ================== START: SỬA LỖI THEO TASK 1 ==================
-    // Khai báo các đối tượng MutableLiveData làm biến thành viên (member variables)
-    private final MutableLiveData<List<Listing>> featuredListingsData = new MutableLiveData<>();
-    private final MutableLiveData<List<Listing>> recommendedListingsData = new MutableLiveData<>();
-    private final MutableLiveData<List<Listing>> recentListingsData = new MutableLiveData<>();
-    // =================== END: SỬA LỖI THEO TASK 1 ===================
+    // --- LiveData cho các danh sách sản phẩm ---
+    private final MutableLiveData<List<Listing>> featuredListingsData = new MutableLiveData<>(Collections.emptyList());
+    private final MutableLiveData<List<Listing>> recommendedListingsData = new MutableLiveData<>(Collections.emptyList());
+    private final MutableLiveData<List<Listing>> recentListingsData = new MutableLiveData<>(Collections.emptyList());
 
+    // --- LiveData để quản lý trạng thái của Repository ---
+    private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>(false);
+    private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
+
+    public ListingRepository() {
+        // Tải dữ liệu lần đầu khi Repository được tạo
+        fetchAll();
+    }
+
+
+    /**
+     * Tải lại tất cả dữ liệu từ Firestore.
+     * Được gọi khi khởi tạo hoặc khi người dùng thực hiện "pull-to-refresh".
+     */
+    public void fetchAll() {
+        if (Boolean.TRUE.equals(_isLoading.getValue())) {
+            return; // Đang tải rồi, không thực hiện nữa
+        }
+        _isLoading.setValue(true);
+        _errorMessage.setValue(null); // Xóa lỗi cũ
+
+        // Sử dụng AtomicInteger để đếm số tác vụ bất đồng bộ cần hoàn thành
+        final AtomicInteger tasksToComplete = new AtomicInteger(3);
+
+        // Hàm callback sẽ được gọi mỗi khi một tác vụ hoàn thành
+        Runnable onTaskCompleted = () -> {
+            if (tasksToComplete.decrementAndGet() == 0) {
+                _isLoading.postValue(false); // Tất cả đã xong, tắt loading
+            }
+        };
+
+        // 1. Tải Featured Listings
+        db.collection("listings")
+                .whereEqualTo("isFeatured", true).whereEqualTo("status", "available").limit(5)
+                .get()
+                .addOnSuccessListener(result -> featuredListingsData.setValue(result.toObjects(Listing.class)))
+                .addOnFailureListener(e -> _errorMessage.setValue("Lỗi tải mục Nổi bật"))
+                .addOnCompleteListener(task -> onTaskCompleted.run());
+
+        // 2. Tải Recommended Listings
+        db.collection("listings")
+                .whereEqualTo("status", "available").orderBy("views", Query.Direction.DESCENDING).limit(4)
+                .get()
+                .addOnSuccessListener(result -> recommendedListingsData.setValue(result.toObjects(Listing.class)))
+                .addOnFailureListener(e -> _errorMessage.setValue("Lỗi tải mục Đề xuất"))
+                .addOnCompleteListener(task -> onTaskCompleted.run());
+
+        // 3. Tải Recent Listings
+        db.collection("listings")
+                .whereEqualTo("status", "available").orderBy("timePosted", Query.Direction.DESCENDING).limit(10)
+                .get()
+                .addOnSuccessListener(result -> {
+                    List<Listing> listings = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : result) {
+                        Listing listing = doc.toObject(Listing.class);
+                        listing.setId(doc.getId());
+                        listings.add(listing);
+                    }
+                    recentListingsData.setValue(listings);
+                })
+                .addOnFailureListener(e -> _errorMessage.setValue("Lỗi tải tin gần đây"))
+                .addOnCompleteListener(task -> onTaskCompleted.run());
+    }
+
+    /**
+     * Thêm một tin đăng mới vào đầu danh sách "Gần đây" trên UI ngay lập tức.
+     * @param newListing Tin đăng mới từ PostFragment.
+     */
+    public void prependLocalListing(Listing newListing) {
+        List<Listing> currentList = recentListingsData.getValue();
+        if (currentList == null) {
+            currentList = new ArrayList<>();
+        }
+        List<Listing> updatedList = new ArrayList<>(currentList);
+        updatedList.add(0, newListing);
+        recentListingsData.setValue(updatedList);
+    }
+
+    public LiveData<List<Listing>> getRecentListings() {
+        return recentListingsData;
+    }
+
+    // Cung cấp LiveData cho trạng thái loading và lỗi
+    public LiveData<Boolean> isLoading() {
+        return _isLoading;
+    }
+
+    public LiveData<String> getErrorMessage() {
+        return _errorMessage;
+    }
 
     public LiveData<List<Listing>> getFeaturedListings() {
-        // Sửa lại: Không tạo mới MutableLiveData, sử dụng biến thành viên
-        db.collection("listings")
-                .whereEqualTo("isFeatured", true) // Giả sử có trường isFeatured
-                .whereEqualTo("status", "available")
-                .limit(5)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<Listing> listings = new ArrayList<>();
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        listings.add(doc.toObject(Listing.class));
-                    }
-                    featuredListingsData.setValue(listings); // Cập nhật vào biến thành viên
-                })
-                .addOnFailureListener(e -> featuredListingsData.setValue(null));
-        return featuredListingsData; // Trả về biến thành viên
+        return featuredListingsData;
     }
 
     public LiveData<List<Listing>> getRecommendedListings(int limit) {
-        // Sửa lại: Không tạo mới MutableLiveData, sử dụng biến thành viên
-        db.collection("listings")
-                .whereEqualTo("status", "available")
-                .orderBy("views", Query.Direction.DESCENDING) // Ví dụ: Đề xuất theo lượt xem
-                .limit(limit)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<Listing> listings = new ArrayList<>();
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        listings.add(doc.toObject(Listing.class));
-                    }
-                    recommendedListingsData.setValue(listings); // Cập nhật vào biến thành viên
-                })
-                .addOnFailureListener(e -> recommendedListingsData.setValue(null));
-        return recommendedListingsData; // Trả về biến thành viên
+        // `limit` không còn được sử dụng ở đây vì logic tải đã được chuyển vào `fetchAll`.
+        // ViewModel sẽ chịu trách nhiệm lấy `LiveData` này.
+        return recommendedListingsData;
     }
 
     public LiveData<List<Listing>> getRecentListings(int limit) {
@@ -199,18 +264,17 @@ public class ListingRepository {
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         Listing listing = documentSnapshot.toObject(Listing.class);
-                        // Quan trọng: Gán ID của Document vào đối tượng
                         if (listing != null) {
                             listing.setId(documentSnapshot.getId());
                         }
                         listingData.setValue(listing);
                     } else {
-                        Log.w("ListingRepository", "Không tìm thấy tin đăng với ID: " + listingId);
+                        Log.w(TAG, "Không tìm thấy tin đăng với ID: " + listingId);
                         listingData.setValue(null);
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("ListingRepository", "Lỗi khi lấy tin đăng bằng ID", e);
+                    Log.e(TAG, "Lỗi khi lấy tin đăng bằng ID", e);
                     listingData.setValue(null);
                 });
 
@@ -368,5 +432,19 @@ public class ListingRepository {
                     resultLiveData.setValue(new PagedResult<>(null, null, e));
                 });
         return resultLiveData;
+    }
+
+    /**
+     * Tăng số lượt xem của một tin đăng lên 1.
+     * Đây là một thao tác "fire-and-forget", không cần chờ kết quả.
+     * @param listingId ID của tin đăng cần tăng lượt xem.
+     */
+    public void incrementViewCount(String listingId) {
+        if (listingId == null || listingId.isEmpty()) {
+            return;
+        }
+        db.collection("listings").document(listingId)
+                .update("views", FieldValue.increment(1))
+                .addOnFailureListener(e -> Log.w(TAG, "Lỗi khi tăng lượt xem cho tin đăng: " + listingId, e));
     }
 }

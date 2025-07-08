@@ -7,87 +7,99 @@ import androidx.lifecycle.ViewModel;
 
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.repositories.UserRepository;
+import com.example.testapptradeup.utils.Result; // Đảm bảo import lớp Result
 
 public class EditProfileViewModel extends ViewModel {
     private final UserRepository userRepository;
 
-    // ----- PHẦN TẢI DỮ LIỆU NGƯỜI DÙNG -----
-
-    // INPUT: Một LiveData private để nhận ID người dùng cần tải.
-    // Fragment sẽ gọi một hàm để đặt giá trị cho trigger này.
+    // --- Triggers và LiveData trung gian ---
     private final MutableLiveData<String> userIdTrigger = new MutableLiveData<>();
+    private final LiveData<Result<User>> userProfileResult; // LiveData trung gian giữ Result
 
-    // OUTPUT: Một LiveData public mà Fragment sẽ observe.
-    // Nó được tạo bằng `switchMap`, sẽ tự động gọi repository khi `userIdTrigger` thay đổi.
+    // --- LiveData cuối cùng cho UI ---
     private final LiveData<User> userProfile;
-
-
-    // ----- PHẦN LƯU DỮ LIỆU -----
-
-    // OUTPUT: Một LiveData private để giữ trạng thái của việc lưu (thành công/thất bại).
     private final MutableLiveData<Boolean> _saveStatus = new MutableLiveData<>();
-    // LiveData public để Fragment observe. Dùng _ để tuân thủ quy ước cho MutableLiveData.
-    public LiveData<Boolean> getSaveStatus() {
-        return _saveStatus;
-    }
+    private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>();
+    private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
 
 
     public EditProfileViewModel() {
         this.userRepository = new UserRepository();
 
-        // Cấu hình `switchMap`: Khi `userIdTrigger` có giá trị mới (id),
-        // nó sẽ tự động gọi `userRepository.getUserProfile(id)` và trả về kết quả.
-        userProfile = Transformations.switchMap(userIdTrigger, id -> {
+        // ========== BẮT ĐẦU PHẦN SỬA ĐỔI ==========
+
+        // 1. switchMap giờ chỉ chịu trách nhiệm gọi repository và trả về LiveData<Result<User>>
+        userProfileResult = Transformations.switchMap(userIdTrigger, id -> {
             if (id == null || id.isEmpty()) {
-                // Nếu không có ID, trả về một LiveData rỗng.
-                MutableLiveData<User> emptyUser = new MutableLiveData<>();
-                emptyUser.setValue(null);
-                return emptyUser;
+                // Nếu ID không hợp lệ, trả về một LiveData chứa lỗi ngay lập tức.
+                MutableLiveData<Result<User>> errorResult = new MutableLiveData<>();
+                errorResult.setValue(Result.error(new IllegalArgumentException("User ID is invalid.")));
+                return errorResult; // Kiểu trả về là LiveData<Result<User>>, khớp với nhánh else
             }
             // Gọi repository để lấy dữ liệu thực tế.
-            return userRepository.getUserProfile(id);
+            return userRepository.getUserProfile(id); // Kiểu trả về là LiveData<Result<User>>
         });
+
+        // 2. Sử dụng map để trích xuất dữ liệu thành công hoặc xử lý lỗi từ userProfileResult
+        userProfile = Transformations.map(userProfileResult, result -> {
+            _isLoading.setValue(false); // Luôn tắt loading khi có kết quả
+            if (result.isSuccess()) {
+                _errorMessage.setValue(null); // Xóa lỗi cũ
+                return result.getData(); // Trả về đối tượng User
+            } else {
+                // Nếu có lỗi, cập nhật errorMessage và trả về null cho userProfile
+                _errorMessage.setValue(result.getError().getMessage());
+                return null;
+            }
+        });
+
+        // ==========================================
     }
 
-    // ----- CÁC HÀM ACTION MÀ FRAGMENT SẼ GỌI -----
-
     /**
-     * ACTION: Kích hoạt việc tải dữ liệu hồ sơ người dùng.
+     * Kích hoạt việc tải/làm mới dữ liệu hồ sơ người dùng.
      * @param userId ID của người dùng cần tải.
      */
     public void loadUserProfile(String userId) {
-        // Chỉ cần đặt giá trị cho trigger, `switchMap` sẽ tự lo phần còn lại.
         if (userId != null && !userId.equals(userIdTrigger.getValue())) {
+            _isLoading.setValue(true); // Bật loading trước khi trigger
             userIdTrigger.setValue(userId);
         }
     }
 
     /**
-     * ACTION: Lưu hồ sơ đã chỉnh sửa.
+     * Lưu hồ sơ đã chỉnh sửa.
      * @param user Đối tượng User chứa thông tin đã được cập nhật từ UI.
      */
     public void saveUserProfile(User user) {
-        // Reset trạng thái trước khi lưu để tránh nhận lại kết quả cũ.
-        _saveStatus.setValue(null);
-        showLoading(true); // Giả sử có một LiveData cho trạng thái loading
+        _saveStatus.setValue(null); // Reset trạng thái để tránh nhận lại kết quả cũ
+        _isLoading.setValue(true);
 
+        // observeForever ở đây là chấp nhận được vì nó được gỡ bỏ ngay sau khi nhận được kết quả
         userRepository.updateUserProfile(user).observeForever(success -> {
+            _isLoading.setValue(false);
             _saveStatus.setValue(success);
-            showLoading(false);
+            if (Boolean.FALSE.equals(success)) {
+                _errorMessage.setValue("Không thể lưu thay đổi.");
+            }
         });
     }
 
-    // Getter cho Fragment để observe dữ liệu người dùng.
+    // --- GETTERS CHO FRAGMENT OBSERVE ---
+
     public LiveData<User> getUserProfile() {
         return userProfile;
     }
 
-    // (Tùy chọn) Thêm LiveData cho trạng thái loading
-    private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>();
+    public LiveData<Boolean> getSaveStatus() {
+        return _saveStatus;
+    }
+
     public LiveData<Boolean> isLoading() {
         return _isLoading;
     }
-    private void showLoading(boolean loading) {
-        _isLoading.setValue(loading);
+
+    public LiveData<String> getErrorMessage() {
+        return _errorMessage;
     }
 }
