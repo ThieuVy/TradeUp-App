@@ -21,7 +21,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorSurface"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:title="Yêu thích"
+            app:title="Mục đã lưu"
             app:titleTextColor="?attr/colorOnSurface" />
 
     </com.google.android.material.appbar.AppBarLayout>

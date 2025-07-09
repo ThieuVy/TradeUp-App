@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
 
     <application
         android:allowBackup="true"
@@ -18,16 +20,11 @@
         android:theme="@style/Theme.TestAppTradeUp"
         tools:targetApi="31">
 
-        <!--
-            Thêm thẻ meta-data này để vô hiệu hóa việc tự động thu thập dữ liệu
-            màn hình của Firebase Analytics, giải quyết xung đột với Stripe PaymentSheet.
-        -->
+        <!-- meta-data cho Stripe -->
         <meta-data
             android:name="google_analytics_automatic_screen_reporting_enabled"
             android:value="false" />
 
-
-        <!-- SỬA LỖI: Đặt LoginActivity làm màn hình khởi động -->
         <activity
             android:name=".activities.LoginActivity"
             android:theme="@style/Theme.TestAppTradeUp"
@@ -38,23 +35,33 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".activities.MainActivity"
-            android:windowSoftInputMode="adjustPan"
-            android:exported="true"/>
-
+        <activity android:name=".activities.EmailVerificationActivity"
+            android:theme="@style/Theme.TestAppTradeUp"
+            android:exported="false"/>
         <activity
             android:name=".activities.RegisterActivity"
             android:theme="@style/Theme.TestAppTradeUp"
             android:exported="false">
         </activity>
+        <activity
+            android:name=".activities.MainActivity"
+            android:windowSoftInputMode="adjustPan"
+            android:exported="true" />
+        <activity
+            android:name=".activities.ForgotPasswordActivity"
+            android:theme="@style/Theme.TestAppTradeUp"
+            android:exported="false" />
 
-        <activity android:name=".activities.ForgotPasswordActivity"
-            android:theme="@style/Theme.TestAppTradeUp"
-            android:exported="false"/>
-        <activity android:name=".activities.EmailVerificationActivity"
-            android:theme="@style/Theme.TestAppTradeUp"
-            android:exported="false"/>
+        <!-- === THÊM MỚI: KHAI BÁO DỊCH VỤ FIREBASE MESSAGING SERVICE === -->
+        <service
+            android:name=".services.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+
     </application>
 
 </manifest>

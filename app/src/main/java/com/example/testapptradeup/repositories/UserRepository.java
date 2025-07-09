@@ -1,5 +1,7 @@
 package com.example.testapptradeup.repositories;
 
+import android.util.Log;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -124,5 +126,20 @@ public class UserRepository {
                 .update("favoriteListingIds", updateValue)
                 .addOnSuccessListener(aVoid -> status.setValue(true))
                 .addOnFailureListener(e -> status.setValue(false));
+    }
+    /**
+     * Cập nhật hoặc thêm mới FCM token cho một người dùng.
+     * Đây là thao tác "fire-and-forget", không cần chờ kết quả trả về.
+     * @param userId ID của người dùng.
+     * @param token FCM token mới.
+     */
+    public void updateFcmToken(String userId, String token) {
+        if (userId == null || token == null) {
+            return;
+        }
+        db.collection("users").document(userId)
+                .update("fcmToken", token)
+                .addOnSuccessListener(aVoid -> Log.d("UserRepository", "FCM token updated successfully for user: " + userId))
+                .addOnFailureListener(e -> Log.e("UserRepository", "Error updating FCM token", e));
     }
 }

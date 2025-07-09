@@ -88,7 +88,7 @@ exports.createEphemeralKey = functions.https.onCall(async (data, context) => {
 
 /**
  * Cloud Function 3: permanentlyDeleteUserAccount
- * Xóa tài khoản người dùng khỏi Authentication và Firestore.
+ * Xóa tài khoản người dùng khỏi Authentication, Firestore và tất cả các dữ liệu liên quan.
  * Đây là một hành động không thể hoàn tác.
  */
 exports.permanentlyDeleteUserAccount = functions.https.onCall(
@@ -113,28 +113,104 @@ exports.permanentlyDeleteUserAccount = functions.https.onCall(
             await db.collection("users").doc(uid).delete();
             console.log("Successfully deleted user data from Firestore:", uid);
 
-            // (Tùy chọn nâng cao) Bước 3: Xóa các tin đăng của người dùng này
+            // Bước 3: Xóa tất cả các tin đăng của người dùng này
             // Sử dụng batch write để xóa nhiều document một cách hiệu quả.
             const listingsQuery = db.collection("listings").where("sellerId", "==", uid);
             const listingsSnapshot = await listingsQuery.get();
 
-            const batch = db.batch();
-            listingsSnapshot.forEach((doc) => {
-                batch.delete(doc.ref);
-            });
-            await batch.commit();
-            console.log(`Successfully deleted ${listingsSnapshot.size} listings for user:`, uid);
+            if (!listingsSnapshot.empty) {
+                const batch = db.batch();
+                listingsSnapshot.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                console.log(`Successfully deleted ${listingsSnapshot.size} listings for user:`, uid);
+            } else {
+                console.log(`No listings found for user:`, uid);
+            }
 
-            // TODO: Có thể thêm logic để xóa các reviews, offers, chats... của người dùng này.
+            // TODO: (Tùy chọn nâng cao) Có thể thêm logic để xóa các reviews, offers, chats... của người dùng này.
 
             return {success: true, message: "Account deleted successfully."};
         } catch (error) {
             console.error("Error deleting user:", uid, error);
-                throw new functions.https.HttpsError(
-                    "internal",
-                    "Failed to delete user account.",
+            throw new functions.https.HttpsError(
+                "internal",
+                "Failed to delete user account.",
                 error,
             );
         }
     },
 );
+
+/**
+ * Cloud Function 4: sendChatNotification
+ * Mục đích: Kích hoạt khi có tin nhắn mới và gửi Push Notification cho người nhận.
+ * Trigger: onWrite trên documents trong subcollection 'messages'.
+ */
+exports.sendChatNotification = functions.firestore
+    .document("chats/{chatId}/messages/{messageId}")
+    .onCreate(async (snap, context) => {
+        const message = snap.data();
+        const chatId = context.params.chatId;
+        const senderId = message.senderId;
+
+        // 1. Lấy thông tin cuộc trò chuyện để tìm người nhận
+        const chatDoc = await admin.firestore().collection("chats").doc(chatId).get();
+        if (!chatDoc.exists) {
+            console.log("Không tìm thấy chat document:", chatId);
+            return null;
+        }
+        const chatData = chatDoc.data();
+        const members = chatData.members;
+
+        // 2. Xác định ID người nhận
+        const recipientId = members.find((id) => id !== senderId);
+        if (!recipientId) {
+            console.log("Không tìm thấy người nhận trong chat:", chatId);
+            return null;
+        }
+
+        // 3. Lấy thông tin người nhận (để lấy FCM token) và người gửi (để lấy tên)
+        const recipientDoc = await admin.firestore().collection("users").doc(recipientId).get();
+        const senderDoc = await admin.firestore().collection("users").doc(senderId).get();
+
+        if (!recipientDoc.exists || !senderDoc.exists) {
+            console.log("Không tìm thấy thông tin người gửi hoặc người nhận.");
+            return null;
+        }
+
+        const recipientData = recipientDoc.data();
+        const senderData = senderDoc.data();
+        const fcmToken = recipientData.fcmToken;
+
+        if (!fcmToken) {
+            console.log("Người nhận không có FCM token:", recipientId);
+            return null;
+        }
+
+        // 4. Xây dựng payload cho notification
+        const payload = {
+            notification: {
+                title: `Tin nhắn mới từ ${senderData.name}`,
+                body: message.text,
+                icon: senderData.profileImageUrl || "default_icon_url", // Cung cấp icon mặc định nếu cần
+                click_action: "FLUTTER_NOTIFICATION_CLICK", // Cần thiết cho một số client
+            },
+            data: {
+                chatId: chatId,
+                senderId: senderId,
+                // Thêm các dữ liệu khác bạn muốn gửi đến client ở đây
+            },
+        };
+
+        // 5. Gửi notification
+        try {
+            await admin.messaging().sendToDevice(fcmToken, payload);
+            console.log("Gửi notification thành công đến:", recipientId);
+        } catch (error) {
+            console.error("Lỗi khi gửi notification:", error);
+        }
+
+        return null;
+    });

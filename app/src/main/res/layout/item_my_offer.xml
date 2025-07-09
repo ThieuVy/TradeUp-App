@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <!-- Ảnh của tin đăng -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            app:cardCornerRadius="8dp">
+            <ImageView
+                android:id="@+id/listing_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                tools:src="@tools:sample/backgrounds/scenic"
+                android:contentDescription="Ảnh sản phẩm" />
+        </androidx.cardview.widget.CardView>
+
+        <!-- Khối thông tin chính -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+
+            <!-- Tiêu đề tin đăng -->
+            <TextView
+                android:id="@+id/listing_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                tools:text="iPhone 15 Pro Max 256GB Like New" />
+
+            <!-- Giá bạn đã đề nghị -->
+            <TextView
+                android:id="@+id/offer_price"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="?attr/colorPrimary"
+                android:textStyle="bold"
+                android:textSize="15sp"
+                tools:text="Đề nghị: 25.000.000 VNĐ" />
+        </LinearLayout>
+
+        <!-- Trạng thái của đề nghị -->
+        <TextView
+            android:id="@+id/offer_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="5dp"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            tools:text="Đang chờ"
+            tools:textColor="@color/warning" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

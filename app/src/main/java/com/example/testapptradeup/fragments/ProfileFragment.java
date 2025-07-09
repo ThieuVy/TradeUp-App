@@ -245,15 +245,18 @@ public class ProfileFragment extends Fragment {
     private void showDeleteConfirmDialog() {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Xóa tài khoản vĩnh viễn")
-                .setMessage("Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa. Bạn có chắc chắn không?")
+                .setMessage("Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn, bao gồm các tin đã đăng, sẽ bị xóa vĩnh viễn. Bạn có chắc chắn không?")
                 .setPositiveButton("Xóa vĩnh viễn", (dialog, which) -> {
                     Toast.makeText(getContext(), "Đang xử lý yêu cầu...", Toast.LENGTH_SHORT).show();
                     viewModel.deleteAccountPermanently().observe(getViewLifecycleOwner(), success -> {
-                        if (success != null && success) {
-                            Toast.makeText(getContext(), "Tài khoản đã được xóa.", Toast.LENGTH_LONG).show();
-                            logout();
-                        } else if (success != null) {
-                            Toast.makeText(getContext(), "Có lỗi xảy ra khi xóa tài khoản.", Toast.LENGTH_LONG).show();
+                        // Chỉ xử lý khi success không phải là null (để tránh xử lý lại khi quay lại màn hình)
+                        if (success != null) {
+                            if (success) {
+                                Toast.makeText(getContext(), "Tài khoản đã được xóa thành công.", Toast.LENGTH_LONG).show();
+                                logout();
+                            } else {
+                                Toast.makeText(getContext(), "Có lỗi xảy ra khi xóa tài khoản. Vui lòng thử lại.", Toast.LENGTH_LONG).show();
+                            }
                         }
                     });
                 })

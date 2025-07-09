@@ -18,8 +18,9 @@ import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects; // Thêm import này
+import java.util.Objects;
 import java.util.stream.Collectors;
+import android.location.Location;
 
 public class SearchViewModel extends ViewModel {
 
@@ -92,7 +93,7 @@ public class SearchViewModel extends ViewModel {
         // Tạo một LiveData mới cho mỗi lần tìm kiếm
         LiveData<PagedResult<Listing>> pagedResultLiveData = listingRepository.searchListings(params, lastVisibleDocument);
 
-        pagedResultLiveData.observeForever(new Observer<PagedResult<Listing>>() {
+        pagedResultLiveData.observeForever(new Observer<>() {
             @Override
             public void onChanged(PagedResult<Listing> pagedResult) {
                 // Gỡ bỏ observer ngay sau khi nhận được kết quả để tránh memory leak
@@ -105,12 +106,35 @@ public class SearchViewModel extends ViewModel {
                     return;
                 }
 
+                // Lọc kết quả theo khoảng cách ở phía client
+                List<Listing> distanceFilteredListings = new ArrayList<>();
+                if (params.getUserLocation() != null && params.getMaxDistance() > 0) {
+                    for (Listing listing : pagedResult.getData()) {
+                        if (listing.getLatitude() != 0 && listing.getLongitude() != 0) {
+                            float[] results = new float[1];
+                            Location.distanceBetween(
+                                    params.getUserLocation().getLatitude(),
+                                    params.getUserLocation().getLongitude(),
+                                    listing.getLatitude(),
+                                    listing.getLongitude(),
+                                    results);
+                            float distanceInMeters = results[0];
+                            if (distanceInMeters <= params.getMaxDistance() * 1000) {
+                                distanceFilteredListings.add(listing);
+                            }
+                        }
+                    }
+                } else {
+                    // Nếu không có bộ lọc khoảng cách, lấy tất cả kết quả
+                    distanceFilteredListings.addAll(pagedResult.getData());
+                }
+
                 lastVisibleDocument = pagedResult.getLastVisible();
                 isLastPage = pagedResult.getData() == null || pagedResult.getData().size() < ListingRepository.PAGE_SIZE;
 
                 // Chuyển đổi Listing thành SearchResult
                 List<String> favIds = favoriteIds.getValue();
-                List<SearchResult> newResults = pagedResult.getData().stream()
+                List<SearchResult> newResults = distanceFilteredListings.stream()
                         .map(listing -> new SearchResult(listing, favIds != null && favIds.contains(listing.getId())))
                         .collect(Collectors.toList());
 

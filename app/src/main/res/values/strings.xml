@@ -280,5 +280,7 @@
     <string name="error_invalid_user_id">Lỗi: ID người dùng không hợp lệ.</string>
     <string name="error_loading_profile">Không thể tải hồ sơ người dùng.</string>
     <!-- ======================================== -->
+    <string name="fcm_channel_name">Thông báo Trò chuyện</string>
+    <string name="fcm_channel_description">Kênh dành cho các thông báo về tin nhắn mới</string>
 
 </resources>

@@ -153,6 +153,7 @@
                     android:layout_marginEnd="8dp"
                     android:inputType="text"
                     tools:ignore="Autofill,HardcodedText,InefficientWeight" />
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/use_gps_button"
                     style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"

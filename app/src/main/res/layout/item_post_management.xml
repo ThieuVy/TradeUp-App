@@ -133,40 +133,36 @@
                 <ImageView
                     android:layout_width="12dp"
                     android:layout_height="12dp"
-                    android:contentDescription="Lượt xem"
                     android:src="@drawable/ic_visibility"
                     app:tint="#8E8E93"
-                    tools:ignore="HardcodedText" />
+                    tools:ignore="ContentDescription" />
 
                 <TextView
                     android:id="@+id/txt_views"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="245"
                     android:textColor="#8E8E93"
                     android:textSize="12sp"
-                    tools:ignore="HardcodedText,TextContrastCheck"
+                    tools:ignore="TextContrastCheck"
                     tools:text="245" />
 
                 <ImageView
                     android:layout_width="12dp"
                     android:layout_height="12dp"
                     android:layout_marginStart="16dp"
-                    android:contentDescription="Đề nghị"
                     android:src="@drawable/ic_message"
                     app:tint="#8E8E93"
-                    tools:ignore="HardcodedText" />
+                    tools:ignore="ContentDescription" />
 
                 <TextView
                     android:id="@+id/txt_offers"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="3"
                     android:textColor="#8E8E93"
                     android:textSize="12sp"
-                    tools:ignore="HardcodedText,TextContrastCheck"
+                    tools:ignore="TextContrastCheck"
                     tools:text="3 đề nghị" />
 
                 <View

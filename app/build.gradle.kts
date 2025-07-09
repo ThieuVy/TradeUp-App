@@ -84,6 +84,8 @@ dependencies {
     implementation (libs.circleimageview)
 
     implementation (libs.lifecycle.process)
+
+    implementation(libs.google.firebase.messaging)
 }
 configurations.all {
     exclude(group = "xpp3", module = "xpp3")

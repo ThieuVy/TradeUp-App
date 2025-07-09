@@ -1,11 +1,9 @@
 package com.example.testapptradeup.repositories;
 
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.Offer;
 import com.example.testapptradeup.models.Transaction;
@@ -16,8 +14,13 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.firestore.FieldPath;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import com.example.testapptradeup.models.OfferWithListing;
 
 public class OfferRepository {
     private static final String TAG = "OfferRepository";
@@ -72,13 +75,13 @@ public class OfferRepository {
                     DocumentReference acceptedOfferRef = offersCollection.document(offer.getId());
                     batch.update(acceptedOfferRef, "status", "accepted");
 
-                    // --- Thao tác 2: Cập nhật tin đăng thành "đã bán" ---
+                    // --- Thao tác 2: Cập nhật tin đăng thành "đã bán" và isSold=true ---
                     DocumentReference listingRef = listingsCollection.document(listing.getId());
                     batch.update(listingRef, "status", "sold", "sold", true);
 
                     // --- Thao tác 3: Tạo một document giao dịch mới ---
                     DocumentReference transactionRef = transactionsCollection.document();
-                    Transaction newTransaction = getTransaction(offer, listing, transactionRef);
+                    Transaction newTransaction = createTransactionFromOffer(offer, listing, transactionRef);
                     // Không cần set transactionDate, @ServerTimestamp sẽ tự động gán
                     batch.set(transactionRef, newTransaction);
 
@@ -108,8 +111,69 @@ public class OfferRepository {
         return success;
     }
 
+    public LiveData<List<OfferWithListing>> getOffersSentByUserWithListingInfo(String userId) {
+        MutableLiveData<List<OfferWithListing>> resultLiveData = new MutableLiveData<>();
+        if (userId == null || userId.isEmpty()) {
+            resultLiveData.setValue(new ArrayList<>());
+            return resultLiveData;
+        }
+
+        // Bước 1: Lấy tất cả các offer do người dùng gửi
+        offersCollection.whereEqualTo("buyerId", userId)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(offerSnapshots -> {
+                    if (offerSnapshots.isEmpty()) {
+                        resultLiveData.setValue(new ArrayList<>());
+                        return;
+                    }
+
+                    List<Offer> offers = offerSnapshots.toObjects(Offer.class);
+
+                    // Bước 2: Thu thập các listingId duy nhất
+                    List<String> listingIds = offers.stream()
+                            .map(Offer::getListingId)
+                            .distinct()
+                            .collect(Collectors.toList());
+
+                    if (listingIds.isEmpty()) {
+                        resultLiveData.setValue(new ArrayList<>());
+                        return;
+                    }
+
+                    // Bước 3: Lấy thông tin các listing tương ứng
+                    listingsCollection.whereIn(FieldPath.documentId(), listingIds)
+                            .get()
+                            .addOnSuccessListener(listingSnapshots -> {
+                                List<Listing> listings = listingSnapshots.toObjects(Listing.class);
+                                List<OfferWithListing> combinedList = new ArrayList<>();
+
+                                // Bước 4: Kết hợp dữ liệu
+                                for (Offer offer : offers) {
+                                    listings.stream()
+                                            .filter(l -> l.getId().equals(offer.getListingId()))
+                                            .findFirst().ifPresent(correspondingListing -> combinedList.add(new OfferWithListing(offer, correspondingListing)));
+                                }
+                                resultLiveData.setValue(combinedList);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Lỗi khi lấy thông tin listing cho offers", e);
+                                resultLiveData.setValue(null);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi khi lấy offers của người dùng", e);
+                    resultLiveData.setValue(null);
+                });
+
+        return resultLiveData;
+    }
+
+    /**
+     * Helper method to create a Transaction object from an Offer and a Listing.
+     */
     @NonNull
-    private static Transaction getTransaction(Offer offer, Listing listing, DocumentReference transactionRef) {
+    private Transaction createTransactionFromOffer(Offer offer, Listing listing, DocumentReference transactionRef) {
         Transaction newTransaction = new Transaction();
         newTransaction.setId(transactionRef.getId());
         newTransaction.setListingId(listing.getId());
@@ -123,5 +187,25 @@ public class OfferRepository {
         newTransaction.setSellerReviewed(false);
         newTransaction.setBuyerReviewed(false);
         return newTransaction;
+    }
+
+    public LiveData<List<Offer>> getOffersSentByUser(String userId) {
+        MutableLiveData<List<Offer>> offersData = new MutableLiveData<>();
+        if (userId == null || userId.isEmpty()) {
+            offersData.setValue(new ArrayList<>());
+            return offersData;
+        }
+
+        offersCollection.whereEqualTo("buyerId", userId)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots ->
+                        offersData.setValue(queryDocumentSnapshots.toObjects(Offer.class))
+                )
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi khi lấy offers của người dùng: ", e);
+                    offersData.setValue(null);
+                });
+        return offersData;
     }
 }

@@ -22,6 +22,8 @@ public class ProductDetailViewModel extends ViewModel {
         this.offerRepository = new OfferRepository();
         this.userRepository = new UserRepository();
         this.currentUserId = FirebaseAuth.getInstance().getUid();
+
+        // ========== BẮT ĐẦU THÊM MỚI ==========
         // Thêm một observer vào LiveData chi tiết sản phẩm.
         // Mỗi khi có một listing mới được tải thành công, nó sẽ gọi hàm incrementViewCount.
         listingDetail.observeForever(listing -> {
@@ -33,6 +35,7 @@ public class ProductDetailViewModel extends ViewModel {
                 }
             }
         });
+        // =======================================
     }
 
     public void loadListingDetail(String listingId) {

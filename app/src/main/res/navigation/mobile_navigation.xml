@@ -81,6 +81,9 @@
         <action
             android:id="@+id/action_navigation_profile_to_historyFragment"
             app:destination="@id/historyFragment"/>
+        <action
+            android:id="@+id/action_profile_to_myOffers"
+            app:destination="@id/myOffersFragment" />
 
     </fragment>
 
@@ -228,4 +231,9 @@
             app:argType="com.example.testapptradeup.models.Listing" />
     </fragment>
 
+    <fragment
+        android:id="@+id/myOffersFragment"
+        android:name="com.example.testapptradeup.fragments.MyOffersFragment"
+        android:label="Lịch sử trả giá"
+        tools:layout="@layout/fragment_my_offers" />
 </navigation>

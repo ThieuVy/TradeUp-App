@@ -39,6 +39,8 @@ public class Listing implements Parcelable {
     private int offersCount;
     private boolean isSold = false; // Thêm trường này để dễ dàng query
     private List<String> tags;
+    private double latitude;
+    private double longitude;
 
     public Listing() {
         // Constructor rỗng cho Firebase Firestore
@@ -84,7 +86,8 @@ public class Listing implements Parcelable {
     public int getViews() { return views; }
     public int getOffersCount() { return offersCount; }
     public boolean isSold() { return isSold; }
-
+    public double getLatitude() { return latitude; }
+    public double getLongitude() { return longitude; }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -105,6 +108,8 @@ public class Listing implements Parcelable {
     public void setViews(int views) { this.views = views; }
     public void setOffersCount(int offersCount) { this.offersCount = offersCount; }
     public void setSold(boolean sold) { isSold = sold; }
+    public void setLatitude(double latitude) { this.latitude = latitude; }
+    public void setLongitude(double longitude) { this.longitude = longitude; }
 
     public List<String> getTags() {
         return tags;
@@ -192,6 +197,8 @@ public class Listing implements Parcelable {
         offersCount = in.readInt();
         isSold = in.readByte() != 0;
         tags = in.createStringArrayList();
+        latitude = in.readDouble();
+        longitude = in.readDouble();
     }
 
     public void writeToParcel(Parcel dest, int flags) {
@@ -214,6 +221,8 @@ public class Listing implements Parcelable {
         dest.writeInt(offersCount);
         dest.writeByte((byte) (isSold ? 1 : 0));
         dest.writeStringList(tags);
+        dest.writeDouble(latitude);
+        dest.writeDouble(longitude);
     }
 
     public int describeContents() {

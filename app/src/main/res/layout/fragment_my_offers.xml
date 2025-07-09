@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_light"
+    tools:context=".fragments.MyOffersFragment">
+
+    <!-- Toolbar ở trên cùng -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_my_offers"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/white"
+        app:elevation="4dp"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:title="Đề nghị của tôi" />
+
+    <!-- FrameLayout để chứa RecyclerView và các trạng thái khác -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Danh sách các đề nghị đã gửi -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_my_offers"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingVertical="8dp"
+            android:visibility="gone"
+            tools:listitem="@layout/item_my_offer"
+            tools:visibility="visible" />
+
+        <!-- Vòng xoay loading -->
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Trạng thái khi không có dữ liệu -->
+        <TextView
+            android:id="@+id/text_empty_state"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Bạn chưa gửi đề nghị nào."
+            android:visibility="gone"
+            tools:ignore="HardcodedText" />
+    </FrameLayout>
+</LinearLayout>

@@ -239,6 +239,23 @@ public class PostFragment extends Fragment {
         // Các trường như `imageUrls` và `timePosted` sẽ được xử lý trong ViewModel.
         // `timePosted` sẽ do server tự gán, nên client không cần gửi.
 
+        // Chuyển đổi địa chỉ thành tọa độ
+        Geocoder geocoder = new Geocoder(requireContext(), Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocationName(listing.getLocation(), 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                listing.setLatitude(address.getLatitude());
+                listing.setLongitude(address.getLongitude());
+                Log.d("PostFragment", "Geocoded location: " + address.getLatitude() + ", " + address.getLongitude());
+            }
+        } catch (IOException e) {
+            Log.e("PostFragment", "Lỗi Geocoding, tọa độ sẽ là 0,0", e);
+            // Có thể hiển thị thông báo cho người dùng nếu địa chỉ không hợp lệ
+            listing.setLatitude(0);
+            listing.setLongitude(0);
+        }
+
         // 4. Gọi ViewModel để bắt đầu quá trình (upload ảnh rồi lưu listing)
         Log.d("PostFragment", "Bắt đầu quá trình đăng tin...");
         viewModel.postListing(listing);
