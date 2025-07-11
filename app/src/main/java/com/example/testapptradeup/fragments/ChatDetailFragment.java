@@ -1,5 +1,6 @@
 package com.example.testapptradeup.fragments;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -20,6 +22,12 @@ import com.example.testapptradeup.R;
 import com.example.testapptradeup.adapters.ChatMessageAdapter;
 import com.example.testapptradeup.viewmodels.ChatDetailViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class ChatDetailFragment extends Fragment {
 
@@ -34,16 +42,19 @@ public class ChatDetailFragment extends Fragment {
     private EditText etMessage;
     private ImageButton btnSend;
     private MaterialToolbar toolbar;
+    private String otherUserId;
+    private ImageView btnMoreOptions;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(this).get(ChatDetailViewModel.class);
 
-        // Lấy dữ liệu được truyền từ Fragment trước (ví dụ: ChatListFragment)
         if (getArguments() != null) {
             chatId = ChatDetailFragmentArgs.fromBundle(getArguments()).getChatId();
             otherUserName = ChatDetailFragmentArgs.fromBundle(getArguments()).getOtherUserName();
+            // Lấy otherUserId từ conversation trong ViewModel hoặc từ argument nếu có
+            // Tạm thời sẽ để logic lấy ID này trong onViewCreated
         }
     }
 
@@ -76,8 +87,9 @@ public class ChatDetailFragment extends Fragment {
         etMessage = view.findViewById(R.id.edit_text_message);
         btnSend = view.findViewById(R.id.btn_send);
         toolbar = view.findViewById(R.id.toolbar_chat);
+        // === THÊM MỚI: Ánh xạ nút more options ===
+        btnMoreOptions = view.findViewById(R.id.btn_more_options_chat);
 
-        // Cập nhật tên người dùng trên Toolbar
         if (otherUserName != null) {
             toolbar.setTitle(otherUserName);
         }
@@ -94,6 +106,44 @@ public class ChatDetailFragment extends Fragment {
     private void setupListeners() {
         toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
         btnSend.setOnClickListener(v -> sendMessage());
+
+        // === THÊM MỚI: Bắt sự kiện cho nút more options ===
+        btnMoreOptions.setOnClickListener(v -> showChatOptionsDialog());
+    }
+
+    private void showChatOptionsDialog() {
+        if (getContext() == null) return;
+
+        final CharSequence[] options = {"Chặn người dùng", "Báo cáo cuộc trò chuyện", "Hủy"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Tùy chọn");
+        builder.setItems(options, (dialog, item) -> {
+            if (options[item].equals("Chặn người dùng")) {
+                // TODO: Implement user blocking logic
+                Toast.makeText(getContext(), "Chức năng chặn đang được phát triển.", Toast.LENGTH_SHORT).show();
+            } else if (options[item].equals("Báo cáo cuộc trò chuyện")) {
+                showReportReasonDialog();
+            } else if (options[item].equals("Hủy")) {
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
+    private void showReportReasonDialog() {
+        if (getContext() == null || chatId == null) return;
+
+        final String[] reportReasons = {"Spam", "Nội dung không phù hợp", "Lừa đảo", "Quấy rối", "Lý do khác"};
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("Báo cáo cuộc trò chuyện")
+                .setItems(reportReasons, (dialog, which) -> {
+                    String reason = reportReasons[which];
+                    sendConversationReport(reason);
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
     }
 
     private void observeViewModel() {
@@ -113,5 +163,29 @@ public class ChatDetailFragment extends Fragment {
             viewModel.sendMessage(chatId, messageText);
             etMessage.setText(""); // Xóa nội dung trong ô nhập sau khi gửi
         }
+    }
+
+    private void sendConversationReport(String reason) {
+        String reporterId = FirebaseAuth.getInstance().getUid();
+        if (reporterId == null) {
+            Toast.makeText(getContext(), "Bạn cần đăng nhập để báo cáo.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Map<String, Object> report = new HashMap<>();
+        report.put("reporterId", reporterId);
+        report.put("reason", reason);
+        report.put("timestamp", FieldValue.serverTimestamp());
+        report.put("type", "conversation"); // Phân loại báo cáo
+        report.put("chatId", chatId); // Thêm ID của chat để dễ truy vết
+        report.put("status", "pending");
+
+        FirebaseFirestore.getInstance().collection("reports").add(report)
+                .addOnSuccessListener(documentReference ->
+                        Toast.makeText(getContext(), "Cảm ơn bạn đã gửi báo cáo.", Toast.LENGTH_LONG).show()
+                )
+                .addOnFailureListener(e ->
+                        Toast.makeText(getContext(), "Gửi báo cáo thất bại. Vui lòng thử lại.", Toast.LENGTH_SHORT).show()
+                );
     }
 }

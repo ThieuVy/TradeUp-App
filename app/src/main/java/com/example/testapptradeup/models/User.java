@@ -33,6 +33,7 @@ public class User implements Parcelable {
     private int activeListingsCount;
     private int completedSalesCount;
     private List<Review> reviews;
+    private String fcmToken;
 
     public User() {
         // Public no-argument constructor needed for Firebase Firestore
@@ -151,6 +152,8 @@ public class User implements Parcelable {
     public List<Review> getReviews() {
         return reviews;
     }
+    public String getFcmToken() { return fcmToken; }
+    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
 
     public void setReviews(List<Review> reviews) {
         this.reviews = reviews;
@@ -179,6 +182,7 @@ public class User implements Parcelable {
         completedSalesCount = in.readInt();
 
         reviews = in.createTypedArrayList(Review.CREATOR);
+        fcmToken = in.readString();
     }
 
     public static final Creator<User> CREATOR = new Creator<User>() {
@@ -221,6 +225,7 @@ public class User implements Parcelable {
         dest.writeInt(completedSalesCount);
 
         dest.writeTypedList(reviews);
+        dest.writeString(fcmToken);
     }
     public List<String> getFavoriteListingIds() {
         return favoriteListingIds;

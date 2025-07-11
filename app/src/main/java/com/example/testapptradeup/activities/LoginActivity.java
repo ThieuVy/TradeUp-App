@@ -20,7 +20,6 @@ import androidx.credentials.CredentialManagerCallback;
 import androidx.credentials.GetCredentialRequest;
 import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
-import androidx.lifecycle.ViewModelProvider;
 
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.User;
@@ -67,7 +66,6 @@ public class LoginActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         prefsHelper = new SharedPrefsHelper(this);
         credentialManager = CredentialManager.create(this);
-//        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         initViews();
         setupListeners();
     }
@@ -115,7 +113,7 @@ public class LoginActivity extends AppCompatActivity {
         String password = Objects.requireNonNull(editPassword.getText()).toString();
 
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
-            Toast.makeText(LoginActivity.this, "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
+            Toast.makeText(LoginActivity.this, "Vui lòng điền vào tất cả các trường", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -130,22 +128,22 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
-                        // ========== BẮT ĐẦU PHẦN SỬA LỖI ==========
+                        // ========== PHẦN SỬA ĐỔI BẮT ĐẦU TỪ ĐÂY ==========
                         if (user != null) {
                             if (user.isEmailVerified()) {
-                                // Email đã xác thực -> Tải dữ liệu và vào app
-                                Log.d(TAG, "Email đã xác thực, đang tải dữ liệu người dùng.");
+                                // Email đã được xác minh -> tải dữ liệu và vào ứng dụng
+                                Log.d(TAG, "Email đã được xác minh, đang tải dữ liệu người dùng.");
                                 loadAndNavigateUser(user.getUid());
                             } else {
-                                // Email chưa xác thực -> Chuyển đến màn hình xác thực
+                                // Email chưa được xác minh -> chuyển hướng đến màn hình xác minh
                                 showLoading(false);
-                                Toast.makeText(LoginActivity.this, "Vui lòng xác thực email của bạn.", Toast.LENGTH_LONG).show();
+                                Toast.makeText(LoginActivity.this, "Vui lòng xác minh địa chỉ email của bạn.", Toast.LENGTH_LONG).show();
                                 Intent intent = new Intent(LoginActivity.this, EmailVerificationActivity.class);
                                 startActivity(intent);
-                                // Không finish() LoginActivity để người dùng có thể quay lại
+                                // Không đóng LoginActivity để người dùng có thể quay lại
                             }
                         }
-                        // ========== KẾT THÚC PHẦN SỬA LỖI ==========
+                        // ========== PHẦN SỬA ĐỔI KẾT THÚC TẠI ĐÂY ==========
                     } else {
                         showLoading(false);
                         String errorMessage = getFirebaseErrorMessage(task.getException());
@@ -256,26 +254,25 @@ public class LoginActivity extends AppCompatActivity {
                         User user = documentSnapshot.toObject(User.class);
                         if (user != null) {
                             user.setId(userId);
-                            prefsHelper.saveCurrentUser(user); // Lưu người dùng vào SharedPreferences
-//                            mainViewModel.setCurrentUser(user); // Cập nhật ViewModel
-                            Log.d(TAG, "Dữ liệu người dùng đã được tải cho UID: " + userId); // Log thông tin tải dữ liệu
+                            prefsHelper.saveCurrentUser(user);
+                            Log.d(TAG, "Dữ liệu người dùng cho UID đã được tải: " + userId);
                         } else {
-                            createFallbackUserAndSave(userId, "Đối tượng người dùng null từ Firestore"); // Tạo người dùng dự phòng nếu đối tượng null
+                            createFallbackUserAndSave(userId, "Đối tượng người dùng từ Firestore là null");
                         }
                     } else {
-                        createFallbackUserAndSave(userId, "Không tìm thấy tài liệu Firestore"); // Tạo người dùng dự phòng nếu tài liệu không tồn tại
+                        createFallbackUserAndSave(userId, "Không tìm thấy tài liệu Firestore");
                     }
-                    navigateToMainActivity(); // Điều hướng đến MainActivity
+                    navigateToMainActivity();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading user data: " + e.getMessage(), e);
-                    Toast.makeText(LoginActivity.this, "Lỗi tải thông tin người dùng.", Toast.LENGTH_SHORT).show();
-                    navigateToMainActivity(); // Điều hướng đến MainActivity ngay cả khi có lỗi
+                    Log.e(TAG, "Lỗi khi tải dữ liệu người dùng: " + e.getMessage(), e);
+                    Toast.makeText(LoginActivity.this, "Lỗi khi tải dữ liệu người dùng.", Toast.LENGTH_SHORT).show();
+                    navigateToMainActivity(); // Cũng điều hướng khi có lỗi
                 });
     }
 
-    private void createFallbackUserAndSave(String userId, String reason) { // userId là ID người dùng, reason là lý do tạo người dùng dự phòng
-        Log.d(TAG, "Tạo người dùng dự phòng: " + reason);
+    private void createFallbackUserAndSave(String userId, String reason) {
+        Log.d(TAG, "Đang tạo người dùng dự phòng: " + reason);
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser != null) {
             User fallbackUser = new User(

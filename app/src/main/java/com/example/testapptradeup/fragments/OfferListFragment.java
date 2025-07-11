@@ -107,27 +107,25 @@ public class OfferListFragment extends Fragment implements OffersAdapter.OnOffer
         viewModel.getOffers(listingId).observe(getViewLifecycleOwner(), offers -> {
             showLoading(false);
             if (offers != null) {
-                if (offers.isEmpty()) {
-                    showEmptyState(true);
-                } else {
-                    adapter.submitList(offers);
-                    showEmptyState(false);
-                }
+                adapter.submitList(offers);
+                showEmptyState(offers.isEmpty());
             } else {
                 Toast.makeText(getContext(), "Lỗi khi tải danh sách đề nghị.", Toast.LENGTH_SHORT).show();
                 showEmptyState(true);
             }
         });
 
-        viewModel.getOfferActionStatus().observe(getViewLifecycleOwner(), success -> {
-            if (success != null) {
-                if (success) {
-                    Toast.makeText(getContext(), "Chấp nhận đề nghị thành công!", Toast.LENGTH_SHORT).show();
-                    // Khi chấp nhận thành công, quay về màn hình quản lý tin
-                    navController.popBackStack();
-                } else {
-                    Toast.makeText(getContext(), "Thao tác thất bại. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
+        // Sửa đổi: Lắng nghe ActionStatus để hiển thị thông báo
+        viewModel.getActionStatus().observe(getViewLifecycleOwner(), status -> {
+            if (status != null) {
+                Toast.makeText(getContext(), status.message, Toast.LENGTH_SHORT).show();
+                if (status.isSuccess) {
+                    // Nếu là chấp nhận, quay lại màn hình trước. Nếu là từ chối, danh sách sẽ tự cập nhật.
+                    if (status.message.contains("chấp nhận")) {
+                        navController.popBackStack();
+                    }
                 }
+                viewModel.clearActionStatus(); // Reset trạng thái
             }
         });
     }
@@ -159,19 +157,23 @@ public class OfferListFragment extends Fragment implements OffersAdapter.OnOffer
 
     @Override
     public void onReject(Offer offer) {
-        Toast.makeText(getContext(), "Tính năng từ chối đang phát triển", Toast.LENGTH_SHORT).show();
-        // TODO: Gọi viewModel.rejectOffer(offer);
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Xác nhận từ chối")
+                .setMessage("Bạn có chắc chắn muốn từ chối đề nghị này không?")
+                .setPositiveButton("Từ chối", (dialog, which) -> viewModel.rejectOffer(offer))
+                .setNegativeButton("Hủy", null)
+                .show();
     }
 
     @Override
     public void onCounter(Offer offer) {
-        Toast.makeText(getContext(), "Tính năng phản hồi giá đang phát triển", Toast.LENGTH_SHORT).show();
-        // TODO: Mở một dialog để nhập giá phản hồi và gọi viewModel
+        // Tạm thời hiển thị Toast, luồng chính là nút Chat
+        Toast.makeText(getContext(), "Vui lòng sử dụng chức năng Chat để thương lượng giá.", Toast.LENGTH_LONG).show();
     }
 
     @Override
     public void onChat(Offer offer) {
+        // TODO: Điều hướng đến ChatDetailFragment, truyền vào ID của người mua (offer.getBuyerId()) và tên người mua
         Toast.makeText(getContext(), "Mở màn hình chat với " + offer.getBuyerName(), Toast.LENGTH_SHORT).show();
-        // TODO: Điều hướng đến ChatDetailFragment, truyền vào ID của người mua (offer.getBuyerId())
     }
 }

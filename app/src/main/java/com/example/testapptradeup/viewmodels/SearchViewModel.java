@@ -1,6 +1,7 @@
 package com.example.testapptradeup.viewmodels;
 
-import android.util.Log; // Thêm import này
+import android.location.Location;
+import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -20,11 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import android.location.Location;
 
 public class SearchViewModel extends ViewModel {
 
-    // Trạng thái UI
     public enum UiState {
         IDLE, LOADING, LOADING_MORE, SUCCESS, EMPTY, ERROR
     }
@@ -33,7 +32,6 @@ public class SearchViewModel extends ViewModel {
     private final UserRepository userRepository;
     private final String currentUserId;
 
-    // Dữ liệu và trạng thái
     private final MutableLiveData<SearchParams> searchParamsLiveData = new MutableLiveData<>(new SearchParams());
     private final MutableLiveData<UiState> uiState = new MutableLiveData<>(UiState.IDLE);
     private final MutableLiveData<List<SearchResult>> searchResults = new MutableLiveData<>(new ArrayList<>());
@@ -47,7 +45,6 @@ public class SearchViewModel extends ViewModel {
         userRepository = new UserRepository();
         currentUserId = FirebaseAuth.getInstance().getUid();
 
-        // Lấy danh sách ID yêu thích của người dùng
         if (currentUserId != null) {
             favoriteIds = userRepository.getFavoriteIds(currentUserId);
         } else {
@@ -57,7 +54,6 @@ public class SearchViewModel extends ViewModel {
         }
     }
 
-    // Getters để Fragment observe
     public LiveData<UiState> getUiState() { return uiState; }
     public LiveData<List<SearchResult>> getSearchResults() { return searchResults; }
     public LiveData<SearchParams> getSearchParams() { return searchParamsLiveData; }
@@ -66,7 +62,7 @@ public class SearchViewModel extends ViewModel {
         searchParamsLiveData.setValue(params);
         isLastPage = false;
         lastVisibleDocument = null;
-        searchResults.setValue(new ArrayList<>()); // Xóa kết quả cũ
+        searchResults.setValue(new ArrayList<>());
         performSearch(true);
     }
 
@@ -90,23 +86,20 @@ public class SearchViewModel extends ViewModel {
             return;
         }
 
-        // Tạo một LiveData mới cho mỗi lần tìm kiếm
         LiveData<PagedResult<Listing>> pagedResultLiveData = listingRepository.searchListings(params, lastVisibleDocument);
 
         pagedResultLiveData.observeForever(new Observer<>() {
             @Override
             public void onChanged(PagedResult<Listing> pagedResult) {
-                // Gỡ bỏ observer ngay sau khi nhận được kết quả để tránh memory leak
                 pagedResultLiveData.removeObserver(this);
 
                 if (pagedResult == null || !pagedResult.isSuccess()) {
-                    // Xử lý lỗi
                     Log.e("SearchViewModel", "Search failed", pagedResult != null ? pagedResult.getError() : new Exception("PagedResult is null"));
                     uiState.postValue(UiState.ERROR);
                     return;
                 }
 
-                // Lọc kết quả theo khoảng cách ở phía client
+                // SỬA LỖI: Thêm logic lọc theo khoảng cách ở client-side
                 List<Listing> distanceFilteredListings = new ArrayList<>();
                 if (params.getUserLocation() != null && params.getMaxDistance() > 0) {
                     for (Listing listing : pagedResult.getData()) {
@@ -125,14 +118,12 @@ public class SearchViewModel extends ViewModel {
                         }
                     }
                 } else {
-                    // Nếu không có bộ lọc khoảng cách, lấy tất cả kết quả
                     distanceFilteredListings.addAll(pagedResult.getData());
                 }
 
                 lastVisibleDocument = pagedResult.getLastVisible();
                 isLastPage = pagedResult.getData() == null || pagedResult.getData().size() < ListingRepository.PAGE_SIZE;
 
-                // Chuyển đổi Listing thành SearchResult
                 List<String> favIds = favoriteIds.getValue();
                 List<SearchResult> newResults = distanceFilteredListings.stream()
                         .map(listing -> new SearchResult(listing, favIds != null && favIds.contains(listing.getId())))
@@ -157,7 +148,6 @@ public class SearchViewModel extends ViewModel {
     public void toggleFavorite(String listingId, boolean isFavorite) {
         if (currentUserId == null) return;
 
-        // Cập nhật trạng thái ngay lập tức trên UI để người dùng thấy phản hồi nhanh
         List<SearchResult> currentResults = searchResults.getValue();
         if (currentResults != null) {
             for (SearchResult result : currentResults) {
@@ -166,7 +156,7 @@ public class SearchViewModel extends ViewModel {
                     break;
                 }
             }
-            searchResults.setValue(new ArrayList<>(currentResults)); // Tạo list mới để trigger update
+            searchResults.setValue(new ArrayList<>(currentResults));
         }
 
         userRepository.toggleFavorite(currentUserId, listingId, isFavorite);

@@ -2,11 +2,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Quyền truy cập vị trí chính xác -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Quyền truy cập vị trí gần đúng -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Quyền truy cập Internet -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- === MỚI THÊM: Quyền gửi thông báo cho Android 13+ === -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-
 
     <application
         android:allowBackup="true"
@@ -20,39 +23,43 @@
         android:theme="@style/Theme.TestAppTradeUp"
         tools:targetApi="31">
 
-        <!-- meta-data cho Stripe -->
+        <!-- Dữ liệu meta cho Stripe -->
         <meta-data
             android:name="google_analytics_automatic_screen_reporting_enabled"
             android:value="false" />
 
+        <!-- CHỈNH SỬA: Đặt LoginActivity làm màn hình khởi động -->
         <activity
             android:name=".activities.LoginActivity"
             android:theme="@style/Theme.TestAppTradeUp"
-            android:exported="true">
+            android:exported="true"> <!-- CHỈNH SỬA: 'true' cho activity LAUNCHER -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <activity android:name=".activities.EmailVerificationActivity"
-            android:theme="@style/Theme.TestAppTradeUp"
-            android:exported="false"/>
-        <activity
-            android:name=".activities.RegisterActivity"
-            android:theme="@style/Theme.TestAppTradeUp"
-            android:exported="false">
-        </activity>
         <activity
             android:name=".activities.MainActivity"
             android:windowSoftInputMode="adjustPan"
             android:exported="true" />
+
+        <activity
+            android:name=".activities.RegisterActivity"
+            android:theme="@style/Theme.TestAppTradeUp"
+            android:exported="false"> <!-- CHỈNH SỬA: 'false' và đã xoá intent-filter -->
+        </activity>
+
         <activity
             android:name=".activities.ForgotPasswordActivity"
             android:theme="@style/Theme.TestAppTradeUp"
             android:exported="false" />
 
-        <!-- === THÊM MỚI: KHAI BÁO DỊCH VỤ FIREBASE MESSAGING SERVICE === -->
+        <activity android:name=".activities.EmailVerificationActivity"
+            android:theme="@style/Theme.TestAppTradeUp"
+            android:exported="false"/>
+
+        <!-- === MỚI THÊM: KHAI BÁO DỊCH VỤ FIREBASE MESSAGING === -->
         <service
             android:name=".services.MyFirebaseMessagingService"
             android:exported="false">
@@ -60,7 +67,6 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-
 
     </application>
 

@@ -11,7 +11,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import android.os.Parcelable;
 
 public class Listing implements Parcelable {
 
@@ -41,6 +40,7 @@ public class Listing implements Parcelable {
     private List<String> tags;
     private double latitude;
     private double longitude;
+    private String geohash;
 
     public Listing() {
         // Constructor rỗng cho Firebase Firestore
@@ -88,6 +88,7 @@ public class Listing implements Parcelable {
     public boolean isSold() { return isSold; }
     public double getLatitude() { return latitude; }
     public double getLongitude() { return longitude; }
+    public String getGeohash() { return geohash; }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -110,6 +111,7 @@ public class Listing implements Parcelable {
     public void setSold(boolean sold) { isSold = sold; }
     public void setLatitude(double latitude) { this.latitude = latitude; }
     public void setLongitude(double longitude) { this.longitude = longitude; }
+    public void setGeohash(String geohash) { this.geohash = geohash; }
 
     public List<String> getTags() {
         return tags;
@@ -199,6 +201,7 @@ public class Listing implements Parcelable {
         tags = in.createStringArrayList();
         latitude = in.readDouble();
         longitude = in.readDouble();
+        geohash = in.readString();
     }
 
     public void writeToParcel(Parcel dest, int flags) {
@@ -223,6 +226,7 @@ public class Listing implements Parcelable {
         dest.writeStringList(tags);
         dest.writeDouble(latitude);
         dest.writeDouble(longitude);
+        dest.writeString(geohash);
     }
 
     public int describeContents() {

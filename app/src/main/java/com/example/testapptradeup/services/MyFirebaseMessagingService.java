@@ -26,25 +26,47 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     private static final String TAG = "MyFirebaseMsgService";
     private static final String CHANNEL_ID = "tradeup_chat_channel";
 
+    /**
+     * Được gọi khi có tin nhắn mới.
+     * @param remoteMessage Đối tượng chứa thông tin tin nhắn.
+     */
     @Override
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
 
         Log.d(TAG, "From: " + remoteMessage.getFrom());
 
+        // Kiểm tra xem tin nhắn có chứa payload notification không.
         if (remoteMessage.getNotification() != null) {
-            Log.d(TAG, "Message Notification Title: " + remoteMessage.getNotification().getTitle());
-            Log.d(TAG, "Message Notification Body: " + remoteMessage.getNotification().getBody());
-            sendNotification(remoteMessage.getNotification().getTitle(), remoteMessage.getNotification().getBody());
+            String title = remoteMessage.getNotification().getTitle();
+            String body = remoteMessage.getNotification().getBody();
+            Log.d(TAG, "Message Notification Title: " + title);
+            Log.d(TAG, "Message Notification Body: " + body);
+
+            sendNotification(title, body);
+        }
+
+        // Kiểm tra xem tin nhắn có chứa payload data không.
+        if (!remoteMessage.getData().isEmpty()) {
+            Log.d(TAG, "Message data payload: " + remoteMessage.getData());
+            // TODO: Xử lý payload data ở đây nếu cần (ví dụ: cập nhật UI trong ứng dụng)
         }
     }
 
+    /**
+     * Được gọi khi FCM cấp một token mới hoặc token hiện tại được làm mới.
+     * @param token Token mới.
+     */
     @Override
     public void onNewToken(@NonNull String token) {
         Log.d(TAG, "Refreshed token: " + token);
         sendTokenToServer(token);
     }
 
+    /**
+     * Gửi token lên server để lưu vào Firestore.
+     * @param token Token cần gửi.
+     */
     private void sendTokenToServer(String token) {
         String userId = FirebaseAuth.getInstance().getUid();
         if (userId != null) {
@@ -52,55 +74,54 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
     }
 
+    /**
+     * Tạo và hiển thị một thông báo đơn giản.
+     * @param title Tiêu đề thông báo.
+     * @param messageBody Nội dung thông báo.
+     */
     private void sendNotification(String title, String messageBody) {
-        // SỬA LỖI 1: Không cần this.getActivity(), dùng this vì Service là một Context
+        // Tạo Intent để mở MainActivity khi người dùng nhấn vào thông báo
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
-                PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE); // Sửa flag
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent,
+                PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
 
         createNotificationChannel();
 
-        // SỬA LỖI 2: Dùng `this` làm Context
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.ic_chat)
+                        .setSmallIcon(R.drawable.ic_chat) // Icon nhỏ trên status bar
                         .setContentTitle(title)
                         .setContentText(messageBody)
-                        .setAutoCancel(true)
+                        .setAutoCancel(true) // Tự động xóa thông báo khi nhấn vào
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setContentIntent(pendingIntent);
 
-        // SỬA LỖI 3: Dùng `this` làm Context
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
-        // SỬA LỖI 4: Kiểm tra quyền trước khi hiển thị thông báo
+        // Kiểm tra quyền POST_NOTIFICATIONS trước khi hiển thị (bắt buộc cho Android 13+)
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            // Trên Android 13+, nếu không có quyền, thông báo sẽ không hiển thị.
-            // Việc yêu cầu quyền cần được xử lý trong UI (Activity/Fragment).
-            // Ở đây, chúng ta chỉ log lại để debug.
-            Log.w(TAG, "POST_NOTIFICATIONS permission not granted. Notification will not be shown on Android 13+.");
-            // Bạn có thể không hiển thị gì cả, hoặc chỉ hiển thị nếu có quyền
-            return; // Không hiển thị nếu không có quyền
+            Log.w(TAG, "Quyền POST_NOTIFICATIONS chưa được cấp. Thông báo sẽ không hiển thị trên Android 13+.");
+            // Trên thực tế, bạn cần yêu cầu quyền này trong Activity/Fragment.
+            return;
         }
 
         notificationManager.notify((int) System.currentTimeMillis(), notificationBuilder.build());
     }
 
+    /**
+     * Tạo Notification Channel, cần thiết cho Android 8.0 (API 26) trở lên.
+     */
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // SỬA LỖI 5: Dùng getApplicationContext() để getString
-            CharSequence name = getApplicationContext().getString(R.string.fcm_channel_name);
-            String description = getApplicationContext().getString(R.string.fcm_channel_description);
+            CharSequence name = getString(R.string.fcm_channel_name);
+            String description = getString(R.string.fcm_channel_description);
             int importance = NotificationManager.IMPORTANCE_HIGH;
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
             channel.setDescription(description);
 
-            // SỬA LỖI 6: Dùng getApplicationContext() để getSystemService
-            NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(NOTIFICATION_SERVICE);
-            if (notificationManager != null) {
-                notificationManager.createNotificationChannel(channel);
-            }
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
         }
     }
 }

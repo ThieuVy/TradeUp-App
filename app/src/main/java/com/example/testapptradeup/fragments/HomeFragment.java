@@ -141,6 +141,7 @@ public class HomeFragment extends Fragment {
                 Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
             }
         });
+        viewModel.getPrioritizedRecentListings().observe(getViewLifecycleOwner(), listings -> recentListingsAdapter.submitList(listings));
     }
 
     private void navigateToCategory(String categoryId) {

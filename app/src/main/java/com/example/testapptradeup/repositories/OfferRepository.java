@@ -61,47 +61,70 @@ public class OfferRepository {
         return offersData;
     }
 
+    /**
+     * THÊM MỚI: Cập nhật trạng thái của một offer (dùng cho Reject, Counter, v.v.)
+     * @param offerId ID của offer cần cập nhật.
+     * @param status Trạng thái mới ("rejected", "countered", etc.).
+     * @return LiveData báo hiệu thành công/thất bại.
+     */
+    public LiveData<Boolean> updateOfferStatus(String offerId, String status) {
+        MutableLiveData<Boolean> success = new MutableLiveData<>();
+        if (offerId == null || status == null) {
+            success.setValue(false);
+            return success;
+        }
+        offersCollection.document(offerId)
+                .update("status", status)
+                .addOnSuccessListener(aVoid -> success.setValue(true))
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi khi cập nhật trạng thái offer: ", e);
+                    success.setValue(false);
+                });
+        return success;
+    }
+
+    /**
+     * SỬA ĐỔI: Chấp nhận một đề nghị và TẠO MỘT GIAO DỊCH (TRANSACTION).
+     * @param offer Đề nghị được chấp nhận.
+     * @param listing Tin đăng liên quan.
+     * @return LiveData báo hiệu thành công/thất bại.
+     */
     public LiveData<Boolean> acceptOffer(Offer offer, Listing listing) {
         MutableLiveData<Boolean> success = new MutableLiveData<>();
 
-        // Bước 1: Lấy tất cả các offer khác của tin đăng để từ chối chúng
         offersCollection.whereEqualTo("listingId", offer.getListingId())
                 .get()
                 .addOnSuccessListener(otherOffersSnapshot -> {
-                    // Bước 2: Tạo một WriteBatch để thực hiện các thao tác ghi một cách nguyên tử
                     WriteBatch batch = db.batch();
 
-                    // --- Thao tác 1: Cập nhật offer được chấp nhận ---
+                    // --- 1. Cập nhật offer được chấp nhận ---
                     DocumentReference acceptedOfferRef = offersCollection.document(offer.getId());
                     batch.update(acceptedOfferRef, "status", "accepted");
 
-                    // --- Thao tác 2: Cập nhật tin đăng thành "đã bán" và isSold=true ---
+                    // --- 2. Cập nhật tin đăng thành "sold" và isSold=true ---
                     DocumentReference listingRef = listingsCollection.document(listing.getId());
-                    batch.update(listingRef, "status", "sold", "sold", true);
+                    batch.update(listingRef, "status", "sold", "isSold", true);
 
-                    // --- Thao tác 3: Tạo một document giao dịch mới ---
+                    // --- 3. TẠO MỘT DOCUMENT GIAO DỊCH MỚI ---
                     DocumentReference transactionRef = transactionsCollection.document();
                     Transaction newTransaction = createTransactionFromOffer(offer, listing, transactionRef);
-                    // Không cần set transactionDate, @ServerTimestamp sẽ tự động gán
                     batch.set(transactionRef, newTransaction);
 
-                    // --- Thao tác 4: Từ chối tất cả các offer khác ---
+                    // --- 4. Từ chối tất cả các offer khác ---
                     for (QueryDocumentSnapshot doc : otherOffersSnapshot) {
-                        // Chỉ từ chối những offer không phải là cái vừa được chấp nhận
                         if (!doc.getId().equals(offer.getId())) {
                             batch.update(doc.getReference(), "status", "rejected");
                         }
                     }
 
-                    // --- Bước 5: Commit toàn bộ batch ---
+                    // --- 5. Commit toàn bộ batch ---
                     batch.commit().addOnSuccessListener(aVoid -> {
-                        Log.d(TAG, "Chấp nhận offer và cập nhật các trạng thái liên quan thành công.");
+                        Log.d(TAG, "Chấp nhận offer và tạo giao dịch thành công.");
                         success.setValue(true);
                     }).addOnFailureListener(e -> {
                         Log.e(TAG, "Lỗi khi commit batch chấp nhận offer", e);
                         success.setValue(false);
                     });
-
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Lỗi khi lấy danh sách các offer khác để từ chối", e);
@@ -184,8 +207,9 @@ public class OfferRepository {
         newTransaction.setBuyerId(offer.getBuyerId());
         newTransaction.setBuyerName(offer.getBuyerName());
         newTransaction.setFinalPrice(offer.getOfferPrice());
-        newTransaction.setSellerReviewed(false);
-        newTransaction.setBuyerReviewed(false);
+        newTransaction.setSellerReviewed(false); // Mặc định là chưa đánh giá
+        newTransaction.setBuyerReviewed(false);  // Mặc định là chưa đánh giá
+        // transactionDate sẽ được tự động gán bởi @ServerTimestamp
         return newTransaction;
     }
 

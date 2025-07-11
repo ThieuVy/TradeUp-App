@@ -1,25 +1,33 @@
 package com.example.testapptradeup.viewmodels;
 
+import android.annotation.SuppressLint;
+import android.app.Application;
+import android.location.Location;
+
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel; // SỬA LỖI 1: Import AndroidViewModel
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.MediatorLiveData;
+import androidx.lifecycle.MutableLiveData;
+
 import com.example.testapptradeup.models.Category;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.repositories.CategoryRepository;
 import com.example.testapptradeup.repositories.ListingRepository;
+import com.firebase.geofire.GeoFireUtils;
+import com.firebase.geofire.GeoLocation;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
-/**
- * HomeViewModel tuân thủ đúng kiến trúc MVVM.
- * ViewModel không tự observe dữ liệu mà chỉ giữ và cung cấp LiveData từ Repository.
- * Fragment sẽ là nơi duy nhất observe các LiveData này.
- */
-public class HomeViewModel extends ViewModel {
+public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế thừa từ AndroidViewModel
 
     private final ListingRepository listingRepository;
     private final CategoryRepository categoryRepository;
 
-    // Các LiveData này được khởi tạo một lần và được trả về trực tiếp từ Repository.
-    // Chúng là final để đảm bảo ViewModel không thể thay đổi nguồn dữ liệu.
     private final LiveData<List<Listing>> featuredItems;
     private final LiveData<List<Category>> categories;
     private final LiveData<List<Listing>> recommendations;
@@ -27,46 +35,96 @@ public class HomeViewModel extends ViewModel {
     private final LiveData<Boolean> isLoading;
     private final LiveData<String> errorMessage;
 
+    // SỬA LỖI 2: Thêm 'final'
+    private final FusedLocationProviderClient fusedLocationClient;
+    private final MutableLiveData<Location> userLocation = new MutableLiveData<>();
+    private final MediatorLiveData<List<Listing>> prioritizedRecentListings = new MediatorLiveData<>();
 
-    public HomeViewModel() {
+    public HomeViewModel(@NonNull Application application) {
+        super(application); // SỬA LỖI 1: Gọi super constructor của AndroidViewModel
         this.listingRepository = new ListingRepository();
         this.categoryRepository = new CategoryRepository();
 
-        // Lấy các đối tượng LiveData từ repository một lần duy nhất.
         this.featuredItems = listingRepository.getFeaturedListings();
         this.recommendations = listingRepository.getRecommendedListings(4);
         this.recentListings = listingRepository.getRecentListings();
-        this.categories = categoryRepository.getTopCategories(8); // Lấy 8 danh mục
-        this.isLoading = listingRepository.isLoading(); // Lấy trạng thái loading từ repo
-        this.errorMessage = listingRepository.getErrorMessage(); // Lấy thông báo lỗi từ repo
+        this.categories = categoryRepository.getTopCategories(8);
+        this.isLoading = listingRepository.isLoading();
+        this.errorMessage = listingRepository.getErrorMessage();
+
+        // SỬA LỖI 1: Lấy context từ application được truyền vào
+        this.fusedLocationClient = LocationServices.getFusedLocationProviderClient(application);
+
+        prioritizedRecentListings.addSource(userLocation, location ->
+                combineAndSortListings(location, recentListings.getValue())
+        );
+        prioritizedRecentListings.addSource(recentListings, listings ->
+                combineAndSortListings(userLocation.getValue(), listings)
+        );
+
+        fetchUserLocation();
     }
 
-    /**
-     * Hàm này được gọi từ HomeFragment khi có một bài đăng mới.
-     * Nó sẽ ủy quyền cho Repository để thêm bài đăng đó vào đầu danh sách "Tin rao gần đây" hiện tại.
-     * Repository sẽ cập nhật MutableLiveData của nó, và thay đổi sẽ được tự động lan truyền đến Fragment.
-     * @param newListing Đối tượng Listing mới được tạo từ PostFragment.
-     */
+    public LiveData<List<Listing>> getPrioritizedRecentListings() {
+        return prioritizedRecentListings;
+    }
+
+    @SuppressLint("MissingPermission")
+    private void fetchUserLocation() {
+        // Quyền đã được kiểm tra ở Fragment, ở đây chỉ cần gọi
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(location -> {
+                    if (location != null) {
+                        userLocation.setValue(location);
+                    }
+                });
+    }
+
+    private void combineAndSortListings(Location location, List<Listing> listings) {
+        if (listings == null) {
+            prioritizedRecentListings.setValue(new ArrayList<>());
+            return;
+        }
+
+        List<Listing> listToSort = new ArrayList<>(listings);
+
+        if (location == null) {
+            // Nếu chưa có vị trí, chỉ cần hiển thị danh sách gốc
+            prioritizedRecentListings.setValue(listToSort);
+            return;
+        }
+
+        // Nếu có vị trí, tính toán khoảng cách và sắp xếp
+        final GeoLocation center = new GeoLocation(location.getLatitude(), location.getLongitude());
+
+        // SỬA LỖI 3: Dùng List.sort thay vì Collections.sort
+        listToSort.sort(Comparator.comparingDouble(listing -> {
+            if (listing.getLatitude() != 0 && listing.getLongitude() != 0) {
+                return GeoFireUtils.getDistanceBetween(new GeoLocation(listing.getLatitude(), listing.getLongitude()), center);
+            }
+            return Double.MAX_VALUE; // Đẩy các item không có vị trí xuống cuối
+        }));
+
+        prioritizedRecentListings.setValue(listToSort);
+    }
+
     public void addNewListingToTop(Listing newListing) {
         listingRepository.prependLocalListing(newListing);
     }
 
-    /**
-     * Yêu cầu repository tải lại toàn bộ dữ liệu từ server.
-     * Được gọi khi người dùng thực hiện hành động "pull-to-refresh".
-     * Repository sẽ tự xử lý trạng thái loading.
-     */
     public void refreshData() {
         listingRepository.fetchAll();
-        categoryRepository.fetchAll(); // Giả sử CategoryRepository cũng có hàm tương tự
+        categoryRepository.fetchAll();
+        fetchUserLocation(); // Lấy lại vị trí mới khi refresh
     }
 
-    // --- GETTERS ĐỂ FRAGMENT CÓ THỂ OBSERVE ---
+    // --- GETTERS CHO FRAGMENT OBSERVE ---
 
     public LiveData<List<Listing>> getFeaturedItems() {
         return featuredItems;
     }
 
+    // Phương thức này hiện tại chưa được dùng nhưng vẫn giữ lại để có thể mở rộng
     public LiveData<List<Category>> getCategories() {
         return categories;
     }

@@ -48,14 +48,18 @@ public class MainActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         prefsHelper = new SharedPrefsHelper(this);
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+
         // Kiểm tra người dùng đăng nhập ngay từ đầu
         if (mAuth.getCurrentUser() == null) {
             navigateToLogin();
             return; // Rất quan trọng: Dừng thực thi nếu chưa đăng nhập
         }
+
+        // ========== SỬA LỖI: Tải dữ liệu người dùng vào ViewModel tập trung ==========
         loadUserIntoViewModel();
+        // ========================================================================
+
         setupUI();
-        // Không cần tải lại dữ liệu user ở đây vì LoginActivity đã làm việc đó
     }
 
     private void setupUI() {
@@ -80,43 +84,31 @@ public class MainActivity extends AppCompatActivity {
         menuItems = Arrays.asList(menuHome, menuManage, menuNotification, menuProfile);
     }
 
-    // Trong MainActivity.java
-
     private void setupCustomBottomBarListeners() {
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
             int destinationId = destination.getId();
 
-            // ========== BẮT ĐẦU PHẦN SỬA LỖI ==========
-            // Thêm R.id.postFragment vào danh sách các màn hình cấp 1
             List<Integer> topLevelDestinations = Arrays.asList(
                     R.id.navigation_home,
                     R.id.myListingsFragment,
-                    R.id.postFragment, // <-- THÊM DÒNG NÀY VÀO ĐÂY
+                    R.id.postFragment,
                     R.id.notificationsFragment,
                     R.id.navigation_profile
             );
-            // ==========================================
 
-            // Kiểm tra xem destination hiện tại có nằm trong danh sách trên không
             if (topLevelDestinations.contains(destinationId)) {
                 bottomBarContainer.setVisibility(View.VISIBLE);
 
-                // Cập nhật trạng thái 'selected' cho các item.
-                // Vì PostFragment không phải là một item trên BottomAppBar,
-                // chúng ta không cần thêm logic `updateSelectedMenuUI` cho nó.
-                // Các màn hình khác vẫn được cập nhật bình thường.
                 if (destinationId == R.id.navigation_home) updateSelectedMenuUI(menuHome);
                 else if (destinationId == R.id.myListingsFragment) updateSelectedMenuUI(menuManage);
                 else if (destinationId == R.id.notificationsFragment) updateSelectedMenuUI(menuNotification);
                 else if (destinationId == R.id.navigation_profile) updateSelectedMenuUI(menuProfile);
 
             } else {
-                // Nếu là các màn hình con khác (Chat, Search, Detail...), ẩn BottomAppBar
                 bottomBarContainer.setVisibility(View.GONE);
             }
         });
 
-        // Gán sự kiện click để điều hướng (giữ nguyên)
         menuHome.setOnClickListener(v -> navigateTo(R.id.navigation_home));
         menuManage.setOnClickListener(v -> navigateTo(R.id.myListingsFragment));
         menuNotification.setOnClickListener(v -> navigateTo(R.id.notificationsFragment));
@@ -124,14 +116,12 @@ public class MainActivity extends AppCompatActivity {
         fabAdd.setOnClickListener(v -> navigateTo(R.id.postFragment));
     }
 
-    // Điều hướng an toàn, tránh click lặp lại
     private void navigateTo(int destinationId) {
         if (navController.getCurrentDestination() != null && navController.getCurrentDestination().getId() != destinationId) {
             navController.navigate(destinationId);
         }
     }
 
-    // Cập nhật UI cho item được chọn
     private void updateSelectedMenuUI(View selectedContainer) {
         int selectedColor = ContextCompat.getColor(this, R.color.purple_500);
         int unselectedColor = ContextCompat.getColor(this, R.color.text_secondary);
@@ -150,6 +140,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // ========== SỬA LỖI: Hàm mới để tập trung hóa dữ liệu ==========
     private void loadUserIntoViewModel() {
         User user = prefsHelper.getCurrentUser();
         if (user != null) {
@@ -168,7 +159,6 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
-    // Hàm đăng xuất, có thể gọi từ ProfileFragment
     public void performLogout() {
         mAuth.signOut();
         prefsHelper.clearUserData();
@@ -178,8 +168,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        // Kiểm tra lại mỗi khi activity quay trở lại foreground
-        // Nếu người dùng đã bị đăng xuất do timeout, hãy đưa họ về màn hình login.
         if (mAuth.getCurrentUser() == null) {
             navigateToLogin();
         }

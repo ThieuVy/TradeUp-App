@@ -30,22 +30,18 @@ public class FavoritesFragment extends Fragment {
     private MaterialToolbar toolbar;
     private NavController navController;
     private FavoritesViewModel viewModel;
-
-    // Các View cho trạng thái loading và empty
     private ProgressBar progressBar;
     private TextView emptyStateText;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Khởi tạo ĐÚNG ViewModel
         viewModel = new ViewModelProvider(this).get(FavoritesViewModel.class);
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Chỉ inflate layout của FavoritesFragment
         return inflater.inflate(R.layout.fragment_favorites, container, false);
     }
 
@@ -57,9 +53,9 @@ public class FavoritesFragment extends Fragment {
         setupToolbar();
         setupRecyclerView();
 
-        // Kiểm tra đăng nhập trước khi làm bất cứ điều gì
+        // Kiểm tra người dùng đã đăng nhập chưa
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            Toast.makeText(getContext(), "Vui lòng đăng nhập để xem mục yêu thích.", Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), "Vui lòng đăng nhập để xem danh sách yêu thích.", Toast.LENGTH_LONG).show();
             showEmptyState("Bạn cần đăng nhập để xem mục này.");
             return;
         }
@@ -70,7 +66,6 @@ public class FavoritesFragment extends Fragment {
     private void initViews(View view) {
         recyclerView = view.findViewById(R.id.recycler_view_favorites);
         toolbar = view.findViewById(R.id.toolbar_favorites);
-        // Giả sử bạn có các View này trong R.layout.fragment_favorites
         progressBar = view.findViewById(R.id.progress_bar_favorites);
         emptyStateText = view.findViewById(R.id.text_empty_state_favorites);
     }
@@ -80,31 +75,27 @@ public class FavoritesFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        // Khởi tạo Adapter không cần tham số
+        // CHỈNH SỬA: Khởi tạo adapter không cần tham số vì nó hiện là ListAdapter
         adapter = new FavoritesAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
     }
 
     private void observeViewModel() {
-        // Bắt đầu quá trình tải dữ liệu
         showLoading(true);
-
-        // Lắng nghe dữ liệu danh sách yêu thích từ ViewModel
         viewModel.getFavoriteListings().observe(getViewLifecycleOwner(), listings -> {
             showLoading(false);
             if (listings != null) {
                 if (listings.isEmpty()) {
-                    showEmptyState("Bạn chưa có sản phẩm yêu thích nào.");
+                    showEmptyState("Bạn chưa có mục yêu thích nào.");
                 } else {
-                    // SỬA ĐỔI: Dùng submitList() thay vì updateListings()
+                    // CHỈNH SỬA: dùng submitList() thay vì phương thức tùy chỉnh
                     adapter.submitList(listings);
                     recyclerView.setVisibility(View.VISIBLE);
                     emptyStateText.setVisibility(View.GONE);
                 }
             } else {
-                // Xử lý trường hợp lỗi
-                Toast.makeText(getContext(), "Lỗi tải danh sách yêu thích", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Lỗi khi tải danh sách yêu thích", Toast.LENGTH_SHORT).show();
                 showEmptyState("Không thể tải dữ liệu. Vui lòng thử lại.");
             }
         });
@@ -114,7 +105,6 @@ public class FavoritesFragment extends Fragment {
         if (progressBar != null) {
             progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         }
-        // Ẩn các view khác khi đang loading
         if (isLoading) {
             recyclerView.setVisibility(View.GONE);
             emptyStateText.setVisibility(View.GONE);

@@ -28,7 +28,6 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
     private final OnItemInteractionListener editListener;
     private final OnItemInteractionListener deleteListener;
 
-    // Interface để xử lý các sự kiện click một cách sạch sẽ
     public interface OnItemInteractionListener {
         void onItemClick(Listing listing);
     }
@@ -53,10 +52,9 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
         holder.bind(listing, viewListener, editListener, deleteListener);
     }
 
-    // ViewHolder chứa logic bind dữ liệu vào view
     static class ListingViewHolder extends RecyclerView.ViewHolder {
         ImageView imgPost;
-        TextView txtTitle, txtPrice, txtPostedTime, txtStatus, txtLocation, txtViews, txtOffers;
+        TextView txtTitle, txtPrice, txtPostedTime, txtStatus, txtViews, txtOffers;
         Button btnEdit, btnDelete;
         ImageView btnMoreOptions;
 
@@ -67,7 +65,8 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
             txtPrice = itemView.findViewById(R.id.txt_price);
             txtPostedTime = itemView.findViewById(R.id.txt_posted_time);
             txtStatus = itemView.findViewById(R.id.txt_status);
-            txtLocation = itemView.findViewById(R.id.txt_location);
+            // SỬA LỖI: Xóa txtLocation vì nó không có trong layout mới
+            // txtLocation = itemView.findViewById(R.id.txt_location);
             txtViews = itemView.findViewById(R.id.txt_views);
             txtOffers = itemView.findViewById(R.id.txt_offers);
             btnEdit = itemView.findViewById(R.id.btn_edit);
@@ -81,7 +80,8 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
 
             txtTitle.setText(listing.getTitle());
             txtPrice.setText(listing.getFormattedPrice());
-            txtLocation.setText(listing.getLocation() != null ? listing.getLocation() : "N/A");
+
+            // SỬA LỖI: Bind dữ liệu views và offers
             txtViews.setText(String.valueOf(listing.getViews()));
             txtOffers.setText(String.format("%d đề nghị", listing.getOffersCount()));
 
@@ -142,7 +142,6 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
         }
     }
 
-    // DiffUtil giúp RecyclerView cập nhật hiệu quả
     private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {

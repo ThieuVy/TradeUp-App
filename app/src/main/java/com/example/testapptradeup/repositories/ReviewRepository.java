@@ -18,6 +18,7 @@ public class ReviewRepository {
     public LiveData<Boolean> postReview(Review review) {
         MutableLiveData<Boolean> success = new MutableLiveData<>();
 
+        review.setModerationStatus("pending");
         // Sử dụng một Firestore Transaction để đảm bảo tất cả các thao tác đọc-ghi diễn ra một cách nguyên tử
         db.runTransaction((com.google.firebase.firestore.Transaction.Function<Void>) transaction -> {
             DocumentReference transactionRef = db.collection("transactions").document(review.getTransactionId());
@@ -56,7 +57,7 @@ public class ReviewRepository {
 
             return null; // Bắt buộc phải trả về null khi thành công
         }).addOnSuccessListener(aVoid -> {
-            Log.d(TAG, "Gửi đánh giá và cập nhật tất cả các document liên quan thành công!");
+            Log.d(TAG, "Gửi đánh giá (chờ duyệt) và cập nhật các document liên quan thành công!");
             success.setValue(true);
         }).addOnFailureListener(e -> {
             Log.e(TAG, "Lỗi khi thực thi Firestore Transaction: ", e);

@@ -21,7 +21,7 @@ public class CategoryRepository {
     private final MutableLiveData<List<Category>> topCategoriesData = new MutableLiveData<>(Collections.emptyList());
     private final MutableLiveData<List<Category>> allCategoriesData = new MutableLiveData<>(Collections.emptyList());
 
-    // LiveData để quản lý trạng thái
+    // --- SỬA LỖI: Thêm LiveData để quản lý trạng thái của Repository ---
     private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>(false);
     private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
 
@@ -39,6 +39,7 @@ public class CategoryRepository {
         if (Boolean.TRUE.equals(_isLoading.getValue())) {
             return; // Đang tải, không làm gì cả
         }
+        // SỬA LỖI: Cập nhật trạng thái loading và xóa lỗi cũ
         _isLoading.setValue(true);
         _errorMessage.setValue(null);
 
@@ -63,7 +64,7 @@ public class CategoryRepository {
                     _errorMessage.setValue("Không thể tải danh mục.");
                     topCategoriesData.setValue(getHardcodedCategories()); // Dùng dữ liệu giả để UI không bị trống
                 })
-                .addOnCompleteListener(task -> _isLoading.setValue(false)); // Tắt loading khi hoàn tất
+                .addOnCompleteListener(task -> _isLoading.postValue(false)); // SỬA LỖI: Tắt loading khi hoàn tất
     }
 
     // --- GETTERS CHO VIEWMODEL ---
@@ -106,7 +107,7 @@ public class CategoryRepository {
         return allCategoriesData;
     }
 
-    // --- GETTERS CHO STATE ---
+    // --- SỬA LỖI: Thêm Getters cho trạng thái ---
 
     public LiveData<Boolean> isLoading() {
         return _isLoading;

@@ -35,7 +35,8 @@ import java.util.ArrayList;
 
 public class ProfileFragment extends Fragment {
 
-    private ProfileViewModel viewModel;
+    private ProfileViewModel profileViewModel; // Vẫn cần cho các actions (delete, deactivate)
+    private MainViewModel mainViewModel; // SỬA LỖI: Thêm MainViewModel
     private NavController navController;
     private User currentUser;
 
@@ -50,15 +51,15 @@ public class ProfileFragment extends Fragment {
     private LinearLayout menuPersonalInfo, menuChangePassword, menuNotificationSettings;
     private MaterialCardView cardSavedItems, cardOffers, cardPurchases, cardPayments;
     private LinearLayout menuReviews;
-
     private ReviewAdapter reviewAdapter;
-    private MainViewModel mainViewModel;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        viewModel = new ViewModelProvider(requireActivity()).get(ProfileViewModel.class);
+        // Lấy ViewModel của Activity để chia sẻ dữ liệu
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        // Lấy ViewModel của Fragment cho logic riêng của màn hình này
+        profileViewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
     }
 
     @Override
@@ -74,18 +75,14 @@ public class ProfileFragment extends Fragment {
             initViews(view);
             setupRecyclerView();
             setupClickListeners();
-            observeViewModel();
+            observeViewModels(); // Đổi tên hàm để bao hàm cả hai ViewModel
         } catch (Exception e) {
             Log.e("ProfileFragmentCrash", "Lỗi trong onViewCreated", e);
             Toast.makeText(getContext(), "Đã xảy ra lỗi khi mở trang hồ sơ.", Toast.LENGTH_LONG).show();
         }
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        viewModel.refreshUserProfile();
-    }
+    // SỬA LỖI: Xóa onResume vì không cần refresh từ đây nữa.
 
     private void initViews(View view) {
         profileImage = view.findViewById(R.id.profile_image);
@@ -115,6 +112,13 @@ public class ProfileFragment extends Fragment {
         emptyReviewsText = view.findViewById(R.id.empty_reviews_text);
     }
 
+    private void setupRecyclerView() {
+        if (getContext() == null) return;
+        recyclerViewReviews.setLayoutManager(new LinearLayoutManager(getContext()));
+        reviewAdapter = new ReviewAdapter(new ArrayList<>());
+        recyclerViewReviews.setAdapter(reviewAdapter);
+    }
+
     private void setupClickListeners() {
         btnEditProfile.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_editProfileFragment));
         btnViewPublic.setOnClickListener(v -> {
@@ -127,9 +131,13 @@ public class ProfileFragment extends Fragment {
             }
         });
         cardSavedItems.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_favoritesFragment));
-        cardOffers.setOnClickListener(v -> Toast.makeText(getContext(), "Mở lịch sử đề xuất...", Toast.LENGTH_SHORT).show());
-        cardPurchases.setOnClickListener(v -> Toast.makeText(getContext(), "Mở lịch sử mua hàng...", Toast.LENGTH_SHORT).show());
-        cardPayments.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_paymentSettingsFragment));
+        cardOffers.setOnClickListener(v -> navController.navigate(R.id.action_profile_to_myOffers));
+        cardPurchases.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_historyFragment));
+        cardPayments.setOnClickListener(v -> {
+            // TODO: Điều hướng đến một Fragment mới (ví dụ: EscrowListFragment)
+            // nơi người dùng có thể xem các giao dịch đang ký quỹ của họ.
+            Toast.makeText(getContext(), "Điều hướng đến màn hình quản lý giao dịch ký quỹ (đang phát triển)", Toast.LENGTH_SHORT).show();
+        });
         menuPersonalInfo.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_editProfileFragment));
         menuChangePassword.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_changePasswordFragment));
         menuNotificationSettings.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_notificationSettingsFragment));
@@ -140,62 +148,44 @@ public class ProfileFragment extends Fragment {
         btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
     }
 
-    private void observeViewModel() {
-        // Lắng nghe dữ liệu người dùng từ MainViewModel
+    // SỬA LỖI: Tách hàm observe thành hai phần rõ rệt
+    @SuppressLint("NotifyDataSetChanged")
+    private void observeViewModels() {
+        // 1. Observe MainViewModel để lấy dữ liệu User chính
         mainViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
-                this.currentUser = user;
-                updateUI(user);
-
-                // Cập nhật danh sách cho adapter khi có dữ liệu
-                if (reviewAdapter != null && user.getReviews() != null) {
-                    reviewAdapter.setReviews(user.getReviews());
-                }
-            } else {
-                Toast.makeText(getContext(), "Không thể tải dữ liệu người dùng.", Toast.LENGTH_SHORT).show();
-            }
-        });
-        viewModel.getUserProfileData().observe(getViewLifecycleOwner(), user -> {
-            if (user != null) {
-                this.currentUser = user;
                 updateUI(user);
             }
-            // Không cần xử lý lỗi ở đây nữa vì đã có observer riêng
         });
 
-        // Observer mới để lắng nghe và hiển thị lỗi
-        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
+        // 2. Observe ProfileViewModel cho các dữ liệu/trạng thái phụ (reviews, lỗi, etc.)
+        profileViewModel.getUserReviewsData().observe(getViewLifecycleOwner(), reviews -> {
+            if (reviewAdapter != null && reviews != null) {
+                reviewAdapter.setReviews(reviews);
+                reviewAdapter.notifyDataSetChanged();
+                emptyReviewsText.setVisibility(reviews.isEmpty() ? View.VISIBLE : View.GONE);
+            }
+        });
+
+        profileViewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
             if (error != null && !error.isEmpty()) {
                 Toast.makeText(getContext(), "Lỗi: " + error, Toast.LENGTH_LONG).show();
             }
         });
     }
 
-    private void setupRecyclerView() {
-        if (getContext() == null) return;
-
-        recyclerViewReviews.setLayoutManager(new LinearLayoutManager(getContext()));
-        // Khởi tạo adapter với danh sách rỗng để tránh lỗi "No adapter attached"
-        reviewAdapter = new ReviewAdapter(new ArrayList<>());
-        recyclerViewReviews.setAdapter(reviewAdapter);
-    }
-
     @SuppressLint({"SetTextI18n", "StringFormatMatches"})
     private void updateUI(User user) {
         if (user == null) {
-            textDisplayName.setText("Không tải được dữ liệu");
-            textEmail.setText("");
-            textRatingInfo.setText("");
-            textBio.setText("");
             return;
         }
+        this.currentUser = user;
 
         textDisplayName.setText(user.getName() != null ? user.getName() : "Chưa có tên");
         textEmail.setText(user.getEmail() != null ? user.getEmail() : "Chưa có email");
         textBio.setText(user.getBio() != null && !user.getBio().isEmpty() ? user.getBio() : "Chưa có tiểu sử.");
 
         if (user.getReviewCount() > 0) {
-            // Sử dụng format string từ strings.xml để dễ dàng dịch thuật và quản lý
             textRatingInfo.setText(getString(R.string.profile_rating_info_format, user.getRating(), user.getReviewCount()));
         } else {
             textRatingInfo.setText("Chưa có đánh giá");
@@ -208,16 +198,16 @@ public class ProfileFragment extends Fragment {
         }
 
         textSavedItemsCount.setText(String.valueOf(user.getFavoriteListingIds() != null ? user.getFavoriteListingIds().size() : 0));
-        textOffersCount.setText("0"); // Cần logic riêng để đếm
+        textOffersCount.setText("0");
         textPurchasesCount.setText(String.valueOf(user.getCompletedSalesCount()));
-        textPaymentsCount.setText("0"); // Cần logic riêng để đếm
+        textPaymentsCount.setText("0");
     }
 
     private void showDeactivateConfirmDialog() {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Tạm dừng tài khoản")
                 .setMessage("Bạn có chắc chắn muốn tạm dừng tài khoản? Bạn có thể kích hoạt lại bằng cách đăng nhập.")
-                .setPositiveButton("Xác nhận", (dialog, which) -> viewModel.deactivateAccount().observe(getViewLifecycleOwner(), success -> {
+                .setPositiveButton("Xác nhận", (dialog, which) -> profileViewModel.deactivateAccount().observe(getViewLifecycleOwner(), success -> {
                     if (success != null && success) {
                         Toast.makeText(getContext(), "Tài khoản đã được tạm dừng.", Toast.LENGTH_SHORT).show();
                         logout();
@@ -248,8 +238,7 @@ public class ProfileFragment extends Fragment {
                 .setMessage("Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn, bao gồm các tin đã đăng, sẽ bị xóa vĩnh viễn. Bạn có chắc chắn không?")
                 .setPositiveButton("Xóa vĩnh viễn", (dialog, which) -> {
                     Toast.makeText(getContext(), "Đang xử lý yêu cầu...", Toast.LENGTH_SHORT).show();
-                    viewModel.deleteAccountPermanently().observe(getViewLifecycleOwner(), success -> {
-                        // Chỉ xử lý khi success không phải là null (để tránh xử lý lại khi quay lại màn hình)
+                    profileViewModel.deleteAccountPermanently().observe(getViewLifecycleOwner(), success -> {
                         if (success != null) {
                             if (success) {
                                 Toast.makeText(getContext(), "Tài khoản đã được xóa thành công.", Toast.LENGTH_LONG).show();
@@ -265,7 +254,6 @@ public class ProfileFragment extends Fragment {
     }
 
     private void logout() {
-        // Sử dụng phương thức logout từ MainActivity để đảm bảo tính nhất quán
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).performLogout();
         }

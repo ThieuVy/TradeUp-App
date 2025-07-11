@@ -27,7 +27,19 @@
             app:subtitle="Đang hoạt động"
             app:subtitleTextColor="@color/success"
             app:titleTextColor="@color/text_primary"
-            app:elevation="4dp"/>
+            app:elevation="4dp">
+
+            <ImageView
+                android:id="@+id/btn_more_options_chat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_more_vertical"
+                android:layout_gravity="end"
+                android:padding="16dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Tùy chọn khác"
+                tools:ignore="HardcodedText" />
+        </com.google.android.material.appbar.MaterialToolbar>
 
     </com.google.android.material.appbar.AppBarLayout>
 

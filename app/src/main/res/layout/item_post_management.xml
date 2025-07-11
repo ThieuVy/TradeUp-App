@@ -8,9 +8,8 @@
     android:background="@android:color/white"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="?android:attr/selectableItemBackground"> <!-- Thêm hiệu ứng nhấn -->
+    android:foreground="?android:attr/selectableItemBackground">
 
-    <!-- Main item content -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -18,7 +17,6 @@
         android:padding="16dp"
         android:gravity="center_vertical">
 
-        <!-- Product Image -->
         <androidx.cardview.widget.CardView
             android:layout_width="60dp"
             android:layout_height="60dp"
@@ -35,7 +33,6 @@
                 tools:src="@drawable/img" />
         </androidx.cardview.widget.CardView>
 
-        <!-- Product Information -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -43,7 +40,6 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <!-- Title and Status Badge -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -57,11 +53,9 @@
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Balo da cổ điển"
                     android:textColor="#333333"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    tools:ignore="HardcodedText"
                     tools:text="Balo da cổ điển" />
 
                 <TextView
@@ -72,57 +66,24 @@
                     android:background="@drawable/status_badge_background"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="4dp"
-                    android:text="Đang hiển thị"
                     android:textColor="#34C759"
                     android:textSize="12sp"
                     android:textStyle="bold"
-                    tools:ignore="HardcodedText,TextContrastCheck"
+                    tools:ignore="TextContrastCheck"
                     tools:text="Đang hiển thị" />
             </LinearLayout>
 
-            <!-- Price -->
             <TextView
                 android:id="@+id/txt_price"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="2.500.000 đ"
                 android:textColor="#333333"
                 android:textSize="15sp"
                 android:textStyle="bold"
-                tools:ignore="HardcodedText"
                 tools:text="2.500.000 đ" />
 
-            <!-- Location and Stats -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                tools:ignore="UseCompoundDrawables">
-
-                <ImageView
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
-                    android:contentDescription="Vị trí"
-                    android:src="@drawable/ic_location"
-                    app:tint="#8E8E93"
-                    tools:ignore="HardcodedText" />
-
-                <TextView
-                    android:id="@+id/txt_location"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:text="Tp.HCM, Việt Nam"
-                    android:textColor="#8E8E93"
-                    android:textSize="12sp"
-                    tools:ignore="HardcodedText,TextContrastCheck"
-                    tools:text="Tp.HCM, Việt Nam" />
-            </LinearLayout>
-
-            <!-- Views, Offers, and Time -->
+            <!-- SỬA LỖI: Chuyển layout này thành ngang và thêm các icon -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -130,6 +91,7 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
+                <!-- Views -->
                 <ImageView
                     android:layout_width="12dp"
                     android:layout_height="12dp"
@@ -147,6 +109,7 @@
                     tools:ignore="TextContrastCheck"
                     tools:text="245" />
 
+                <!-- Offers -->
                 <ImageView
                     android:layout_width="12dp"
                     android:layout_height="12dp"
@@ -170,6 +133,7 @@
                     android:layout_height="1dp"
                     android:layout_weight="1" />
 
+                <!-- Time -->
                 <ImageView
                     android:layout_width="12dp"
                     android:layout_height="12dp"
@@ -183,7 +147,6 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="2 ngày trước"
                     android:textColor="#8E8E93"
                     android:textSize="12sp"
                     tools:ignore="HardcodedText,TextContrastCheck"
@@ -204,7 +167,6 @@
             tools:ignore="HardcodedText" />
     </LinearLayout>
 
-    <!-- Action Buttons (Edit and Delete) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -240,7 +202,6 @@
             tools:ignore="ButtonStyle,HardcodedText,TouchTargetSizeCheck,VisualLintButtonSize" />
     </LinearLayout>
 
-    <!-- Divider -->
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"

@@ -19,7 +19,13 @@ public class Review implements Parcelable {
     @ServerTimestamp
     private Date reviewDate;
 
-    public Review() {}
+    // === THÊM MỚI: Trường để kiểm duyệt ===
+    private String moderationStatus; // "pending", "approved", "rejected"
+
+    public Review() {
+        // === THÊM MỚI: Gán giá trị mặc định ===
+        this.moderationStatus = "pending";
+    }
 
     public String getReviewId() { return reviewId; }
     public void setReviewId(String reviewId) { this.reviewId = reviewId; }
@@ -40,6 +46,11 @@ public class Review implements Parcelable {
     public Date getReviewDate() { return reviewDate; }
     public void setReviewDate(Date reviewDate) { this.reviewDate = reviewDate; }
 
+    // === THÊM MỚI: Getter và Setter cho moderationStatus ===
+    public String getModerationStatus() { return moderationStatus; }
+    public void setModerationStatus(String moderationStatus) { this.moderationStatus = moderationStatus; }
+
+
     protected Review(Parcel in) {
         reviewId = in.readString();
         reviewedUserId = in.readString();
@@ -51,6 +62,8 @@ public class Review implements Parcelable {
         transactionId = in.readString();
         long tmpDate = in.readLong();
         reviewDate = tmpDate == -1 ? null : new Date(tmpDate);
+        // === THÊM MỚI: Đọc từ Parcel ===
+        moderationStatus = in.readString();
     }
 
     @Override
@@ -64,6 +77,8 @@ public class Review implements Parcelable {
         dest.writeString(comment);
         dest.writeString(transactionId);
         dest.writeLong(reviewDate != null ? reviewDate.getTime() : -1);
+        // === THÊM MỚI: Ghi vào Parcel ===
+        dest.writeString(moderationStatus);
     }
 
     @Override

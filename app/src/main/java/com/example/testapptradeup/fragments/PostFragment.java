@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -41,6 +42,8 @@ import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.utils.SharedPrefsHelper;
 import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.example.testapptradeup.viewmodels.PostViewModel;
+import com.firebase.geofire.GeoFireUtils;
+import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.material.chip.Chip;
@@ -53,6 +56,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class PostFragment extends Fragment {
 
@@ -63,9 +67,9 @@ public class PostFragment extends Fragment {
     private TextInputEditText etProductTitle, etDescription, etPrice, etLocation, etAdditionalTags;
     private AutoCompleteTextView spinnerCategory;
     private TextView tvPhotoCountHeader;
-    private ChipGroup chipGroupCondition, chipGroupTags; // Thêm lại chipGroupTags
-    private Button btnPostListing, btnSaveDraft, btnPreview; // Thêm lại các nút
-    private TextView tvUseCurrentLocation; // Thêm lại TextView này
+    private ChipGroup chipGroupCondition, chipGroupTags;
+    private Button btnPostListing, btnSaveDraft, btnPreview;
+    private TextView tvUseCurrentLocation;
     private RecyclerView recyclerPhotoThumbnails;
     private PhotoAdapter photoAdapter;
     private ProgressBar postProgressBar;
@@ -74,12 +78,13 @@ public class PostFragment extends Fragment {
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private ActivityResultLauncher<String> locationPermissionLauncher;
     private MainViewModel mainViewModel;
+    private double listingLatitude = 0.0;
+    private double listingLongitude = 0.0;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(this).get(PostViewModel.class);
-        // Lấy ViewModel được chia sẻ từ Activity chứa nó
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         prefsHelper = new SharedPrefsHelper(requireContext());
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
@@ -113,13 +118,10 @@ public class PostFragment extends Fragment {
         recyclerPhotoThumbnails = view.findViewById(R.id.recycler_photo_thumbnails);
         tvPhotoCountHeader = view.findViewById(R.id.tv_photo_count_header);
         postProgressBar = view.findViewById(R.id.post_progress_bar);
-
-        // ========== SỬA LỖI Ở ĐÂY: ÁNH XẠ CÁC VIEW CÒN LẠI ==========
         btnPreview = view.findViewById(R.id.btn_preview);
         btnSaveDraft = view.findViewById(R.id.btn_save_draft);
         tvUseCurrentLocation = view.findViewById(R.id.tv_use_current_location);
         chipGroupTags = view.findViewById(R.id.chip_group_tags);
-        // =========================================================
 
         String[] categories = {"Điện thoại", "Laptop", "Thời trang", "Đồ gia dụng", "Xe cộ", "Khác"};
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, categories);
@@ -142,8 +144,8 @@ public class PostFragment extends Fragment {
     }
 
     private void setupListeners() {
-        btnPostListing.setOnClickListener(v -> postListing());
-        btnPreview.setOnClickListener(v -> showPreview());
+        btnPostListing.setOnClickListener(v -> postListing(false));
+        btnPreview.setOnClickListener(v -> postListing(true)); // Sửa ở đây
         btnSaveDraft.setOnClickListener(v -> Toast.makeText(getContext(), "Chức năng đang phát triển", Toast.LENGTH_SHORT).show());
         tvUseCurrentLocation.setOnClickListener(v -> requestLocation());
 
@@ -170,17 +172,10 @@ public class PostFragment extends Fragment {
             showLoading(status.equals(PostViewModel.PostStatus.LOADING));
 
             if (status instanceof PostViewModel.PostStatus.SUCCESS) {
-                // Lấy đối tượng Listing từ trạng thái SUCCESS
                 Listing postedListing = ((PostViewModel.PostStatus.SUCCESS) status).listing;
-
                 Toast.makeText(getContext(), "Đăng tin thành công!", Toast.LENGTH_LONG).show();
-
-                // *** BƯỚC QUAN TRỌNG: Thông báo cho MainViewModel ***
                 mainViewModel.onNewListingPosted(postedListing);
-
-                // Điều hướng về màn hình trước đó (có thể là Home hoặc MyListings)
                 navController.popBackStack();
-
             } else if (status instanceof PostViewModel.PostStatus.Error) {
                 String errorMessage = ((PostViewModel.PostStatus.Error) status).message;
                 Toast.makeText(getContext(), "Lỗi: " + errorMessage, Toast.LENGTH_LONG).show();
@@ -188,47 +183,69 @@ public class PostFragment extends Fragment {
         });
     }
 
-    private void postListing() {
-        // 1. Validate các trường trên UI
+    private void postListing(boolean isPreview) {
         if (!validateAllFields()) {
             return;
         }
 
-        // 2. Kiểm tra thông tin người dùng
         User currentUser = prefsHelper.getCurrentUser();
         String currentUserId = (FirebaseAuth.getInstance().getCurrentUser() != null) ? FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
 
         if (currentUser == null || currentUserId == null) {
-            Toast.makeText(getContext(), "Lỗi: Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.", Toast.LENGTH_SHORT).show();
-            // Có thể điều hướng về màn hình Login ở đây
+            Toast.makeText(getContext(), "Lỗi: Phiên đăng nhập không hợp lệ.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // 3. Tạo đối tượng Listing và đảm bảo khớp 100% với Firebase Rules
-        Listing listing = new Listing();
+        Listing listing = buildListingFromUI(currentUser, currentUserId);
 
-        // === CÁC TRƯỜNG LẤY TỪ UI ===
+        if (isPreview) {
+            // Chuyển sang màn hình xem trước
+            // PostFragmentDirections.ActionPostFragmentToProductDetailFragment action =
+            // PostFragmentDirections.actionPostFragmentToProductDetailFragment(listing);
+            // navController.navigate(action);
+            Toast.makeText(getContext(), "Chức năng xem trước đang phát triển", Toast.LENGTH_SHORT).show();
+
+        } else {
+            // Bắt đầu quá trình đăng tin
+            Log.d("PostFragment", "Bắt đầu quá trình đăng tin...");
+            viewModel.postListing(listing);
+        }
+    }
+
+    // ========== HÀM ĐÃ ĐƯỢC SỬA LỖI ==========
+    private Listing buildListingFromUI(User currentUser, String currentUserId) {
+        Listing listing = new Listing();
         listing.setTitle(Objects.requireNonNull(etProductTitle.getText()).toString().trim());
         listing.setPrice(Double.parseDouble(Objects.requireNonNull(etPrice.getText()).toString().trim()));
-        listing.setCategoryId(spinnerCategory.getText().toString()); // Ví dụ: "Điện thoại", "Laptop"
+        listing.setCategoryId(spinnerCategory.getText().toString());
         listing.setDescription(Objects.requireNonNull(etDescription.getText()).toString().trim());
-        listing.setLocation(Objects.requireNonNull(etLocation.getText()).toString().trim());
-        listing.setCondition(getSelectedCondition()); // Ví dụ: "new", "used"
-
-        // === CÁC TRƯỜNG BẮT BUỘC THEO RULES ===
-        listing.setSellerId(currentUserId); // QUAN TRỌNG: Phải khớp với request.auth.uid
+        listing.setCondition(getSelectedCondition());
+        listing.setSellerId(currentUserId);
         listing.setSellerName(currentUser.getName());
-        listing.setStatus("available"); // Bắt buộc phải là "available" khi tạo mới
-
-        // === CÁC TRƯỜNG MẶC ĐỊNH BẮT BUỘC PHẢI CÓ ===
+        listing.setStatus("available");
         listing.setViews(0);
         listing.setOffersCount(0);
         listing.setRating(0.0f);
         listing.setReviewCount(0);
         listing.setSold(false);
-        listing.setNegotiable(true); // Hoặc false, tùy vào logic của bạn
+        listing.setNegotiable(true);
 
-        // Lấy danh sách tags từ ChipGroup
+        // <<< BẮT ĐẦU SỬA LỖI >>>
+        // 1. Lấy chuỗi địa chỉ từ EditText và lưu vào một biến.
+        String locationString = Objects.requireNonNull(etLocation.getText()).toString().trim();
+        // 2. Gán chuỗi địa chỉ này cho đối tượng listing.
+        listing.setLocation(locationString);
+        // 3. Sử dụng biến đã lưu để gọi hàm updateCoordinatesFromLocation.
+        updateCoordinatesFromLocation(locationString);
+        // <<< KẾT THÚC SỬA LỖI >>>
+
+        listing.setLatitude(listingLatitude);
+        listing.setLongitude(listingLongitude);
+        if(listingLatitude != 0.0 && listingLongitude != 0.0) {
+            String hash = GeoFireUtils.getGeoHashForLocation(new GeoLocation(listingLatitude, listingLongitude));
+            listing.setGeohash(hash);
+        }
+
         List<String> tags = new ArrayList<>();
         for (int i = 0; i < chipGroupTags.getChildCount(); i++) {
             Chip chip = (Chip) chipGroupTags.getChildAt(i);
@@ -236,37 +253,18 @@ public class PostFragment extends Fragment {
         }
         listing.setTags(tags);
 
-        // Các trường như `imageUrls` và `timePosted` sẽ được xử lý trong ViewModel.
-        // `timePosted` sẽ do server tự gán, nên client không cần gửi.
-
-        // Chuyển đổi địa chỉ thành tọa độ
-        Geocoder geocoder = new Geocoder(requireContext(), Locale.getDefault());
-        try {
-            List<Address> addresses = geocoder.getFromLocationName(listing.getLocation(), 1);
-            if (addresses != null && !addresses.isEmpty()) {
-                Address address = addresses.get(0);
-                listing.setLatitude(address.getLatitude());
-                listing.setLongitude(address.getLongitude());
-                Log.d("PostFragment", "Geocoded location: " + address.getLatitude() + ", " + address.getLongitude());
-            }
-        } catch (IOException e) {
-            Log.e("PostFragment", "Lỗi Geocoding, tọa độ sẽ là 0,0", e);
-            // Có thể hiển thị thông báo cho người dùng nếu địa chỉ không hợp lệ
-            listing.setLatitude(0);
-            listing.setLongitude(0);
+        List<Uri> imageUris = viewModel.getSelectedImageUris().getValue();
+        if (imageUris != null) {
+            listing.setImageUrls(imageUris.stream().map(Uri::toString).collect(Collectors.toList()));
         }
 
-        // 4. Gọi ViewModel để bắt đầu quá trình (upload ảnh rồi lưu listing)
-        Log.d("PostFragment", "Bắt đầu quá trình đăng tin...");
-        viewModel.postListing(listing);
+        return listing;
     }
 
     private void showPreview() {
-        // ========== SỬA LỖI LOGIC Ở ĐÂY ==========
         if (validateAllFields()) {
             Toast.makeText(getContext(), "Chức năng xem trước đang phát triển", Toast.LENGTH_SHORT).show();
         }
-        // =====================================
     }
 
     private void addTagToGroup(String tagText) {
@@ -282,7 +280,6 @@ public class PostFragment extends Fragment {
             }
         }
 
-        // Inflate chip từ layout để đảm bảo có style đúng
         Chip chip = (Chip) getLayoutInflater().inflate(R.layout.chip_tag_item, chipGroupTags, false);
         chip.setText(tagText);
         chip.setOnCloseIconClickListener(v -> chipGroupTags.removeView(v));
@@ -291,7 +288,6 @@ public class PostFragment extends Fragment {
 
     private String getSelectedCondition() {
         int checkedChipId = chipGroupCondition.getCheckedChipId();
-        // Giả sử ID của các chip đã được định nghĩa trong R.id
         if (checkedChipId == R.id.chip_condition_new) return "new";
         if (checkedChipId == R.id.chip_condition_like_new) return "like_new";
         if (checkedChipId == R.id.chip_condition_used) return "used";
@@ -306,11 +302,33 @@ public class PostFragment extends Fragment {
         }
     }
 
+    private void updateCoordinatesFromLocation(String locationString) {
+        if (getContext() == null || locationString.isEmpty()) return;
+        Geocoder geocoder = new Geocoder(getContext(), Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocationName(locationString, 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                listingLatitude = address.getLatitude();
+                listingLongitude = address.getLongitude();
+                Log.d("PostFragment", "Geocoded: " + locationString + " -> lat: " + listingLatitude + ", lon: " + listingLongitude);
+            } else {
+                Log.w("PostFragment", "Không tìm thấy tọa độ cho địa chỉ: " + locationString);
+            }
+        } catch (IOException e) {
+            Log.e("PostFragment", "Lỗi Geocoding", e);
+        }
+    }
+
     @SuppressLint("MissingPermission")
     private void getCurrentLocation() {
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(location -> {
                     if (location != null) {
+                        // === SỬA ĐỔI: Lưu lại tọa độ ===
+                        listingLatitude = location.getLatitude();
+                        listingLongitude = location.getLongitude();
+                        // ============================
                         try {
                             Geocoder geocoder = new Geocoder(requireContext(), Locale.getDefault());
                             List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
@@ -404,6 +422,5 @@ public class PostFragment extends Fragment {
     private void showLoading(boolean isLoading) {
         postProgressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         btnPostListing.setEnabled(!isLoading);
-        // btnSaveDraft.setEnabled(!isLoading); // Giả sử btnSaveDraft đã được ánh xạ
     }
 }
