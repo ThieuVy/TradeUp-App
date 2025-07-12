@@ -2,6 +2,7 @@ package com.example.testapptradeup.viewmodels;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.Offer;
@@ -12,10 +13,12 @@ import com.google.firebase.auth.FirebaseAuth;
 
 public class ProductDetailViewModel extends ViewModel {
     private final ListingRepository listingRepository;
-    public LiveData<Listing> listingDetail;
+    // Bỏ public ở listingDetail để tuân thủ quy tắc đóng gói
+    private final LiveData<Listing> listingDetail;
     private final OfferRepository offerRepository;
     private final UserRepository userRepository;
     private final String currentUserId;
+    private final MutableLiveData<String> listingIdTrigger = new MutableLiveData<>();
 
     public ProductDetailViewModel() {
         this.listingRepository = new ListingRepository();
@@ -23,37 +26,34 @@ public class ProductDetailViewModel extends ViewModel {
         this.userRepository = new UserRepository();
         this.currentUserId = FirebaseAuth.getInstance().getUid();
 
-        // ========== BẮT ĐẦU THÊM MỚI ==========
-        // Thêm một observer vào LiveData chi tiết sản phẩm.
-        // Mỗi khi có một listing mới được tải thành công, nó sẽ gọi hàm incrementViewCount.
-        listingDetail.observeForever(listing -> {
-            if (listing != null && listing.getId() != null) {
-                // Tăng lượt xem chỉ khi người dùng xem tin của người khác
-                String currentUserId = FirebaseAuth.getInstance().getUid();
-                if (currentUserId != null && !currentUserId.equals(listing.getSellerId())) {
-                    listingRepository.incrementViewCount(listing.getId());
-                }
+        // Sử dụng switchMap để phản ứng lại sự thay đổi của listingIdTrigger
+        listingDetail = Transformations.switchMap(listingIdTrigger, id -> {
+            if (id == null || id.isEmpty()) {
+                return new MutableLiveData<>(null); // Trả về LiveData rỗng nếu không có ID
             }
+
+            // Mỗi khi một ID mới được thiết lập, logic này sẽ chạy
+            // === BẮT ĐẦU SỬA LỖI ===
+            // 1. Gọi hàm tăng view thông qua repository
+            listingRepository.incrementViewCount(id);
+            // 2. Trả về LiveData từ repository
+            return listingRepository.getListingById(id);
+            // === KẾT THÚC SỬA LỖI ===
         });
-        // =======================================
     }
 
+    // Hàm loadListingDetail bây giờ chỉ cần set giá trị cho trigger
     public void loadListingDetail(String listingId) {
-        listingDetail = listingRepository.getListingById(listingId);
+        // Chỉ trigger nếu ID mới khác ID cũ để tránh tải lại không cần thiết
+        if (listingId != null && !listingId.equals(listingIdTrigger.getValue())) {
+            listingIdTrigger.setValue(listingId);
+        }
     }
 
     public LiveData<Listing> getListingDetail() {
         return listingDetail;
     }
 
-    /**
-     * Tạo một đề nghị mua hàng từ người dùng hiện tại.
-     * @param listingId ID của tin đăng
-     * @param sellerId ID của người bán
-     * @param price Giá đề nghị
-     * @param message Tin nhắn kèm theo (tùy chọn)
-     * @return LiveData<Boolean> để theo dõi trạng thái gửi
-     */
     public LiveData<Boolean> makeOffer(String listingId, String sellerId, double price, String message) {
         if (currentUserId == null) {
             MutableLiveData<Boolean> failure = new MutableLiveData<>();
@@ -66,10 +66,9 @@ public class ProductDetailViewModel extends ViewModel {
         offer.setSellerId(sellerId);
         offer.setBuyerId(currentUserId);
 
-        // TODO: Lấy tên và avatar người dùng hiện tại từ SharedPreferences hoặc một ViewModel chung
-        // Ví dụ: User currentUser = SharedPrefsHelper.getInstance(getApplication()).getCurrentUser();
-        offer.setBuyerName("Tên người mua"); // Thay thế bằng dữ liệu thật
-        offer.setBuyerAvatarUrl("url_avatar_nguoi_mua"); // Thay thế bằng dữ liệu thật
+        // TODO: Lấy tên và avatar người dùng hiện tại
+        offer.setBuyerName("Tên người mua");
+        offer.setBuyerAvatarUrl("url_avatar_nguoi_mua");
 
         offer.setOfferPrice(price);
         offer.setMessage(message);

@@ -114,16 +114,16 @@ public class ChatDetailFragment extends Fragment {
     private void showChatOptionsDialog() {
         if (getContext() == null) return;
 
-        final CharSequence[] options = {"Chặn người dùng", "Báo cáo cuộc trò chuyện", "Hủy"};
+        final CharSequence[] options = {"Báo cáo cuộc trò chuyện", "Chặn người dùng", "Hủy"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setTitle("Tùy chọn");
         builder.setItems(options, (dialog, item) -> {
-            if (options[item].equals("Chặn người dùng")) {
-                // TODO: Implement user blocking logic
-                Toast.makeText(getContext(), "Chức năng chặn đang được phát triển.", Toast.LENGTH_SHORT).show();
-            } else if (options[item].equals("Báo cáo cuộc trò chuyện")) {
+            if (options[item].equals("Báo cáo cuộc trò chuyện")) {
                 showReportReasonDialog();
+            } else if (options[item].equals("Chặn người dùng")) {
+                // TODO: Triển khai logic chặn người dùng
+                Toast.makeText(getContext(), "Chức năng chặn đang được phát triển.", Toast.LENGTH_SHORT).show();
             } else if (options[item].equals("Hủy")) {
                 dialog.dismiss();
             }
@@ -134,7 +134,7 @@ public class ChatDetailFragment extends Fragment {
     private void showReportReasonDialog() {
         if (getContext() == null || chatId == null) return;
 
-        final String[] reportReasons = {"Spam", "Nội dung không phù hợp", "Lừa đảo", "Quấy rối", "Lý do khác"};
+        final String[] reportReasons = {"Nội dung không phù hợp", "Spam hoặc Lừa đảo", "Quấy rối", "Lý do khác"};
 
         new AlertDialog.Builder(getContext())
                 .setTitle("Báo cáo cuộc trò chuyện")
@@ -168,17 +168,17 @@ public class ChatDetailFragment extends Fragment {
     private void sendConversationReport(String reason) {
         String reporterId = FirebaseAuth.getInstance().getUid();
         if (reporterId == null) {
-            Toast.makeText(getContext(), "Bạn cần đăng nhập để báo cáo.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Bạn cần đăng nhập để thực hiện hành động này.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         Map<String, Object> report = new HashMap<>();
         report.put("reporterId", reporterId);
+        report.put("chatId", chatId); // Thêm ID của cuộc trò chuyện để dễ dàng truy vết
         report.put("reason", reason);
         report.put("timestamp", FieldValue.serverTimestamp());
         report.put("type", "conversation"); // Phân loại báo cáo
-        report.put("chatId", chatId); // Thêm ID của chat để dễ truy vết
-        report.put("status", "pending");
+        report.put("status", "pending"); // Trạng thái ban đầu của báo cáo
 
         FirebaseFirestore.getInstance().collection("reports").add(report)
                 .addOnSuccessListener(documentReference ->

@@ -43,7 +43,7 @@
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
                 android:textSize="16sp"
-                tools:ignore="Autofill" />
+                tools:ignore="Autofill,TextContrastCheck,VisualLintTextFieldSize" />
 
             <ImageButton
                 android:id="@+id/clear_search"
@@ -53,7 +53,8 @@
                 android:contentDescription="@string/search_clear_desc"
                 android:src="@drawable/ic_clear"
                 android:visibility="gone"
-                tools:visibility="visible"/>
+                tools:ignore="TouchTargetSizeCheck"
+                tools:visibility="visible" />
 
             <View
                 android:layout_width="1dp"
@@ -69,7 +70,8 @@
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/search_filter_toggle_desc"
-                android:src="@drawable/ic_filter" />
+                android:src="@drawable/ic_filter"
+                tools:ignore="TouchTargetSizeCheck" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -102,40 +104,44 @@
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
+
                 <EditText
                     android:id="@+id/min_price_input"
-                    android:hint="Tối thiểu"
                     style="@style/FilterEditText"
-                    android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    tools:ignore="Autofill,HardcodedText" />
+                    android:layout_weight="1"
+                    android:hint="Tối thiểu"
+                    tools:ignore="Autofill,HardcodedText,TextContrastCheck,VisualLintTextFieldSize" />
+
                 <EditText
                     android:id="@+id/max_price_input"
-                    android:hint="Tối đa"
                     style="@style/FilterEditText"
                     android:layout_weight="1"
-                    tools:ignore="Autofill,HardcodedText" />
+                    android:hint="Tối đa"
+                    tools:ignore="Autofill,HardcodedText,TextContrastCheck,VisualLintTextFieldSize" />
             </LinearLayout>
 
             <TextView
                 style="@style/FilterSectionTitle"
                 android:text="Danh mục"
                 tools:ignore="HardcodedText" />
+
             <AutoCompleteTextView
                 android:id="@+id/category_filter"
-                android:hint="Chọn danh mục"
                 style="@style/FilterAutoCompleteTextView"
-                tools:ignore="HardcodedText" />
+                android:hint="Chọn danh mục"
+                tools:ignore="HardcodedText,TextContrastCheck,VisualLintTextFieldSize" />
 
             <TextView
                 style="@style/FilterSectionTitle"
                 android:text="Tình trạng"
                 tools:ignore="HardcodedText" />
+
             <AutoCompleteTextView
                 android:id="@+id/condition_filter"
-                android:hint="Chọn tình trạng"
                 style="@style/FilterAutoCompleteTextView"
-                tools:ignore="HardcodedText" />
+                android:hint="Chọn tình trạng"
+                tools:ignore="HardcodedText,TextContrastCheck,VisualLintTextFieldSize" />
 
             <TextView
                 style="@style/FilterSectionTitle"
@@ -145,14 +151,15 @@
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
+
                 <EditText
                     android:id="@+id/location_input"
-                    android:hint="Nhập vị trí"
                     style="@style/FilterEditText"
-                    android:layout_weight="1"
                     android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:hint="Nhập vị trí"
                     android:inputType="text"
-                    tools:ignore="Autofill,HardcodedText,InefficientWeight" />
+                    tools:ignore="Autofill,HardcodedText,InefficientWeight,TextContrastCheck,VisualLintTextFieldSize" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/use_gps_button"
@@ -160,7 +167,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="12dp"
-                    app:icon="@drawable/ic_gps"/>
+                    app:icon="@drawable/ic_gps"
+                    tools:ignore="SpeakableTextPresentCheck" />
             </LinearLayout>
             <TextView
                 android:id="@+id/distance_value"
@@ -186,7 +194,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Xóa bộ lọc"
-                    tools:ignore="HardcodedText" />
+                    tools:ignore="HardcodedText,VisualLintButtonSize" />
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/apply_filters_button"
                     android:layout_width="0dp"
@@ -194,7 +202,7 @@
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
                     android:text="Áp dụng"
-                    tools:ignore="HardcodedText" />
+                    tools:ignore="HardcodedText,VisualLintButtonSize" />
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
@@ -230,7 +238,7 @@
             android:hint="Sắp xếp"
             android:minWidth="150dp"
             android:padding="0dp"
-            tools:ignore="HardcodedText" />
+            tools:ignore="HardcodedText,TouchTargetSizeCheck" />
 
     </LinearLayout>
 

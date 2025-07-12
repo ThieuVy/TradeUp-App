@@ -17,7 +17,11 @@
         <!-- Actions từ Home -->
         <action
             android:id="@+id/action_home_to_productDetail"
-            app:destination="@id/productDetailFragment" />
+            app:destination="@id/productDetailFragment" >
+            <argument
+                android:name="listingId"
+                app:argType="string" />
+        </action>
         <action
             android:id="@+id/action_home_to_chatList"
             app:destination="@id/chatListFragment" />
@@ -43,7 +47,14 @@
         android:id="@+id/postFragment"
         android:name="com.example.testapptradeup.fragments.PostFragment"
         android:label="Đăng Tin"
-        tools:layout="@layout/fragment_post" />
+        tools:layout="@layout/fragment_post" >
+
+        <!-- Thêm mới: Action để điều hướng đến màn hình xem trước -->
+        <action
+            android:id="@+id/action_postFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" />
+
+    </fragment>
 
     <fragment
         android:id="@+id/notificationsFragment"
@@ -112,16 +123,32 @@
             android:defaultValue="@null" />
         <action
             android:id="@+id/action_productList_to_productDetail"
-            app:destination="@id/productDetailFragment" />
+            app:destination="@id/productDetailFragment" >
+            <argument
+                android:name="listingId"
+                app:argType="string" />
+        </action>
     </fragment>
     <fragment
         android:id="@+id/productDetailFragment"
         android:name="com.example.testapptradeup.fragments.ProductDetailFragment"
         android:label="Chi tiết sản phẩm"
         tools:layout="@layout/fragment_product_detail">
+
+        <!-- Sửa đổi: Cho phép listingId có thể null -->
         <argument
             android:name="listingId"
-            app:argType="string" />
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <!-- Thêm mới: Argument để nhận toàn bộ đối tượng Listing cho việc xem trước -->
+        <argument
+            android:name="listingPreview"
+            app:argType="com.example.testapptradeup.models.Listing"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
     </fragment>
 
     <!-- ======================================================= -->
@@ -235,5 +262,26 @@
         android:id="@+id/myOffersFragment"
         android:name="com.example.testapptradeup.fragments.MyOffersFragment"
         android:label="Lịch sử trả giá"
-        tools:layout="@layout/fragment_my_offers" />
+        tools:layout="@layout/fragment_my_offers" >
+        <!-- === THÊM ACTION MỚI ĐỂ ĐIỀU HƯỚNG ĐẾN MÀN HÌNH THANH TOÁN === -->
+        <action
+            android:id="@+id/action_myOffersFragment_to_paymentFragment"
+            app:destination="@id/paymentFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/paymentFragment"
+        android:name="com.example.testapptradeup.fragments.PaymentFragment"
+        android:label="Thanh toán"
+        tools:layout="@layout/fragment_payment" >
+        <argument
+            android:name="listingId"
+            app:argType="string" />
+        <argument
+            android:name="sellerId"
+            app:argType="string" />
+        <argument
+            android:name="offerPrice"
+            app:argType="float" />
+    </fragment>
 </navigation>

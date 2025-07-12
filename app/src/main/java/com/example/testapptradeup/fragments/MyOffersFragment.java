@@ -19,10 +19,12 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.adapters.MyOffersAdapter;
+import com.example.testapptradeup.models.OfferWithListing;
 import com.example.testapptradeup.viewmodels.MyOffersViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 
-public class MyOffersFragment extends Fragment {
+// ======================= THAY ĐỔI Ở DÒNG NÀY =======================
+public class MyOffersFragment extends Fragment implements MyOffersAdapter.OnOfferInteractionListener {
 
     private MyOffersViewModel viewModel;
     private NavController navController;
@@ -69,7 +71,8 @@ public class MyOffersFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        adapter = new MyOffersAdapter();
+        // Giờ dòng này sẽ không còn báo lỗi
+        adapter = new MyOffersAdapter(this);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
     }
@@ -98,5 +101,21 @@ public class MyOffersFragment extends Fragment {
                 emptyStateText.setVisibility(View.VISIBLE);
             }
         });
+    }
+
+    // Giờ annotation @Override sẽ không còn báo lỗi
+    @Override
+    public void onPayNowClick(OfferWithListing item) {
+        if (navController != null && item != null && item.getListing() != null && item.getOffer() != null) {
+            MyOffersFragmentDirections.ActionMyOffersFragmentToPaymentFragment action =
+                    MyOffersFragmentDirections.actionMyOffersFragmentToPaymentFragment(
+                            item.getListing().getId(),
+                            item.getListing().getSellerId(),
+                            (float) item.getOffer().getOfferPrice()
+                    );
+            navController.navigate(action);
+        } else {
+            Toast.makeText(getContext(), "Lỗi: Không thể xử lý thanh toán.", Toast.LENGTH_SHORT).show();
+        }
     }
 }

@@ -67,7 +67,6 @@ public class UserRepository {
                         // Sử dụng get() thay vì toObject() để tránh lỗi nếu trường không tồn tại
                         Object favsObject = documentSnapshot.get("favoriteListingIds");
                         if (favsObject instanceof List) {
-                            @SuppressWarnings("unchecked")
                             List<String> favIds = (List<String>) favsObject;
                             favoriteIdsData.setValue(favIds);
                         } else {

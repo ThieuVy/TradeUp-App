@@ -166,7 +166,6 @@ public class SearchFragment extends Fragment {
 
         filterToggle.setOnClickListener(v -> toggleFilterVisibility(!isFiltersVisible));
         useGpsButton.setOnClickListener(v -> checkLocationPermissionAndFetch());
-
         distanceSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @SuppressLint("DefaultLocale")
             @Override
@@ -260,6 +259,8 @@ public class SearchFragment extends Fragment {
         if (currentLocation != null) {
             params.setUserLocation(currentLocation);
             params.setMaxDistance(distanceSeekbar.getProgress());
+        } else {
+            params.setLocation(locationInput.getText().toString().trim());
         }
 
         return params;

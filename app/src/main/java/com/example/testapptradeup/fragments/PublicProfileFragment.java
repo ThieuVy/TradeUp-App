@@ -134,10 +134,9 @@ public class PublicProfileFragment extends Fragment {
         // ==========================================
     }
 
-    // ... (các hàm còn lại giữ nguyên)
     private void setupClickListeners() {
         btnBack.setOnClickListener(v -> navController.popBackStack());
-        btnMoreOptions.setOnClickListener(v -> showReportDialog());
+        btnMoreOptions.setOnClickListener(v -> showReportDialog()); // Kích hoạt dialog báo cáo
     }
 
     @SuppressLint("SetTextI18n")

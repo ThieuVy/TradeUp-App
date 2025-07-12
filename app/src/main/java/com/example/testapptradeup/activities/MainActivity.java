@@ -49,10 +49,9 @@ public class MainActivity extends AppCompatActivity {
         prefsHelper = new SharedPrefsHelper(this);
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
 
-        // Kiểm tra người dùng đăng nhập ngay từ đầu
         if (mAuth.getCurrentUser() == null) {
             navigateToLogin();
-            return; // Rất quan trọng: Dừng thực thi nếu chưa đăng nhập
+            return;
         }
 
         // ========== SỬA LỖI: Tải dữ liệu người dùng vào ViewModel tập trung ==========

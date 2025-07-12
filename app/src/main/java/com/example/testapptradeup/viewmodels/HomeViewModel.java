@@ -39,7 +39,6 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
     private final FusedLocationProviderClient fusedLocationClient;
     private final MutableLiveData<Location> userLocation = new MutableLiveData<>();
     private final MediatorLiveData<List<Listing>> prioritizedRecentListings = new MediatorLiveData<>();
-
     public HomeViewModel(@NonNull Application application) {
         super(application); // SỬA LỖI 1: Gọi super constructor của AndroidViewModel
         this.listingRepository = new ListingRepository();
@@ -55,6 +54,7 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
         // SỬA LỖI 1: Lấy context từ application được truyền vào
         this.fusedLocationClient = LocationServices.getFusedLocationProviderClient(application);
 
+        // Mediator sẽ lắng nghe cả 2 nguồn dữ liệu
         prioritizedRecentListings.addSource(userLocation, location ->
                 combineAndSortListings(location, recentListings.getValue())
         );
@@ -71,13 +71,11 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
 
     @SuppressLint("MissingPermission")
     private void fetchUserLocation() {
-        // Quyền đã được kiểm tra ở Fragment, ở đây chỉ cần gọi
-        fusedLocationClient.getLastLocation()
-                .addOnSuccessListener(location -> {
-                    if (location != null) {
-                        userLocation.setValue(location);
-                    }
-                });
+        fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+            if (location != null) {
+                userLocation.setValue(location);
+            }
+        });
     }
 
     private void combineAndSortListings(Location location, List<Listing> listings) {
@@ -88,22 +86,15 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
 
         List<Listing> listToSort = new ArrayList<>(listings);
 
-        if (location == null) {
-            // Nếu chưa có vị trí, chỉ cần hiển thị danh sách gốc
-            prioritizedRecentListings.setValue(listToSort);
-            return;
+        if (location != null) {
+            final GeoLocation center = new GeoLocation(location.getLatitude(), location.getLongitude());
+            listToSort.sort(Comparator.comparingDouble(listing -> {
+                if (listing.getLatitude() != 0 && listing.getLongitude() != 0) {
+                    return GeoFireUtils.getDistanceBetween(new GeoLocation(listing.getLatitude(), listing.getLongitude()), center);
+                }
+                return Double.MAX_VALUE; // Đẩy các tin không có vị trí xuống cuối
+            }));
         }
-
-        // Nếu có vị trí, tính toán khoảng cách và sắp xếp
-        final GeoLocation center = new GeoLocation(location.getLatitude(), location.getLongitude());
-
-        // SỬA LỖI 3: Dùng List.sort thay vì Collections.sort
-        listToSort.sort(Comparator.comparingDouble(listing -> {
-            if (listing.getLatitude() != 0 && listing.getLongitude() != 0) {
-                return GeoFireUtils.getDistanceBetween(new GeoLocation(listing.getLatitude(), listing.getLongitude()), center);
-            }
-            return Double.MAX_VALUE; // Đẩy các item không có vị trí xuống cuối
-        }));
 
         prioritizedRecentListings.setValue(listToSort);
     }
@@ -133,8 +124,9 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
         return recommendations;
     }
 
+    // Lấy prioritizedRecentListings thay vì recentListings
     public LiveData<List<Listing>> getListings() {
-        return recentListings;
+        return prioritizedRecentListings;
     }
 
     public LiveData<Boolean> getIsLoading() {

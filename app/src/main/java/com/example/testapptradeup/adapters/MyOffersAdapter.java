@@ -5,6 +5,7 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -23,8 +24,15 @@ import java.util.Locale;
 
 public class MyOffersAdapter extends ListAdapter<OfferWithListing, MyOffersAdapter.MyOfferViewHolder> {
 
-    public MyOffersAdapter() {
+    public interface OnOfferInteractionListener {
+        void onPayNowClick(OfferWithListing item);
+    }
+
+    private final OnOfferInteractionListener listener;
+
+    public MyOffersAdapter(OnOfferInteractionListener listener) {
         super(DIFF_CALLBACK);
+        this.listener = listener;
     }
 
     @NonNull
@@ -36,12 +44,13 @@ public class MyOffersAdapter extends ListAdapter<OfferWithListing, MyOffersAdapt
 
     @Override
     public void onBindViewHolder(@NonNull MyOfferViewHolder holder, int position) {
-        holder.bind(getItem(position));
+        holder.bind(getItem(position), listener);
     }
 
     static class MyOfferViewHolder extends RecyclerView.ViewHolder {
         ImageView listingImage;
         TextView listingTitle, offerPrice, offerStatus;
+        Button btnPayNow;
 
         public MyOfferViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -49,10 +58,11 @@ public class MyOffersAdapter extends ListAdapter<OfferWithListing, MyOffersAdapt
             listingTitle = itemView.findViewById(R.id.listing_title);
             offerPrice = itemView.findViewById(R.id.offer_price);
             offerStatus = itemView.findViewById(R.id.offer_status);
+            btnPayNow = itemView.findViewById(R.id.btn_pay_now);
         }
 
         @SuppressLint("SetTextI18n")
-        public void bind(OfferWithListing item) {
+        public void bind(OfferWithListing item, final OnOfferInteractionListener listener) {
             Context context = itemView.getContext();
 
             // Lấy thông tin từ Listing
@@ -70,20 +80,23 @@ public class MyOffersAdapter extends ListAdapter<OfferWithListing, MyOffersAdapt
                 NumberFormat format = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
                 offerPrice.setText("Đề nghị: " + format.format(item.getOffer().getOfferPrice()));
 
-                // Cập nhật trạng thái
                 switch (item.getOffer().getStatus()) {
                     case "accepted":
-                        offerStatus.setText("Đã chấp nhận");
+                        offerStatus.setText("Đã được chấp nhận");
                         offerStatus.setTextColor(ContextCompat.getColor(context, R.color.success));
+                        btnPayNow.setVisibility(View.VISIBLE); // Hiển thị nút thanh toán
+                        btnPayNow.setOnClickListener(v -> listener.onPayNowClick(item));
                         break;
                     case "rejected":
                         offerStatus.setText("Đã từ chối");
                         offerStatus.setTextColor(ContextCompat.getColor(context, R.color.red_error));
+                        btnPayNow.setVisibility(View.GONE); // Ẩn nút thanh toán
                         break;
                     case "pending":
                     default:
                         offerStatus.setText("Đang chờ");
                         offerStatus.setTextColor(ContextCompat.getColor(context, R.color.warning));
+                        btnPayNow.setVisibility(View.GONE); // Ẩn nút thanh toán
                         break;
                 }
             }

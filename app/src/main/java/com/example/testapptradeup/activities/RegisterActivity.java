@@ -118,8 +118,9 @@ public class RegisterActivity extends AppCompatActivity {
                         }
                     } else {
                         showLoading(false);
+                        // Lỗi sẽ được xử lý ở đây
                         String errorMessage = getFirebaseErrorMessage(task.getException());
-                        Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_LONG).show(); // Dùng LONG để người dùng đọc kịp
                     }
                 });
     }
@@ -282,13 +283,25 @@ public class RegisterActivity extends AppCompatActivity {
     private String getFirebaseErrorMessage(Exception exception) {
         String defaultMessage = "Đăng ký thất bại. Vui lòng thử lại.";
         if (exception == null) return defaultMessage;
-        String error = exception.getMessage();
-        if (error == null) return defaultMessage;
 
-        if (error.contains("email address is already in use")) {
-            return "Email đã được sử dụng";
+        String errorCode = "";
+        // FirebaseAuthException cung cấp mã lỗi cụ thể hơn
+        if (exception instanceof com.google.firebase.auth.FirebaseAuthUserCollisionException) {
+            errorCode = ((com.google.firebase.auth.FirebaseAuthUserCollisionException) exception).getErrorCode();
         }
-        // ... thêm các mã lỗi khác nếu cần
+
+        // Kiểm tra mã lỗi cụ thể
+        if ("ERROR_EMAIL_ALREADY_IN_USE".equals(errorCode)) {
+            return "Địa chỉ email này đã được sử dụng bởi một tài khoản khác.";
+        }
+
+        // Bạn có thể thêm các trường hợp lỗi khác ở đây
+        // Ví dụ:
+        if ("ERROR_WEAK_PASSWORD".equals(errorCode)) {
+            return "Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn.";
+        }
+
+        // Trả về thông báo mặc định nếu không khớp mã lỗi nào
         return defaultMessage;
     }
 

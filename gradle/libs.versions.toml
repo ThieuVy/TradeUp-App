@@ -6,6 +6,7 @@ firebaseAnalytics = "22.4.0"
 firebaseAuthKtx = "23.2.1"
 firebaseBom = "33.16.0"
 firebaseFunctions = "21.2.1"
+geofireAndroid = "3.2.0"
 glide = "4.16.0"
 gson = "2.10.1"
 identityCredentialBinding = "1.2.0"
@@ -31,6 +32,7 @@ navigationUi = "2.9.0"
 playServicesAuth = "21.3.0"
 playServicesLocation = "21.3.0"
 firebaseFirestore = "25.1.4"
+playServicesLocationVersion = "21.2.0"
 recyclerview = "1.4.0"
 stripeAndroid = "21.17.0"
 swiperefreshlayout = "1.1.0"
@@ -47,6 +49,7 @@ firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "fir
 firebase-functions = { module = "com.google.firebase:firebase-functions", version.ref = "firebaseFunctions" }
 firebase-messaging = { module = "'com.google.firebase:firebase-messaging" }
 firebase-storage = { module = "com.google.firebase:firebase-storage" }
+geofire-android = { module = "com.firebase:geofire-android", version.ref = "geofireAndroid" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 google-firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 google-firebase-auth = { module = "com.google.firebase:firebase-auth" }
@@ -76,6 +79,7 @@ navigation-ui = { group = "androidx.navigation", name = "navigation-ui", version
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
+play-services-location-v2120 = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocationVersion" }
 recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
 stripe-android = { module = "com.stripe:stripe-android", version.ref = "stripeAndroid" }
 swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }

@@ -26,10 +26,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     private static final String TAG = "MyFirebaseMsgService";
     private static final String CHANNEL_ID = "tradeup_chat_channel";
 
-    /**
-     * Được gọi khi có tin nhắn mới.
-     * @param remoteMessage Đối tượng chứa thông tin tin nhắn.
-     */
     @Override
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
@@ -43,44 +39,27 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             Log.d(TAG, "Message Notification Title: " + title);
             Log.d(TAG, "Message Notification Body: " + body);
 
+            // Hiển thị thông báo lên thanh trạng thái
             sendNotification(title, body);
-        }
-
-        // Kiểm tra xem tin nhắn có chứa payload data không.
-        if (!remoteMessage.getData().isEmpty()) {
-            Log.d(TAG, "Message data payload: " + remoteMessage.getData());
-            // TODO: Xử lý payload data ở đây nếu cần (ví dụ: cập nhật UI trong ứng dụng)
         }
     }
 
-    /**
-     * Được gọi khi FCM cấp một token mới hoặc token hiện tại được làm mới.
-     * @param token Token mới.
-     */
     @Override
     public void onNewToken(@NonNull String token) {
         Log.d(TAG, "Refreshed token: " + token);
+        // Gửi token mới lên Firestore
         sendTokenToServer(token);
     }
 
-    /**
-     * Gửi token lên server để lưu vào Firestore.
-     * @param token Token cần gửi.
-     */
     private void sendTokenToServer(String token) {
         String userId = FirebaseAuth.getInstance().getUid();
         if (userId != null) {
+            // Cần có một repository để xử lý việc cập nhật
             new UserRepository().updateFcmToken(userId, token);
         }
     }
 
-    /**
-     * Tạo và hiển thị một thông báo đơn giản.
-     * @param title Tiêu đề thông báo.
-     * @param messageBody Nội dung thông báo.
-     */
     private void sendNotification(String title, String messageBody) {
-        // Tạo Intent để mở MainActivity khi người dùng nhấn vào thông báo
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent,
@@ -90,28 +69,22 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.ic_chat) // Icon nhỏ trên status bar
+                        .setSmallIcon(R.drawable.ic_notifications) // Nên tạo một icon riêng cho notification
                         .setContentTitle(title)
                         .setContentText(messageBody)
-                        .setAutoCancel(true) // Tự động xóa thông báo khi nhấn vào
+                        .setAutoCancel(true)
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setContentIntent(pendingIntent);
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
-        // Kiểm tra quyền POST_NOTIFICATIONS trước khi hiển thị (bắt buộc cho Android 13+)
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             Log.w(TAG, "Quyền POST_NOTIFICATIONS chưa được cấp. Thông báo sẽ không hiển thị trên Android 13+.");
-            // Trên thực tế, bạn cần yêu cầu quyền này trong Activity/Fragment.
             return;
         }
-
         notificationManager.notify((int) System.currentTimeMillis(), notificationBuilder.build());
     }
 
-    /**
-     * Tạo Notification Channel, cần thiết cho Android 8.0 (API 26) trở lên.
-     */
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = getString(R.string.fcm_channel_name);

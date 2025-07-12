@@ -111,6 +111,7 @@ exports.permanentlyDeleteUserAccount = functions.https.onCall(
             await db.collection("users").doc(uid).delete();
             console.log("Đã xóa dữ liệu người dùng khỏi Firestore:", uid);
 
+            // === BẮT ĐẦU PHẦN SỬA LỖI ===
             // Bước 3: Xóa tất cả bài đăng của người dùng
             const listingsQuery = db.collection("listings").where("sellerId", "==", uid);
             const listingsSnapshot = await listingsQuery.get();
@@ -123,8 +124,9 @@ exports.permanentlyDeleteUserAccount = functions.https.onCall(
                 await batch.commit();
                 console.log(`Đã xóa ${listingsSnapshot.size} bài đăng cho người dùng:`, uid);
             } else {
-                console.log(`Không có bài đăng nào cho người dùng:`, uid);
+                console.log(`Không có bài đăng nào để xóa cho người dùng:`, uid);
             }
+            // === KẾT THÚC PHẦN SỬA LỖI ===
 
             // TODO: (Tùy chọn nâng cao) Thêm logic để xóa đánh giá, lời đề nghị, trò chuyện,... của người dùng
 

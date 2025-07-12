@@ -8,7 +8,6 @@
     android:background="@color/white"
     tools:context=".fragments.ProductDetailFragment">
 
-    <!-- AppBarLayout và CollapsingToolbarLayout không thay đổi, đã đúng -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar"
         android:layout_width="match_parent"
@@ -27,17 +26,32 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
-                android:contentDescription="Ảnh sản phẩm"
                 app:layout_collapseMode="parallax"
                 tools:src="@drawable/img"
-                tools:ignore="HardcodedText" />
+                tools:ignore="ContentDescription" />
 
             <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 app:layout_collapseMode="pin"
-                app:navigationIcon="@drawable/ic_arrow_back" />
+                app:navigationIcon="@drawable/ic_arrow_back">
+
+                <!-- ==== BẮT ĐẦU THÊM MỚI TẠI ĐÂY ==== -->
+                <ImageView
+                    android:id="@+id/btn_more_options"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Tùy chọn khác"
+                    android:padding="16dp"
+                    android:src="@drawable/ic_more_vertical"
+                    app:tint="@color/white"
+                    tools:ignore="HardcodedText,ImageContrastCheck" />
+                <!-- ==== KẾT THÚC THÊM MỚI ==== -->
+
+            </com.google.android.material.appbar.MaterialToolbar>
 
         </com.google.android.material.appbar.CollapsingToolbarLayout>
     </com.google.android.material.appbar.AppBarLayout>
@@ -82,7 +96,8 @@
                 android:layout_marginTop="16dp"
                 android:lineSpacingExtra="4dp"
                 android:textColor="@color/text_secondary"
-                tools:text="Đây là phần mô tả chi tiết của sản phẩm... lặp đi lặp lại để có thể cuộn được. Đây là phần mô tả chi tiết của sản phẩm... lặp đi lặp lại để có thể cuộn được. Đây là phần mô tả chi tiết của sản phẩm... lặp đi lặp lại để có thể cuộn được."/>
+                tools:text="Đây là phần mô tả chi tiết của sản phẩm... lặp đi lặp lại để có thể cuộn được. Đây là phần mô tả chi tiết của sản phẩm... lặp đi lặp lại để có thể cuộn được. Đây là phần mô tả chi tiết của sản phẩm... lặp đi lặp lại để có thể cuộn được."
+                tools:ignore="VisualLintLongText" />
 
             <!-- Thêm các phần khác nếu cần -->
 

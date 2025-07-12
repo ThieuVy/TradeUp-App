@@ -116,24 +116,14 @@ public class HomeFragment extends Fragment {
     }
 
     private void observeViewModel() {
-        viewModel.getFeaturedItems().observe(getViewLifecycleOwner(), listings -> {
-            // Cập nhật adapter cho featured items
-            featuredAdapter.submitList(listings);
-        });
+        viewModel.getFeaturedItems().observe(getViewLifecycleOwner(), listings -> featuredAdapter.submitList(listings));
 
-        viewModel.getRecommendations().observe(getViewLifecycleOwner(), listings -> {
-            // Cập nhật adapter cho recommendations
-            recommendationsAdapter.submitList(listings);
-        });
+        viewModel.getRecommendations().observe(getViewLifecycleOwner(), listings -> recommendationsAdapter.submitList(listings));
 
-        viewModel.getListings().observe(getViewLifecycleOwner(), listings -> {
-            // Cập nhật adapter cho recent listings
-            recentListingsAdapter.submitList(listings);
-        });
+        viewModel.getListings().observe(getViewLifecycleOwner(), listings -> recentListingsAdapter.submitList(listings));
 
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
-            // Hiển thị hoặc ẩn ProgressBar/Shimmer effect
-            // binding.swipeRefreshLayout.setRefreshing(isLoading);
+            // Handle loading state
         });
 
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
@@ -153,23 +143,18 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    // ================== START: SỬA LỖI THEO TASK 2 ==================
     private void navigateToProductDetail(Listing listing) {
         if (navController != null && listing != null && listing.getId() != null) {
-            // Sử dụng lớp Directions được tạo tự động để đảm bảo type-safety
             HomeFragmentDirections.ActionHomeToProductDetail action =
                     HomeFragmentDirections.actionHomeToProductDetail(listing.getId());
             navController.navigate(action);
         } else {
-            // Log lỗi nếu listing hoặc ID của nó bị null để dễ dàng debug
-            Log.e("HomeFragment", "Không thể điều hướng: listing hoặc listing ID là null.");
+            Log.e("HomeFragment", "Cannot navigate: listing or listing ID is null.");
             Toast.makeText(getContext(), "Không thể mở chi tiết sản phẩm.", Toast.LENGTH_SHORT).show();
         }
     }
-    // =================== END: SỬA LỖI THEO TASK 2 ===================
 
     private void onFavoriteClick(Listing listing) {
-        // TODO: Xử lý logic yêu thích thông qua ViewModel
         Toast.makeText(getContext(), "Yêu thích: " + listing.getTitle(), Toast.LENGTH_SHORT).show();
     }
 
@@ -188,6 +173,6 @@ public class HomeFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding = null; // Tránh memory leak
+        binding = null;
     }
 }

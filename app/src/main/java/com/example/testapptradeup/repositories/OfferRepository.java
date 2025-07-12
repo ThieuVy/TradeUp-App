@@ -84,7 +84,7 @@ public class OfferRepository {
     }
 
     /**
-     * SỬA ĐỔI: Chấp nhận một đề nghị và TẠO MỘT GIAO DỊCH (TRANSACTION).
+     * SỬA LỖI BUG-002: Chấp nhận một đề nghị và tạo một giao dịch bằng WriteBatch.
      * @param offer Đề nghị được chấp nhận.
      * @param listing Tin đăng liên quan.
      * @return LiveData báo hiệu thành công/thất bại.
@@ -92,32 +92,35 @@ public class OfferRepository {
     public LiveData<Boolean> acceptOffer(Offer offer, Listing listing) {
         MutableLiveData<Boolean> success = new MutableLiveData<>();
 
+        // 1. Truy vấn tất cả các offer khác của tin đăng này để từ chối chúng.
         offersCollection.whereEqualTo("listingId", offer.getListingId())
                 .get()
                 .addOnSuccessListener(otherOffersSnapshot -> {
                     WriteBatch batch = db.batch();
 
-                    // --- 1. Cập nhật offer được chấp nhận ---
+                    // 1. Cập nhật trạng thái offer
                     DocumentReference acceptedOfferRef = offersCollection.document(offer.getId());
-                    batch.update(acceptedOfferRef, "status", "accepted");
+                    batch.update(acceptedOfferRef, "status", "accepted"); // Giữ nguyên
 
-                    // --- 2. Cập nhật tin đăng thành "sold" và isSold=true ---
+                    // 2. Cập nhật tin đăng thành "pending_payment" thay vì "sold"
                     DocumentReference listingRef = listingsCollection.document(listing.getId());
-                    batch.update(listingRef, "status", "sold", "isSold", true);
+                    // THAY ĐỔI DÒNG NÀY:
+                    batch.update(listingRef, "status", "pending_payment");
+                    // BỎ CÁC DÒNG NÀY:
+                    // batch.update(listingRef, "status", "sold", "isSold", true);
+                    // DocumentReference transactionRef = transactionsCollection.document();
+                    // Transaction newTransaction = createTransactionFromOffer(offer, listing, transactionRef);
+                    // batch.set(transactionRef, newTransaction);
 
-                    // --- 3. TẠO MỘT DOCUMENT GIAO DỊCH MỚI ---
-                    DocumentReference transactionRef = transactionsCollection.document();
-                    Transaction newTransaction = createTransactionFromOffer(offer, listing, transactionRef);
-                    batch.set(transactionRef, newTransaction);
-
-                    // --- 4. Từ chối tất cả các offer khác ---
+                    // 3. Từ chối các offer khác (giữ nguyên)
                     for (QueryDocumentSnapshot doc : otherOffersSnapshot) {
                         if (!doc.getId().equals(offer.getId())) {
                             batch.update(doc.getReference(), "status", "rejected");
                         }
                     }
 
-                    // --- 5. Commit toàn bộ batch ---
+
+                    // 6. Thực thi tất cả các thao tác trong một lần
                     batch.commit().addOnSuccessListener(aVoid -> {
                         Log.d(TAG, "Chấp nhận offer và tạo giao dịch thành công.");
                         success.setValue(true);
@@ -209,7 +212,7 @@ public class OfferRepository {
         newTransaction.setFinalPrice(offer.getOfferPrice());
         newTransaction.setSellerReviewed(false); // Mặc định là chưa đánh giá
         newTransaction.setBuyerReviewed(false);  // Mặc định là chưa đánh giá
-        // transactionDate sẽ được tự động gán bởi @ServerTimestamp
+        // transactionDate sẽ được tự động gán bởi @ServerTimestamp trên model
         return newTransaction;
     }
 

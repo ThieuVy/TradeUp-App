@@ -144,8 +144,8 @@ public class PostFragment extends Fragment {
     }
 
     private void setupListeners() {
-        btnPostListing.setOnClickListener(v -> postListing(false));
-        btnPreview.setOnClickListener(v -> postListing(true)); // Sửa ở đây
+        btnPostListing.setOnClickListener(v -> postListing());
+        btnPreview.setOnClickListener(v -> showPreview());
         btnSaveDraft.setOnClickListener(v -> Toast.makeText(getContext(), "Chức năng đang phát triển", Toast.LENGTH_SHORT).show());
         tvUseCurrentLocation.setOnClickListener(v -> requestLocation());
 
@@ -183,7 +183,7 @@ public class PostFragment extends Fragment {
         });
     }
 
-    private void postListing(boolean isPreview) {
+    private void postListing() {
         if (!validateAllFields()) {
             return;
         }
@@ -198,18 +198,9 @@ public class PostFragment extends Fragment {
 
         Listing listing = buildListingFromUI(currentUser, currentUserId);
 
-        if (isPreview) {
-            // Chuyển sang màn hình xem trước
-            // PostFragmentDirections.ActionPostFragmentToProductDetailFragment action =
-            // PostFragmentDirections.actionPostFragmentToProductDetailFragment(listing);
-            // navController.navigate(action);
-            Toast.makeText(getContext(), "Chức năng xem trước đang phát triển", Toast.LENGTH_SHORT).show();
-
-        } else {
-            // Bắt đầu quá trình đăng tin
-            Log.d("PostFragment", "Bắt đầu quá trình đăng tin...");
-            viewModel.postListing(listing);
-        }
+        // Bắt đầu quá trình đăng tin
+        Log.d("PostFragment", "Bắt đầu quá trình đăng tin...");
+        viewModel.postListing(listing);
     }
 
     // ========== HÀM ĐÃ ĐƯỢC SỬA LỖI ==========
@@ -230,18 +221,23 @@ public class PostFragment extends Fragment {
         listing.setSold(false);
         listing.setNegotiable(true);
 
-        // <<< BẮT ĐẦU SỬA LỖI >>>
         // 1. Lấy chuỗi địa chỉ từ EditText và lưu vào một biến.
         String locationString = Objects.requireNonNull(etLocation.getText()).toString().trim();
         // 2. Gán chuỗi địa chỉ này cho đối tượng listing.
         listing.setLocation(locationString);
         // 3. Sử dụng biến đã lưu để gọi hàm updateCoordinatesFromLocation.
         updateCoordinatesFromLocation(locationString);
-        // <<< KẾT THÚC SỬA LỖI >>>
+
+        // Cập nhật tọa độ từ địa chỉ nhập tay (nếu chưa có từ GPS)
+        if (listingLatitude == 0.0 && listingLongitude == 0.0) {
+            updateCoordinatesFromLocation(locationString);
+        }
 
         listing.setLatitude(listingLatitude);
         listing.setLongitude(listingLongitude);
-        if(listingLatitude != 0.0 && listingLongitude != 0.0) {
+
+        // Tính và gán geohash nếu có tọa độ
+        if (listingLatitude != 0.0 && listingLongitude != 0.0) {
             String hash = GeoFireUtils.getGeoHashForLocation(new GeoLocation(listingLatitude, listingLongitude));
             listing.setGeohash(hash);
         }
@@ -262,9 +258,28 @@ public class PostFragment extends Fragment {
     }
 
     private void showPreview() {
-        if (validateAllFields()) {
-            Toast.makeText(getContext(), "Chức năng xem trước đang phát triển", Toast.LENGTH_SHORT).show();
+        // Validate các trường trước khi xem trước
+        if (!validateAllFields()) {
+            return;
         }
+
+        // Lấy thông tin người dùng hiện tại
+        User currentUser = prefsHelper.getCurrentUser();
+        String currentUserId = (FirebaseAuth.getInstance().getCurrentUser() != null) ? FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
+
+        if (currentUser == null || currentUserId == null) {
+            Toast.makeText(getContext(), "Lỗi: Phiên đăng nhập không hợp lệ.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Tạo đối tượng Listing từ UI
+        Listing listingToPreview = buildListingFromUI(currentUser, currentUserId);
+
+        // Sử dụng action đã tạo để điều hướng và truyền đối tượng
+        PostFragmentDirections.ActionPostFragmentToProductDetailFragment action =
+                PostFragmentDirections.actionPostFragmentToProductDetailFragment();
+        action.setListingPreview(listingToPreview); // Gán đối tượng vào action
+        navController.navigate(action);
     }
 
     private void addTagToGroup(String tagText) {
@@ -298,6 +313,7 @@ public class PostFragment extends Fragment {
         if (requireContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             getCurrentLocation();
         } else {
+            // Yêu cầu quyền
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
         }
     }
@@ -309,11 +325,9 @@ public class PostFragment extends Fragment {
             List<Address> addresses = geocoder.getFromLocationName(locationString, 1);
             if (addresses != null && !addresses.isEmpty()) {
                 Address address = addresses.get(0);
-                listingLatitude = address.getLatitude();
-                listingLongitude = address.getLongitude();
+                this.listingLatitude = address.getLatitude();
+                this.listingLongitude = address.getLongitude();
                 Log.d("PostFragment", "Geocoded: " + locationString + " -> lat: " + listingLatitude + ", lon: " + listingLongitude);
-            } else {
-                Log.w("PostFragment", "Không tìm thấy tọa độ cho địa chỉ: " + locationString);
             }
         } catch (IOException e) {
             Log.e("PostFragment", "Lỗi Geocoding", e);
@@ -322,28 +336,25 @@ public class PostFragment extends Fragment {
 
     @SuppressLint("MissingPermission")
     private void getCurrentLocation() {
-        fusedLocationClient.getLastLocation()
-                .addOnSuccessListener(location -> {
-                    if (location != null) {
-                        // === SỬA ĐỔI: Lưu lại tọa độ ===
-                        listingLatitude = location.getLatitude();
-                        listingLongitude = location.getLongitude();
-                        // ============================
-                        try {
-                            Geocoder geocoder = new Geocoder(requireContext(), Locale.getDefault());
-                            List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-                            if (addresses != null && !addresses.isEmpty()) {
-                                String address = addresses.get(0).getAddressLine(0);
-                                etLocation.setText(address);
-                                Toast.makeText(getContext(), "Đã cập nhật vị trí", Toast.LENGTH_SHORT).show();
-                            }
-                        } catch (IOException e) {
-                            Toast.makeText(getContext(), "Lỗi lấy địa chỉ", Toast.LENGTH_SHORT).show();
-                        }
-                    } else {
-                        Toast.makeText(getContext(), "Không thể lấy vị trí. Vui lòng bật GPS.", Toast.LENGTH_SHORT).show();
+        fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+            if (location != null) {
+                this.listingLatitude = location.getLatitude();
+                this.listingLongitude = location.getLongitude();
+                // Chuyển tọa độ thành địa chỉ để hiển thị cho người dùng
+                try {
+                    Geocoder geocoder = new Geocoder(requireContext(), Locale.getDefault());
+                    List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+                    if (addresses != null && !addresses.isEmpty()) {
+                        etLocation.setText(addresses.get(0).getAddressLine(0));
+                        Toast.makeText(getContext(), "Đã cập nhật vị trí", Toast.LENGTH_SHORT).show();
                     }
-                });
+                } catch (IOException e) {
+                    Toast.makeText(getContext(), "Lỗi lấy địa chỉ", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(getContext(), "Không thể lấy vị trí. Vui lòng bật GPS.", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void showImagePicker() {

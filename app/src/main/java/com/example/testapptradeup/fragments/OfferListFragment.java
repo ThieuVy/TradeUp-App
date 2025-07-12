@@ -115,17 +115,16 @@ public class OfferListFragment extends Fragment implements OffersAdapter.OnOffer
             }
         });
 
-        // Sửa đổi: Lắng nghe ActionStatus để hiển thị thông báo
         viewModel.getActionStatus().observe(getViewLifecycleOwner(), status -> {
             if (status != null) {
                 Toast.makeText(getContext(), status.message, Toast.LENGTH_SHORT).show();
                 if (status.isSuccess) {
-                    // Nếu là chấp nhận, quay lại màn hình trước. Nếu là từ chối, danh sách sẽ tự cập nhật.
+                    // Nếu chấp nhận thành công, quay về màn hình trước
                     if (status.message.contains("chấp nhận")) {
                         navController.popBackStack();
                     }
                 }
-                viewModel.clearActionStatus(); // Reset trạng thái
+                viewModel.clearActionStatus(); // Reset trạng thái để không hiển thị lại
             }
         });
     }
@@ -149,7 +148,7 @@ public class OfferListFragment extends Fragment implements OffersAdapter.OnOffer
     public void onAccept(Offer offer) {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Xác nhận chấp nhận")
-                .setMessage("Bạn có chắc chắn muốn chấp nhận đề nghị này? Tin đăng sẽ được đánh dấu là 'Đã bán' và các đề nghị khác sẽ bị từ chối.")
+                .setMessage("Bạn có chắc chắn muốn chấp nhận đề nghị này? Tin đăng sẽ được đánh dấu là 'Đã bán'.")
                 .setPositiveButton("Chấp nhận", (dialog, which) -> viewModel.acceptOffer(offer, currentListing))
                 .setNegativeButton("Hủy", null)
                 .show();
@@ -167,8 +166,9 @@ public class OfferListFragment extends Fragment implements OffersAdapter.OnOffer
 
     @Override
     public void onCounter(Offer offer) {
-        // Tạm thời hiển thị Toast, luồng chính là nút Chat
+        // Luồng đơn giản nhất cho "Counter Offer" là bắt đầu một cuộc trò chuyện.
         Toast.makeText(getContext(), "Vui lòng sử dụng chức năng Chat để thương lượng giá.", Toast.LENGTH_LONG).show();
+        onChat(offer);
     }
 
     @Override

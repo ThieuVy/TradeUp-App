@@ -86,7 +86,7 @@ dependencies {
     implementation (libs.lifecycle.process)
 
     implementation(libs.google.firebase.messaging)
-    implementation ("com.firebase:geofire-android:3.2.0")
+    implementation (libs.geofire.android)
 }
 configurations.all {
     exclude(group = "xpp3", module = "xpp3")

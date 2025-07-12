@@ -15,6 +15,7 @@ import com.firebase.geofire.GeoQueryBounds;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldPath;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ListingRepository {
@@ -58,6 +60,9 @@ public class ListingRepository {
             }
         };
 
+        // Mỗi tác vụ bất đồng bộ đều có onCompleteListener gọi onTaskCompleted.run()
+        // và onFailureListener để set _errorMessage
+        // Ví dụ:
         db.collection("listings")
                 .whereEqualTo("isFeatured", true).whereEqualTo("status", "available").limit(5)
                 .get()
@@ -66,7 +71,9 @@ public class ListingRepository {
                 .addOnCompleteListener(task -> onTaskCompleted.run());
 
         db.collection("listings")
-                .whereEqualTo("status", "available").orderBy("views", Query.Direction.DESCENDING).limit(4)
+                .whereEqualTo("status", "available")
+                .orderBy("views", Query.Direction.DESCENDING) // Sắp xếp theo lượt xem giảm dần
+                .limit(4)
                 .get()
                 .addOnSuccessListener(result -> recommendedListingsData.setValue(result.toObjects(Listing.class)))
                 .addOnFailureListener(e -> _errorMessage.setValue("Lỗi tải mục Đề xuất"))
@@ -180,7 +187,6 @@ public class ListingRepository {
         final GeoLocation center = new GeoLocation(params.getUserLocation().getLatitude(), params.getUserLocation().getLongitude());
         final double radiusInM = params.getMaxDistance() * 1000.0;
 
-        // <<< SỬA LỖI Ở ĐÂY: Thay đổi tên phương thức >>>
         List<GeoQueryBounds> bounds = GeoFireUtils.getGeoHashQueryBounds(center, radiusInM);
         final List<Task<QuerySnapshot>> tasks = new ArrayList<>();
 
@@ -208,6 +214,7 @@ public class ListingRepository {
                     if (listing != null && listing.getLatitude() != 0 && listing.getLongitude() != 0) {
                         listing.setId(doc.getId());
                         GeoLocation docLocation = new GeoLocation(listing.getLatitude(), listing.getLongitude());
+                        // Lọc lại chính xác theo bán kính vì GeoHash chỉ là gần đúng
                         double distanceInM = GeoFireUtils.getDistanceBetween(docLocation, center);
                         if (distanceInM <= radiusInM) {
                             matchingDocs.add(listing);
@@ -229,6 +236,7 @@ public class ListingRepository {
                     GeoFireUtils.getDistanceBetween(new GeoLocation(l.getLatitude(), l.getLongitude()), center)
             ));
 
+            // TODO: Sắp xếp và phân trang ở client nếu cần
             resultLiveData.setValue(new PagedResult<>(matchingDocs, null, null));
 
         }).addOnFailureListener(e -> {
@@ -256,5 +264,139 @@ public class ListingRepository {
         db.collection("listings").document(listingId)
                 .update("views", FieldValue.increment(1))
                 .addOnFailureListener(e -> Log.w(TAG, "Lỗi khi tăng lượt xem cho tin đăng: " + listingId, e));
+    }
+
+    /**
+     * Lấy thông tin chi tiết của một tin đăng bằng ID.
+     */
+    public LiveData<Listing> getListingById(String listingId) {
+        MutableLiveData<Listing> listingData = new MutableLiveData<>();
+        if (listingId == null || listingId.isEmpty()) {
+            listingData.setValue(null);
+            return listingData;
+        }
+        db.collection("listings").document(listingId)
+                .addSnapshotListener((snapshot, error) -> { // Dùng addSnapshotListener để tự cập nhật
+                    if (error != null) {
+                        Log.e(TAG, "Lỗi khi lấy chi tiết tin đăng: ", error);
+                        listingData.setValue(null);
+                        return;
+                    }
+                    if (snapshot != null && snapshot.exists()) {
+                        Listing listing = snapshot.toObject(Listing.class);
+                        if (listing != null) {
+                            listing.setId(snapshot.getId());
+                            listingData.setValue(listing);
+                        }
+                    } else {
+                        listingData.setValue(null);
+                    }
+                });
+        return listingData;
+    }
+    /**
+     * Lấy danh sách các tin đăng dựa trên một danh sách các ID.
+     * Cần thiết cho tính năng "Yêu thích".
+     */
+    public LiveData<List<Listing>> getListingsByIds(List<String> ids) {
+        MutableLiveData<List<Listing>> listingsData = new MutableLiveData<>();
+        if (ids == null || ids.isEmpty()) {
+            listingsData.setValue(new ArrayList<>());
+            return listingsData;
+        }
+        db.collection("listings").whereIn(FieldPath.documentId(), ids).get()
+                .addOnSuccessListener(queryDocumentSnapshots -> listingsData.setValue(queryDocumentSnapshots.toObjects(Listing.class)))
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi khi lấy danh sách tin đăng bằng IDs: ", e);
+                    listingsData.setValue(null);
+                });
+        return listingsData;
+    }
+    /**
+     * Lấy các tin đăng đang hoạt động của một người dùng cụ thể, có giới hạn số lượng.
+     */
+    public LiveData<List<Listing>> getActiveListingsByUser(String userId, int limit) {
+        MutableLiveData<List<Listing>> data = new MutableLiveData<>();
+        db.collection("listings")
+                .whereEqualTo("sellerId", userId)
+                .whereEqualTo("status", "available")
+                .orderBy("timePosted", Query.Direction.DESCENDING)
+                .limit(limit)
+                .get()
+                .addOnSuccessListener(snapshots -> data.setValue(snapshots.toObjects(Listing.class)))
+                .addOnFailureListener(e -> data.setValue(Collections.emptyList()));
+        return data;
+    }
+
+    /**
+     * Lấy danh sách tin đăng của tôi (có phân trang).
+     */
+    public LiveData<PagedResult<Listing>> getMyListings(String userId, @Nullable DocumentSnapshot lastVisible) {
+        MutableLiveData<PagedResult<Listing>> resultLiveData = new MutableLiveData<>();
+        Query query = db.collection("listings")
+                .whereEqualTo("sellerId", userId)
+                .orderBy("timePosted", Query.Direction.DESCENDING);
+
+        if (lastVisible != null) {
+            query = query.startAfter(lastVisible);
+        }
+
+        query.limit(PAGE_SIZE).get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Listing> listings = new ArrayList<>();
+                    DocumentSnapshot newLastVisible = null;
+                    if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
+                        newLastVisible = queryDocumentSnapshots.getDocuments().get(queryDocumentSnapshots.size() - 1);
+                        for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                            Listing listing = doc.toObject(Listing.class);
+                            listing.setId(doc.getId()); // Quan trọng: set ID cho listing
+                            listings.add(listing);
+                        }
+                    }
+                    resultLiveData.setValue(new PagedResult<>(listings, newLastVisible, null));
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi khi tải tin đăng của tôi: ", e);
+                    // Cung cấp một PagedResult rỗng với lỗi để UI có thể xử lý
+                    resultLiveData.setValue(new PagedResult<>(Collections.emptyList(), null, e));
+                });
+
+        return resultLiveData;
+    }
+    /**
+     * Xóa một tin đăng.
+     */
+    public LiveData<Boolean> deleteListing(String listingId) {
+        MutableLiveData<Boolean> status = new MutableLiveData<>();
+        db.collection("listings").document(listingId).delete()
+                .addOnSuccessListener(aVoid -> status.setValue(true))
+                .addOnFailureListener(e -> status.setValue(false));
+        return status;
+    }
+
+    /**
+     * Lấy danh sách tin đăng theo bộ lọc.
+     */
+    public LiveData<List<Listing>> getListingsByFilter(String filterType, @Nullable String categoryId) {
+        MutableLiveData<List<Listing>> data = new MutableLiveData<>();
+        Query query = db.collection("listings").whereEqualTo("status", "available");
+
+        switch (filterType) {
+            case "recommended":
+                query = query.orderBy("views", Query.Direction.DESCENDING).limit(20);
+                break;
+            case "recent":
+                query = query.orderBy("timePosted", Query.Direction.DESCENDING).limit(20);
+                break;
+            case "category":
+                if (categoryId != null) {
+                    query = query.whereEqualTo("categoryId", categoryId).orderBy("timePosted", Query.Direction.DESCENDING).limit(20);
+                }
+                break;
+        }
+
+        query.get().addOnSuccessListener(snapshots -> data.setValue(snapshots.toObjects(Listing.class))).addOnFailureListener(e -> data.setValue(Collections.emptyList()));
+
+        return data;
     }
 }

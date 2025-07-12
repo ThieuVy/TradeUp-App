@@ -40,7 +40,9 @@ public class OffersViewModel extends ViewModel {
         return actionStatus;
     }
 
+    // SỬA LỖI: Hàm này bây giờ nhận cả Listing
     public void acceptOffer(Offer offer, Listing listing) {
+        // Gọi hàm repository đã được sửa đổi
         offerRepository.acceptOffer(offer, listing).observeForever(success -> {
             if (Boolean.TRUE.equals(success)) {
                 actionStatus.setValue(new ActionStatus(true, "Đã chấp nhận đề nghị và hoàn tất giao dịch!"));
@@ -51,13 +53,13 @@ public class OffersViewModel extends ViewModel {
     }
 
     /**
-     * THÊM MỚI: Từ chối một đề nghị
+     * Từ chối một đề nghị.
      */
     public void rejectOffer(Offer offer) {
         offerRepository.updateOfferStatus(offer.getId(), "rejected").observeForever(success -> {
             if (Boolean.TRUE.equals(success)) {
                 actionStatus.setValue(new ActionStatus(true, "Đã từ chối đề nghị."));
-                // Cần làm mới danh sách để cập nhật UI
+                // Làm mới danh sách để cập nhật UI
                 refreshOffers();
             } else {
                 actionStatus.setValue(new ActionStatus(false, "Lỗi khi từ chối đề nghị."));
@@ -66,7 +68,7 @@ public class OffersViewModel extends ViewModel {
     }
 
     /**
-     * THÊM MỚI: Tải lại danh sách offers sau một hành động
+     * Tải lại danh sách offers sau một hành động.
      */
     public void refreshOffers() {
         if (offersForListing != null && offersForListing.getValue() != null && !offersForListing.getValue().isEmpty()) {

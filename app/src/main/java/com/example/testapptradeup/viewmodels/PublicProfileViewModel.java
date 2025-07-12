@@ -12,7 +12,6 @@ import com.example.testapptradeup.repositories.ListingRepository;
 import com.example.testapptradeup.repositories.UserRepository;
 import com.example.testapptradeup.utils.Result; // <<< THÊM IMPORT
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
