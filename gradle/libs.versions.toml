@@ -44,6 +44,7 @@ circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circ
 cloudinary-android-v302 = { module = "com.cloudinary:cloudinary-android", version.ref = "cloudinaryAndroidVersion" }
 compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
+firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-functions = { module = "com.google.firebase:firebase-functions", version.ref = "firebaseFunctions" }

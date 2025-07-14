@@ -1,9 +1,12 @@
 package com.example.testapptradeup.repositories;
 
+import android.util.Log;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.google.firebase.functions.FirebaseFunctions;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -20,7 +23,7 @@ public class PaymentRepository {
         Map<String, Object> data = new HashMap<>();
         data.put("listingId", listingId);
         data.put("sellerId", sellerId);
-        data.put("amount", amount);
+        data.put("amount", amount); // Stripe yêu cầu amount là số nguyên (đơn vị nhỏ nhất)
 
         functions.getHttpsCallable("createPaymentIntentForEscrow")
                 .call(data)
@@ -29,6 +32,8 @@ public class PaymentRepository {
                     if (task.isSuccessful()) {
                         result.setValue(task.getResult());
                     } else {
+                        // Log lỗi và trả về null để ViewModel xử lý
+                        Log.e("PaymentRepository", "Error calling createPaymentIntentForEscrow", task.getException());
                         result.setValue(null);
                     }
                 });

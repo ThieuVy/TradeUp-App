@@ -1,26 +1,27 @@
 package com.example.testapptradeup.repositories;
 
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.Offer;
+import com.example.testapptradeup.models.OfferWithListing;
 import com.example.testapptradeup.models.Transaction;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FieldPath;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
-import com.google.firebase.firestore.FieldPath;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import com.example.testapptradeup.models.OfferWithListing;
 
 public class OfferRepository {
     private static final String TAG = "OfferRepository";
@@ -84,45 +85,39 @@ public class OfferRepository {
     }
 
     /**
-     * SỬA LỖI BUG-002: Chấp nhận một đề nghị và tạo một giao dịch bằng WriteBatch.
+     * Chấp nhận một đề nghị.
+     * Cập nhật trạng thái của offer và listing, đồng thời từ chối các offer khác.
      * @param offer Đề nghị được chấp nhận.
-     * @param listing Tin đăng liên quan.
      * @return LiveData báo hiệu thành công/thất bại.
      */
-    public LiveData<Boolean> acceptOffer(Offer offer, Listing listing) {
+    public LiveData<Boolean> acceptOffer(Offer offer) {
         MutableLiveData<Boolean> success = new MutableLiveData<>();
 
-        // 1. Truy vấn tất cả các offer khác của tin đăng này để từ chối chúng.
+        // Truy vấn tất cả các offer khác của tin đăng này để từ chối chúng.
         offersCollection.whereEqualTo("listingId", offer.getListingId())
                 .get()
                 .addOnSuccessListener(otherOffersSnapshot -> {
                     WriteBatch batch = db.batch();
 
-                    // 1. Cập nhật trạng thái offer
+                    // 1. Cập nhật offer được chấp nhận
                     DocumentReference acceptedOfferRef = offersCollection.document(offer.getId());
-                    batch.update(acceptedOfferRef, "status", "accepted"); // Giữ nguyên
+                    batch.update(acceptedOfferRef, "status", "accepted");
 
-                    // 2. Cập nhật tin đăng thành "pending_payment" thay vì "sold"
-                    DocumentReference listingRef = listingsCollection.document(listing.getId());
-                    // THAY ĐỔI DÒNG NÀY:
+                    // 2. Cập nhật tin đăng thành "pending_payment" (chờ thanh toán)
+                    DocumentReference listingRef = listingsCollection.document(offer.getListingId());
                     batch.update(listingRef, "status", "pending_payment");
-                    // BỎ CÁC DÒNG NÀY:
-                    // batch.update(listingRef, "status", "sold", "isSold", true);
-                    // DocumentReference transactionRef = transactionsCollection.document();
-                    // Transaction newTransaction = createTransactionFromOffer(offer, listing, transactionRef);
-                    // batch.set(transactionRef, newTransaction);
+                    // BỎ CẬP NHẬT isSold và không tạo Transaction ở đây nữa.
 
-                    // 3. Từ chối các offer khác (giữ nguyên)
+                    // 3. Từ chối tất cả các offer khác
                     for (QueryDocumentSnapshot doc : otherOffersSnapshot) {
                         if (!doc.getId().equals(offer.getId())) {
                             batch.update(doc.getReference(), "status", "rejected");
                         }
                     }
 
-
-                    // 6. Thực thi tất cả các thao tác trong một lần
+                    // 4. Thực thi tất cả các thao tác trong một lần
                     batch.commit().addOnSuccessListener(aVoid -> {
-                        Log.d(TAG, "Chấp nhận offer và tạo giao dịch thành công.");
+                        Log.d(TAG, "Chấp nhận offer và chuyển tin đăng sang trạng thái chờ thanh toán thành công.");
                         success.setValue(true);
                     }).addOnFailureListener(e -> {
                         Log.e(TAG, "Lỗi khi commit batch chấp nhận offer", e);

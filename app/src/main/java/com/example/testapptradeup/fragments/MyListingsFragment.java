@@ -10,7 +10,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,20 +31,17 @@ import com.example.testapptradeup.repositories.ListingRepository;
 import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.example.testapptradeup.viewmodels.MyListingsViewModel;
 
-public class MyListingsFragment extends Fragment implements ManageListingsAdapter.OnItemInteractionListener {
+// === BƯỚC 1: TRIỂN KHAI INTERFACE ĐẦY ĐỦ ===
+public class MyListingsFragment extends Fragment implements ManageListingsAdapter.OnListingInteractionListener {
 
     private MyListingsViewModel viewModel;
     private NavController navController;
-
-    // --- UI Components ---
     private RecyclerView recyclerView;
     private ManageListingsAdapter adapter;
     private LinearLayout emptyState;
     private ProgressBar loadingState;
-    private ImageView btnBack;
     private TextView tabAll, tabActive, tabPaused, tabSold, sortText, headerTitle;
     private LinearLayout sortContainer;
-
     private GridLayoutManager layoutManager;
     private MainViewModel mainViewModel;
 
@@ -66,22 +62,21 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
         super.onViewCreated(view, savedInstanceState);
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         navController = Navigation.findNavController(view);
-        initViews(view);
-        setupRecyclerView();
-        setupListeners();
+
+        // === BƯỚC 2: HỢP NHẤT LOGIC KHỞI TẠO VÀO MỘT CHỖ ===
+        setupViewsAndListeners(view);
         observeViewModel();
-        // Set tab mặc định
-        updateFilterButtonUI(R.id.tab_all);
         observeSharedViewModel();
     }
 
-    private void initViews(View view) {
+    private void setupViewsAndListeners(View view) {
+        // Ánh xạ các Views
         recyclerView = view.findViewById(R.id.recycler_listings);
         emptyState = view.findViewById(R.id.empty_state);
         loadingState = view.findViewById(R.id.loading_state);
-        btnBack = view.findViewById(R.id.btn_back);
+        ImageView btnBack = view.findViewById(R.id.btn_back);
         if (btnBack != null) {
-            btnBack.setVisibility(View.GONE); // Ẩn nút back
+            btnBack.setVisibility(View.GONE); // Ẩn nút back vì đây là màn hình cấp cao nhất
         }
         tabAll = view.findViewById(R.id.tab_all);
         tabActive = view.findViewById(R.id.tab_active);
@@ -90,24 +85,29 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
         sortContainer = view.findViewById(R.id.sort_container);
         sortText = view.findViewById(R.id.sort_text);
         headerTitle = view.findViewById(R.id.header_title);
-    }
 
-    private void setupRecyclerView() {
-        adapter = new ManageListingsAdapter(this, this, this);
-        layoutManager = new GridLayoutManager(getContext(), 1); // Sử dụng 1 cột cho dễ nhìn
+        // Khởi tạo Adapter MỘT LẦN DUY NHẤT, truyền `this` làm listener
+        adapter = new ManageListingsAdapter(this);
+
+        // Setup RecyclerView
+        layoutManager = new GridLayoutManager(getContext(), 1);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
 
+        // Setup Listeners
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
-                if (dy > 0) {
+                if (dy > 0) { // Check for scroll down
                     int visibleItemCount = layoutManager.getChildCount();
                     int totalItemCount = layoutManager.getItemCount();
                     int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
 
-                    if (Boolean.FALSE.equals(viewModel.isLoadingMore().getValue()) && !viewModel.isLastPage()) {
+                    // === BẮT ĐẦU SỬA LỖI: SỬ DỤNG GETTER ===
+                    // Thay vì truy cập viewModel.isCurrentlyLoading, hãy gọi phương thức công khai
+                    if (!viewModel.isCurrentlyLoading() && !viewModel.isLastPage()) {
+                        // === KẾT THÚC SỬA LỖI ===
                         if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
                                 && firstVisibleItemPosition >= 0
                                 && totalItemCount >= ListingRepository.PAGE_SIZE) {
@@ -117,21 +117,6 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
                 }
             }
         });
-    }
-
-    private void observeSharedViewModel() {
-        mainViewModel.getNewListingPosted().observe(getViewLifecycleOwner(), newListing -> {
-            if (newListing != null) {
-                // Khi có bài đăng mới, yêu cầu ViewModel tải lại từ đầu
-                Log.d("MyListingsFragment", "Nhận được sự kiện đăng bài mới, đang làm mới danh sách...");
-                viewModel.refreshListings();
-                mainViewModel.onNewListingEventHandled();
-            }
-        });
-    }
-
-    private void setupListeners() {
-        btnBack.setOnClickListener(v -> navController.popBackStack());
 
         View.OnClickListener filterClickListener = v -> {
             int id = v.getId();
@@ -146,16 +131,33 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
         tabPaused.setOnClickListener(filterClickListener);
         tabSold.setOnClickListener(filterClickListener);
 
-        sortContainer.setOnClickListener(this::showSortMenu);
+        sortContainer.setOnClickListener(v ->
+                Toast.makeText(getContext(), "Chức năng sắp xếp đang phát triển", Toast.LENGTH_SHORT).show()
+        );
+
+        // Đặt tab mặc định
+        updateFilterButtonUI(R.id.tab_all);
+    }
+
+    // Xóa các phương thức setupRecyclerView() và setupListeners() riêng lẻ
+
+    private void observeSharedViewModel() {
+        mainViewModel.getNewListingPosted().observe(getViewLifecycleOwner(), newListing -> {
+            if (newListing != null) {
+                Log.d("MyListingsFragment", "Nhận được sự kiện đăng bài mới, đang làm mới danh sách...");
+                viewModel.refreshListings();
+                mainViewModel.onNewListingEventHandled();
+            }
+        });
     }
 
     private void observeViewModel() {
         viewModel.getDisplayedListings().observe(getViewLifecycleOwner(), listings -> {
             adapter.submitList(listings);
-            if (Boolean.FALSE.equals(viewModel.isLoading().getValue())) {
-                checkEmptyState(listings.isEmpty());
+            checkEmptyState(listings == null || listings.isEmpty());
+            if (listings != null) {
+                updateHeaderTitle(listings.size());
             }
-            updateHeaderTitle(listings.size());
         });
 
         viewModel.isLoading().observe(getViewLifecycleOwner(), isLoading -> {
@@ -166,11 +168,13 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
             }
         });
 
+        // Bạn có thể thêm logic cho isLoadingMore nếu muốn hiển thị footer
         viewModel.isLoadingMore().observe(getViewLifecycleOwner(), isLoadingMore -> {
-            // Có thể hiển thị một footer progress bar trong RecyclerView nếu muốn
+            // Ví dụ: adapter.showFooter(isLoadingMore);
         });
     }
 
+    // ... Các hàm helper (updateHeaderTitle, updateFilterButtonUI, checkEmptyState) giữ nguyên ...
     @SuppressLint("SetTextI18n")
     private void updateHeaderTitle(int count) {
         if(headerTitle != null) {
@@ -192,41 +196,54 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
         button.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
     }
 
-    private void showSortMenu(View v) {
-        PopupMenu popup = new PopupMenu(getContext(), v);
-        Toast.makeText(getContext(), "Chức năng sắp xếp đang phát triển", Toast.LENGTH_SHORT).show();
-    }
-
     private void checkEmptyState(boolean isEmpty) {
         if (emptyState != null) emptyState.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
         if (recyclerView != null) recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
     }
 
-    // --- Triển khai các phương thức của OnItemInteractionListener ---
+    // === BƯỚC 3: TRIỂN KHAI ĐẦY ĐỦ CÁC PHƯƠNG THỨC CỦA INTERFACE ===
 
     @Override
-    public void onItemClick(Listing listing) {
+    public void onViewDetailsClick(Listing listing) {
         Toast.makeText(getContext(), "Xem chi tiết: " + listing.getTitle(), Toast.LENGTH_SHORT).show();
+        // TODO: Điều hướng đến màn hình chi tiết sản phẩm nếu cần
+        // MyListingsFragmentDirections.ActionMyListingsFragmentToProductDetailFragment action = ...
+        // navController.navigate(action);
     }
 
+    @Override
     public void onEditClick(Listing listing) {
         Toast.makeText(getContext(), "Chỉnh sửa: " + listing.getTitle(), Toast.LENGTH_SHORT).show();
+        // TODO: Điều hướng đến màn hình sửa tin đăng, truyền vào listing.getId()
+        // MyListingsFragmentDirections.ActionMyListingsFragmentToEditListingFragment action = ...
+        // navController.navigate(action);
     }
 
+    @Override
     public void onDeleteClick(Listing listing) {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Xác nhận xóa")
                 .setMessage("Bạn có chắc chắn muốn xóa tin \"" + listing.getTitle() + "\"?")
-                .setPositiveButton("Xóa", (dialog, which) -> {
-                    viewModel.deleteListing(listing.getId()).observe(getViewLifecycleOwner(), success -> {
-                        if (success != null && success) {
-                            Toast.makeText(getContext(), "Đã xóa tin thành công", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(getContext(), "Lỗi khi xóa tin", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                })
+                .setPositiveButton("Xóa", (dialog, which) -> viewModel.deleteListing(listing.getId()).observe(getViewLifecycleOwner(), success -> {
+                    if (success != null && success) {
+                        Toast.makeText(getContext(), "Đã xóa tin thành công", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(), "Lỗi khi xóa tin", Toast.LENGTH_SHORT).show();
+                    }
+                }))
                 .setNegativeButton("Hủy", null)
                 .show();
+    }
+
+    @Override
+    public void onViewOffersClick(Listing listing) {
+        if (listing.getOffersCount() > 0) {
+            Toast.makeText(getContext(), "Đang mở danh sách đề nghị...", Toast.LENGTH_SHORT).show();
+            MyListingsFragmentDirections.ActionMyListingsFragmentToOfferListFragment action =
+                    MyListingsFragmentDirections.actionMyListingsFragmentToOfferListFragment(listing.getId(), listing);
+            navController.navigate(action);
+        } else {
+            Toast.makeText(getContext(), "Chưa có đề nghị nào cho sản phẩm này.", Toast.LENGTH_SHORT).show();
+        }
     }
 }

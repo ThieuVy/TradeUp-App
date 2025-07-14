@@ -24,7 +24,6 @@ import androidx.credentials.exceptions.GetCredentialException;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.utils.SharedPrefsHelper;
-import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.android.material.button.MaterialButton;
@@ -35,6 +34,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.Date; // Thêm import Date cho memberSince
 import java.util.Objects;
 import java.util.concurrent.Executors;
 
@@ -42,7 +42,8 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = "LoginActivity";
 
-    private MainViewModel mainViewModel;
+    // Bỏ MainViewModel vì nó không được khởi tạo ở đây.
+    // private MainViewModel mainViewModel;
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private SharedPrefsHelper prefsHelper;
@@ -128,22 +129,17 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
-                        // ========== PHẦN SỬA ĐỔI BẮT ĐẦU TỪ ĐÂY ==========
                         if (user != null) {
                             if (user.isEmailVerified()) {
-                                // Email đã được xác minh -> tải dữ liệu và vào ứng dụng
                                 Log.d(TAG, "Email đã được xác minh, đang tải dữ liệu người dùng.");
                                 loadAndNavigateUser(user.getUid());
                             } else {
-                                // Email chưa được xác minh -> chuyển hướng đến màn hình xác minh
                                 showLoading(false);
                                 Toast.makeText(LoginActivity.this, "Vui lòng xác minh địa chỉ email của bạn.", Toast.LENGTH_LONG).show();
                                 Intent intent = new Intent(LoginActivity.this, EmailVerificationActivity.class);
                                 startActivity(intent);
-                                // Không đóng LoginActivity để người dùng có thể quay lại
                             }
                         }
-                        // ========== PHẦN SỬA ĐỔI KẾT THÚC TẠI ĐÂY ==========
                     } else {
                         showLoading(false);
                         String errorMessage = getFirebaseErrorMessage(task.getException());
@@ -203,21 +199,32 @@ public class LoginActivity extends AppCompatActivity {
                             boolean isNewUser = task.getResult().getAdditionalUserInfo() != null && task.getResult().getAdditionalUserInfo().isNewUser();
 
                             if (isNewUser) {
-                                // Nếu là người dùng mới, tạo đối tượng User và lưu vào Firestore
                                 Log.d(TAG, "New Google user. Saving data to Firestore.");
-                                User newUser = new User(
-                                        user.getUid(),
-                                        user.getDisplayName() != null ? user.getDisplayName() : "Người dùng Google",
-                                        user.getEmail(),
-                                        "", // phone
-                                        "", // bio
-                                        user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : "",
-                                        "", // address
-                                        0.0f, 0, true, "active", false, "not_connected", 0
-                                );
+
+                                // === BẮT ĐẦU SỬA LỖI: TẠO USER BẰNG SETTER ===
+                                // Tạo đối tượng User bằng constructor rỗng
+                                User newUser = new User();
+
+                                // Gán giá trị bằng các phương thức setter
+                                newUser.setId(user.getUid());
+                                newUser.setName(user.getDisplayName() != null ? user.getDisplayName() : "Người dùng Google");
+                                newUser.setEmail(user.getEmail());
+                                newUser.setPhone("");
+                                newUser.setBio("");
+                                newUser.setProfileImageUrl(user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : "");
+                                newUser.setAddress("");
+                                newUser.setRating(0.0f);
+                                newUser.setReviewCount(0);
+                                newUser.setVerified(true); // Người dùng Google mặc định là đã xác thực email
+                                newUser.setAccountStatus("active");
+                                newUser.setFlagged(false);
+                                newUser.setWalletStatus("not_connected");
+                                newUser.setNotificationCount(0);
+                                newUser.setMemberSince(new Date()); // Gán ngày tham gia
+                                // === KẾT THÚC SỬA LỖI ===
+
                                 saveNewUserAndNavigate(newUser);
                             } else {
-                                // Nếu là người dùng cũ, tải dữ liệu và điều hướng
                                 Log.d(TAG, "Existing Google user. Loading data.");
                                 Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
                                 loadAndNavigateUser(user.getUid());
@@ -237,12 +244,12 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(LoginActivity.this, "Chào mừng bạn đến với TradeUp!", Toast.LENGTH_SHORT).show();
                     prefsHelper.saveCurrentUser(newUser);
-//                    mainViewModel.setCurrentUser(newUser);
                     navigateToMainActivity();
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error saving new Google user to Firestore: " + e.getMessage(), e);
                     Toast.makeText(LoginActivity.this, "Lỗi khi lưu thông tin người dùng.", Toast.LENGTH_SHORT).show();
+                    // Vẫn cho vào app nhưng dữ liệu có thể không đầy đủ
                     navigateToMainActivity();
                 });
     }
@@ -253,13 +260,15 @@ public class LoginActivity extends AppCompatActivity {
                     if (documentSnapshot.exists()) {
                         User user = documentSnapshot.toObject(User.class);
                         if (user != null) {
-                            user.setId(userId);
+                            user.setId(userId); // Đảm bảo ID được gán đúng
                             prefsHelper.saveCurrentUser(user);
                             Log.d(TAG, "Dữ liệu người dùng cho UID đã được tải: " + userId);
                         } else {
+                            // Trường hợp dữ liệu trên Firestore bị lỗi
                             createFallbackUserAndSave(userId, "Đối tượng người dùng từ Firestore là null");
                         }
                     } else {
+                        // Trường hợp không có document user trên Firestore dù đã login
                         createFallbackUserAndSave(userId, "Không tìm thấy tài liệu Firestore");
                     }
                     navigateToMainActivity();
@@ -267,7 +276,8 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Lỗi khi tải dữ liệu người dùng: " + e.getMessage(), e);
                     Toast.makeText(LoginActivity.this, "Lỗi khi tải dữ liệu người dùng.", Toast.LENGTH_SHORT).show();
-                    navigateToMainActivity(); // Cũng điều hướng khi có lỗi
+                    // Vẫn điều hướng khi có lỗi để người dùng không bị kẹt
+                    navigateToMainActivity();
                 });
     }
 
@@ -275,13 +285,25 @@ public class LoginActivity extends AppCompatActivity {
         Log.d(TAG, "Đang tạo người dùng dự phòng: " + reason);
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser != null) {
-            User fallbackUser = new User(
-                    firebaseUser.getUid(),
-                    firebaseUser.getDisplayName(),
-                    firebaseUser.getEmail(),
-                    "", "", firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : "", "",
-                    0.0f, 0, true, "active", false, "not_connected", 0
-            );
+            // === BẮT ĐẦU SỬA LỖI: TẠO FALLBACK USER BẰNG SETTER ===
+            User fallbackUser = new User();
+            fallbackUser.setId(firebaseUser.getUid());
+            fallbackUser.setName(firebaseUser.getDisplayName());
+            fallbackUser.setEmail(firebaseUser.getEmail());
+            fallbackUser.setPhone("");
+            fallbackUser.setBio("");
+            fallbackUser.setProfileImageUrl(firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : "");
+            fallbackUser.setAddress("");
+            fallbackUser.setRating(0.0f);
+            fallbackUser.setReviewCount(0);
+            fallbackUser.setVerified(firebaseUser.isEmailVerified());
+            fallbackUser.setAccountStatus("active");
+            fallbackUser.setFlagged(false);
+            fallbackUser.setWalletStatus("not_connected");
+            fallbackUser.setNotificationCount(0);
+            fallbackUser.setMemberSince(new Date());
+            // === KẾT THÚC SỬA LỖI ===
+
             prefsHelper.saveCurrentUser(fallbackUser);
         }
     }
@@ -291,7 +313,7 @@ public class LoginActivity extends AppCompatActivity {
         if (exception == null) return defaultMessage;
         String message = exception.getMessage();
         if (message == null) return defaultMessage;
-        if (message.contains("user not found") || message.contains("INVALID_LOGIN_CREDENTIALS")) {
+        if (message.contains("user not found") || message.contains("INVALID_LOGIN_CREDENTIALS") || message.contains("INVALID_PASSWORD")) {
             return "Email hoặc mật khẩu không đúng.";
         }
         return defaultMessage;
@@ -322,9 +344,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
-        // Cơ chế mới sẽ xử lý việc đăng xuất.
-        // Logic này sẽ kiểm tra xem người dùng có còn phiên đăng nhập hợp lệ không
-        // (ví dụ: vừa mở lại app trong khoảng thời gian cho phép).
+        // Kiểm tra nếu người dùng đã đăng nhập và đã xác thực email thì vào thẳng MainActivity
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser != null && firebaseUser.isEmailVerified()) {
             navigateToMainActivity();

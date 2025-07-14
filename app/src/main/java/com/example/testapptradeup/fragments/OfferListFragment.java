@@ -30,8 +30,6 @@ public class OfferListFragment extends Fragment implements OffersAdapter.OnOffer
     private OffersViewModel viewModel;
     private NavController navController;
     private OffersAdapter adapter;
-
-    // Data from previous fragment
     private String listingId;
     private Listing currentListing;
 
@@ -45,11 +43,7 @@ public class OfferListFragment extends Fragment implements OffersAdapter.OnOffer
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(this).get(OffersViewModel.class);
-
-        // Lấy arguments được truyền từ Safe Args
         if (getArguments() != null) {
-            // Class 'OfferListFragmentArgs' sẽ được tự động tạo ra sau khi bạn build project
-            // với file navigation.xml đã được cập nhật.
             OfferListFragmentArgs args = OfferListFragmentArgs.fromBundle(getArguments());
             listingId = args.getListingId();
             currentListing = args.getListing();
@@ -66,17 +60,14 @@ public class OfferListFragment extends Fragment implements OffersAdapter.OnOffer
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         navController = Navigation.findNavController(view);
-
         initViews(view);
         setupToolbar();
         setupRecyclerView();
-
-        if (listingId == null || currentListing == null) {
+        if (listingId == null) { // Chỉ cần kiểm tra listingId
             Toast.makeText(getContext(), "Lỗi: Dữ liệu tin đăng không hợp lệ.", Toast.LENGTH_LONG).show();
             navController.popBackStack();
             return;
         }
-
         observeViewModel();
     }
 
@@ -148,8 +139,8 @@ public class OfferListFragment extends Fragment implements OffersAdapter.OnOffer
     public void onAccept(Offer offer) {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Xác nhận chấp nhận")
-                .setMessage("Bạn có chắc chắn muốn chấp nhận đề nghị này? Tin đăng sẽ được đánh dấu là 'Đã bán'.")
-                .setPositiveButton("Chấp nhận", (dialog, which) -> viewModel.acceptOffer(offer, currentListing))
+                .setMessage("Bạn có chắc chắn muốn chấp nhận đề nghị này? Tin đăng sẽ được chuyển sang trạng thái chờ thanh toán.")
+                .setPositiveButton("Chấp nhận", (dialog, which) -> viewModel.acceptOffer(offer))
                 .setNegativeButton("Hủy", null)
                 .show();
     }
@@ -166,14 +157,13 @@ public class OfferListFragment extends Fragment implements OffersAdapter.OnOffer
 
     @Override
     public void onCounter(Offer offer) {
-        // Luồng đơn giản nhất cho "Counter Offer" là bắt đầu một cuộc trò chuyện.
         Toast.makeText(getContext(), "Vui lòng sử dụng chức năng Chat để thương lượng giá.", Toast.LENGTH_LONG).show();
         onChat(offer);
     }
 
     @Override
     public void onChat(Offer offer) {
-        // TODO: Điều hướng đến ChatDetailFragment, truyền vào ID của người mua (offer.getBuyerId()) và tên người mua
+        // TODO: Điều hướng đến ChatDetailFragment
         Toast.makeText(getContext(), "Mở màn hình chat với " + offer.getBuyerName(), Toast.LENGTH_SHORT).show();
     }
 }

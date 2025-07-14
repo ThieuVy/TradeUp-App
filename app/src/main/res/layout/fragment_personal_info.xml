@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_light"
+    tools:context=".fragments.PersonalInfoFragment">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_personal_info"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:title="Thông tin cá nhân"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        android:background="@color/white"
+        app:elevation="4dp"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Tên hiển thị -->
+            <TextView
+                style="@style/InfoLabel"
+                android:text="Tên hiển thị"
+                tools:ignore="HardcodedText,TextContrastCheck" />
+
+            <!-- Email -->
+            <TextView
+                android:id="@+id/text_info_display_name"
+                style="@style/InfoValue"
+                tools:text="Nguyễn Văn A" />
+
+            <TextView
+                style="@style/InfoLabel"
+                android:text="Email"
+                tools:ignore="HardcodedText,TextContrastCheck" />
+            <TextView
+                android:id="@+id/text_info_email"
+                style="@style/InfoValue"
+                tools:text="nguyen.van.a@email.com"/>
+
+            <!-- Số điện thoại -->
+            <TextView
+                style="@style/InfoLabel"
+                android:text="Số điện thoại"
+                android:textColor="#616161"
+                tools:ignore="HardcodedText,TextContrastCheck" />
+            <TextView
+                android:id="@+id/text_info_phone"
+                style="@style/InfoValue"
+                tools:text="0909123456"/>
+
+            <!-- Tiểu sử -->
+            <TextView
+                style="@style/InfoLabel"
+                android:text="Tiểu sử"
+                tools:ignore="HardcodedText,TextContrastCheck" />
+            <TextView
+                android:id="@+id/text_info_bio"
+                style="@style/InfoValue"
+                android:lineSpacingExtra="4dp"
+                tools:text="Người dùng đam mê công nghệ và trao đổi các vật phẩm độc đáo."/>
+
+            <!-- Địa chỉ -->
+            <TextView
+                style="@style/InfoLabel"
+                android:text="Địa chỉ"
+                tools:ignore="HardcodedText,TextContrastCheck" />
+            <TextView
+                android:id="@+id/text_info_address"
+                style="@style/InfoValue"
+                tools:text="123 Đường ABC, Phường X, Quận Y, TP. Hồ Chí Minh"/>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

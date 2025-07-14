@@ -65,7 +65,6 @@ public class MyOffersAdapter extends ListAdapter<OfferWithListing, MyOffersAdapt
         public void bind(OfferWithListing item, final OnOfferInteractionListener listener) {
             Context context = itemView.getContext();
 
-            // Lấy thông tin từ Listing
             if (item.getListing() != null) {
                 listingTitle.setText(item.getListing().getTitle());
                 Glide.with(context)
@@ -75,28 +74,28 @@ public class MyOffersAdapter extends ListAdapter<OfferWithListing, MyOffersAdapt
                         .into(listingImage);
             }
 
-            // Lấy thông tin từ Offer
             if (item.getOffer() != null) {
                 NumberFormat format = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
                 offerPrice.setText("Đề nghị: " + format.format(item.getOffer().getOfferPrice()));
 
+                // === LOGIC QUAN TRỌNG NHẤT Ở ĐÂY ===
                 switch (item.getOffer().getStatus()) {
                     case "accepted":
                         offerStatus.setText("Đã được chấp nhận");
                         offerStatus.setTextColor(ContextCompat.getColor(context, R.color.success));
-                        btnPayNow.setVisibility(View.VISIBLE); // Hiển thị nút thanh toán
+                        btnPayNow.setVisibility(View.VISIBLE); // HIỂN THỊ nút thanh toán
                         btnPayNow.setOnClickListener(v -> listener.onPayNowClick(item));
                         break;
                     case "rejected":
                         offerStatus.setText("Đã từ chối");
                         offerStatus.setTextColor(ContextCompat.getColor(context, R.color.red_error));
-                        btnPayNow.setVisibility(View.GONE); // Ẩn nút thanh toán
+                        btnPayNow.setVisibility(View.GONE); // ẨN nút thanh toán
                         break;
                     case "pending":
                     default:
                         offerStatus.setText("Đang chờ");
                         offerStatus.setTextColor(ContextCompat.getColor(context, R.color.warning));
-                        btnPayNow.setVisibility(View.GONE); // Ẩn nút thanh toán
+                        btnPayNow.setVisibility(View.GONE); // ẨN nút thanh toán
                         break;
                 }
             }

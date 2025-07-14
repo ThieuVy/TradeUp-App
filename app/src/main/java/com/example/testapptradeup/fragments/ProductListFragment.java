@@ -4,12 +4,14 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView; // <<< THÊM MỚI: Import ImageView
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat; // <<< THÊM MỚI: Import để lấy màu
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -22,17 +24,16 @@ import com.example.testapptradeup.adapters.ListingsAdapter;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.viewmodels.ProductListViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.firebase.auth.FirebaseAuth; // <<< THÊM MỚI: Import để kiểm tra đăng nhập
 
 public class ProductListFragment extends Fragment {
 
     private ProductListViewModel viewModel;
     private NavController navController;
 
-    // Arguments
     private String filterType;
     private String categoryId;
 
-    // UI Components
     private MaterialToolbar toolbar;
     private RecyclerView recyclerView;
     private ListingsAdapter adapter;
@@ -42,9 +43,10 @@ public class ProductListFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // SỬA LỖI: Khởi tạo ViewModel từ Fragment, không phải từ Activity
+        // để đảm bảo vòng đời của ViewModel gắn với Fragment này.
         viewModel = new ViewModelProvider(this).get(ProductListViewModel.class);
 
-        // Lấy arguments từ Safe Args
         if (getArguments() != null) {
             ProductListFragmentArgs args = ProductListFragmentArgs.fromBundle(getArguments());
             filterType = args.getFilterType();
@@ -64,10 +66,12 @@ public class ProductListFragment extends Fragment {
 
         initViews(view);
         setupRecyclerView();
-        setupToolbar();
+        setupToolbar(); // Gọi setupToolbar
 
-        // Tải dữ liệu dựa trên arguments đã nhận
+        // Gọi các phương thức của ViewModel
         viewModel.loadProducts(filterType, categoryId);
+        // Yêu cầu ViewModel cập nhật tiêu đề
+        viewModel.updateToolbarTitle(filterType, categoryId);
         observeViewModel();
     }
 
@@ -79,7 +83,7 @@ public class ProductListFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        // Sử dụng lại ListingsAdapter vì nó phù hợp
+        // Dòng này bây giờ sẽ không còn lỗi
         adapter = new ListingsAdapter(this::onProductClick, this::onFavoriteClick);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
@@ -87,15 +91,14 @@ public class ProductListFragment extends Fragment {
 
     private void setupToolbar() {
         toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
-        // Cập nhật tiêu đề toolbar
-        if ("recommended".equals(filterType)) {
-            toolbar.setTitle("Sản phẩm đề xuất");
-        } else if ("recent".equals(filterType)) {
-            toolbar.setTitle("Sản phẩm gần đây");
-        } else if ("category".equals(filterType)) {
-            // TODO: Lấy tên category từ categoryId và hiển thị
-            toolbar.setTitle("Danh mục");
-        }
+
+        // <<< SỬA LỖI: Lắng nghe LiveData tiêu đề từ ViewModel >>>
+        // Fragment không còn tự quyết định tiêu đề nữa.
+        viewModel.getToolbarTitle().observe(getViewLifecycleOwner(), title -> {
+            if (title != null) {
+                toolbar.setTitle(title);
+            }
+        });
     }
 
     private void observeViewModel() {
@@ -118,13 +121,41 @@ public class ProductListFragment extends Fragment {
     }
 
     private void onProductClick(Listing listing) {
-        // Điều hướng đến chi tiết sản phẩm
         ProductListFragmentDirections.ActionProductListToProductDetail action =
                 ProductListFragmentDirections.actionProductListToProductDetail(listing.getId());
         navController.navigate(action);
     }
 
-    private void onFavoriteClick(Listing listing) {
-        Toast.makeText(getContext(), "Yêu thích: " + listing.getTitle(), Toast.LENGTH_SHORT).show();
+    // <<< BƯỚC 1: Sửa lại chữ ký phương thức để khớp với interface >>>
+    private void onFavoriteClick(Listing listing, ImageView favoriteIcon) {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập để yêu thích sản phẩm.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        boolean isCurrentlyFavorited = (favoriteIcon.getTag() != null && (boolean) favoriteIcon.getTag());
+        boolean newFavoriteState = !isCurrentlyFavorited;
+
+        updateFavoriteIconUI(favoriteIcon, newFavoriteState);
+
+        // <<< SỬA LỖI: Gọi ViewModel để xử lý logic >>>
+        viewModel.toggleFavorite(listing.getId(), newFavoriteState);
+
+        String message = newFavoriteState ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích";
+        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+    }
+
+    // <<< BƯỚC 3 (Tùy chọn nhưng khuyến khích): Hàm helper để cập nhật UI >>>
+    private void updateFavoriteIconUI(ImageView favoriteIcon, boolean isFavorite) {
+        if (getContext() == null) return;
+        if (isFavorite) {
+            favoriteIcon.setImageResource(R.drawable.ic_favorite_filled);
+            favoriteIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.red_error));
+            favoriteIcon.setTag(true);
+        } else {
+            favoriteIcon.setImageResource(R.drawable.ic_favorite_outline);
+            favoriteIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+            favoriteIcon.setTag(false);
+        }
     }
 }

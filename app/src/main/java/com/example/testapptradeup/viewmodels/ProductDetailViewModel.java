@@ -6,6 +6,7 @@ import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.Offer;
+import com.example.testapptradeup.repositories.ChatRepository;
 import com.example.testapptradeup.repositories.ListingRepository;
 import com.example.testapptradeup.repositories.OfferRepository;
 import com.example.testapptradeup.repositories.UserRepository;
@@ -19,6 +20,8 @@ public class ProductDetailViewModel extends ViewModel {
     private final UserRepository userRepository;
     private final String currentUserId;
     private final MutableLiveData<String> listingIdTrigger = new MutableLiveData<>();
+
+    private final ChatRepository chatRepository = new ChatRepository();
 
     public ProductDetailViewModel() {
         this.listingRepository = new ListingRepository();
@@ -75,5 +78,9 @@ public class ProductDetailViewModel extends ViewModel {
         offer.setStatus("pending");
 
         return offerRepository.createOffer(offer);
+    }
+    public LiveData<String> findOrCreateChat(String otherUserId) {
+        // ViewModel chỉ đơn giản là gọi Repository
+        return chatRepository.findOrCreateChat(otherUserId);
     }
 }

@@ -1,10 +1,11 @@
 package com.example.testapptradeup.adapters;
 
 import android.annotation.SuppressLint;
+import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView; // Giữ import cho ImageView
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -15,7 +16,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Listing;
-import com.google.android.material.button.MaterialButton;
+
+import java.util.Objects;
 
 public class ListingsAdapter extends ListAdapter<Listing, ListingsAdapter.ProductViewHolder> {
 
@@ -27,7 +29,8 @@ public class ListingsAdapter extends ListAdapter<Listing, ListingsAdapter.Produc
     }
 
     public interface OnFavoriteClickListener {
-        void onFavoriteClick(Listing listing);
+        // Interface này yêu cầu một phương thức có 2 tham số: Listing và ImageView
+        void onFavoriteClick(Listing listing, ImageView favoriteIcon);
     }
 
     public ListingsAdapter(OnProductClickListener productClickListener, OnFavoriteClickListener favoriteClickListener) {
@@ -50,53 +53,61 @@ public class ListingsAdapter extends ListAdapter<Listing, ListingsAdapter.Produc
         holder.bind(listing);
     }
 
-    // Hoàn thiện ViewHolder để ánh xạ đầy đủ các view
-    class ProductViewHolder extends RecyclerView.ViewHolder {
-        private final ImageView productImage; // SỬA LỖI: Khai báo đúng là ImageView
+    public class ProductViewHolder extends RecyclerView.ViewHolder {
+        private final ImageView productImage;
         private final TextView title;
         private final TextView price;
+        // <<< SỬA LỖI 1: Khai báo thêm TextView cho thời gian >>>
         private final TextView location;
+        private final TextView timePosted;
         private final ImageView favoriteButton;
 
-        @SuppressLint("WrongViewCast")
-        ProductViewHolder(@NonNull View itemView) {
+        public ProductViewHolder(@NonNull View itemView) {
             super(itemView);
-            // Ánh xạ đúng View với đúng ID từ file XML
-            productImage = itemView.findViewById(R.id.listing_image); // Giả sử ID là listing_product_image
+            productImage = itemView.findViewById(R.id.listing_image);
             title = itemView.findViewById(R.id.listing_title);
-            price = itemView.findViewById(R.id.listing_price); // Giả sử ID là listing_product_price
-            location = itemView.findViewById(R.id.listing_distance); // Giả sử ID là listing_product_location
-            favoriteButton = itemView.findViewById(R.id.favorite_icon);; // ID này đã đúng
+            price = itemView.findViewById(R.id.listing_price);
 
-            // Listener không thay đổi
+            // <<< SỬA LỖI 2: Ánh xạ đúng ID từ XML >>>
+            location = itemView.findViewById(R.id.listing_location); // Sửa từ listing_distance
+            timePosted = itemView.findViewById(R.id.listing_time_posted);
+            favoriteButton = itemView.findViewById(R.id.favorite_icon); // ID này giờ đã tồn tại
+
             itemView.setOnClickListener(v -> {
-                if (productClickListener != null) {
-                    int position = getBindingAdapterPosition();
-                    if (position != RecyclerView.NO_POSITION) {
-                        productClickListener.onProductClick(getItem(position));
-                    }
+                int position = getBindingAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && productClickListener != null) {
+                    productClickListener.onProductClick(getItem(position));
                 }
             });
 
             favoriteButton.setOnClickListener(v -> {
-                if (favoriteClickListener != null) {
-                    int position = getBindingAdapterPosition();
-                    if (position != RecyclerView.NO_POSITION) {
-                        favoriteClickListener.onFavoriteClick(getItem(position));
-                    }
+                int position = getBindingAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && favoriteClickListener != null) {
+                    // Truyền cả icon vào để Fragment/ViewModel có thể cập nhật trạng thái ngay lập tức
+                    favoriteClickListener.onFavoriteClick(getItem(position), favoriteButton);
                 }
             });
         }
 
-        // Cập nhật hàm bind để hiển thị đầy đủ thông tin
         @SuppressLint("SetTextI18n")
         void bind(Listing listing) {
             title.setText(listing.getTitle());
-            // Đổi lại cách format giá cho đúng
             price.setText(listing.getFormattedPrice());
             location.setText(listing.getLocation());
 
-            // Tải ảnh bằng Glide
+            // <<< SỬA LỖI 3: Hiển thị thời gian đăng >>>
+            if (listing.getTimePosted() != null) {
+                // Sử dụng DateUtils để có định dạng thân thiện "x giờ trước", "Hôm qua", ...
+                CharSequence relativeTime = DateUtils.getRelativeTimeSpanString(
+                        listing.getTimePosted().getTime(),
+                        System.currentTimeMillis(),
+                        DateUtils.MINUTE_IN_MILLIS
+                );
+                timePosted.setText(relativeTime);
+            } else {
+                timePosted.setText(""); // Ẩn nếu không có dữ liệu
+            }
+
             if (listing.getPrimaryImageUrl() != null && !listing.getPrimaryImageUrl().isEmpty()) {
                 Glide.with(itemView.getContext())
                         .load(listing.getPrimaryImageUrl())
@@ -106,24 +117,20 @@ public class ListingsAdapter extends ListAdapter<Listing, ListingsAdapter.Produc
             } else {
                 productImage.setImageResource(R.drawable.img_placeholder);
             }
-
-            // Cập nhật trạng thái nút yêu thích (dựa vào trường isFavorite trong Product model)
-            // Ví dụ:
-            // boolean isFavorite = ... ; // Lấy trạng thái yêu thích
-            // favoriteButton.setImageResource(isFavorite ? R.drawable.ic_favorite_filled : R.drawable.ic_favorite_border);
+            // TODO: Bạn sẽ cần logic để kiểm tra xem sản phẩm này có được yêu thích hay không
+            // và cập nhật `favoriteButton` (ví dụ: `favoriteButton.setImageResource(...)`)
         }
     }
 
-    private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<Listing>() {
+    private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
-            return oldItem.getId().equals(newItem.getId()); // Giả sử Product có getId()
+            return Objects.equals(oldItem.getId(), newItem.getId());
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
-            // So sánh tất cả các thuộc tính để xác định nội dung có thay đổi không
-            return oldItem.equals(newItem); // Yêu cầu Product override equals()
+            return oldItem.equals(newItem);
         }
     };
 }

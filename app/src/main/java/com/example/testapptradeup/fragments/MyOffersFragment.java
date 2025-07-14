@@ -71,7 +71,7 @@ public class MyOffersFragment extends Fragment implements MyOffersAdapter.OnOffe
     }
 
     private void setupRecyclerView() {
-        // Giờ dòng này sẽ không còn báo lỗi
+        // Khởi tạo adapter với 'this' vì fragment này triển khai listener
         adapter = new MyOffersAdapter(this);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
@@ -103,15 +103,16 @@ public class MyOffersFragment extends Fragment implements MyOffersAdapter.OnOffe
         });
     }
 
-    // Giờ annotation @Override sẽ không còn báo lỗi
+    // === PHƯƠNG THỨC QUAN TRỌNG: XỬ LÝ SỰ KIỆN CLICK ===
     @Override
     public void onPayNowClick(OfferWithListing item) {
         if (navController != null && item != null && item.getListing() != null && item.getOffer() != null) {
+            // Sử dụng Safe Args để điều hướng an toàn
             MyOffersFragmentDirections.ActionMyOffersFragmentToPaymentFragment action =
                     MyOffersFragmentDirections.actionMyOffersFragmentToPaymentFragment(
                             item.getListing().getId(),
                             item.getListing().getSellerId(),
-                            (float) item.getOffer().getOfferPrice()
+                            (float) item.getOffer().getOfferPrice() // Truyền giá đã được chấp nhận
                     );
             navController.navigate(action);
         } else {

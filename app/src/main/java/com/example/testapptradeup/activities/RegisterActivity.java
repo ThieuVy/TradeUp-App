@@ -34,6 +34,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.Date; // Thêm import Date
 import java.util.Objects;
 import java.util.concurrent.Executors;
 
@@ -74,7 +75,7 @@ public class RegisterActivity extends AppCompatActivity {
         signUpButton = findViewById(R.id.sign_up_button);
         progressBar = findViewById(R.id.progressBar);
         loginLink = findViewById(R.id.login_link);
-        googleLogin = findViewById(R.id.google_login); // Sửa lỗi: gán giá trị cho googleLogin
+        googleLogin = findViewById(R.id.google_login);
     }
 
     private void setupListeners() {
@@ -97,7 +98,6 @@ public class RegisterActivity extends AppCompatActivity {
         googleLogin.setOnClickListener(v -> performGoogleSignIn());
     }
 
-    // Đăng ký bằng Email và Mật khẩu
     private void performEmailRegistration() {
         String email = Objects.requireNonNull(editEmail.getText()).toString().trim();
         String password = Objects.requireNonNull(editPassword.getText()).toString();
@@ -118,16 +118,34 @@ public class RegisterActivity extends AppCompatActivity {
                         }
                     } else {
                         showLoading(false);
-                        // Lỗi sẽ được xử lý ở đây
                         String errorMessage = getFirebaseErrorMessage(task.getException());
-                        Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_LONG).show(); // Dùng LONG để người dùng đọc kịp
+                        Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_LONG).show();
                     }
                 });
     }
 
     private void saveUserToFirestoreAndSendVerification(FirebaseUser firebaseUser) {
         String name = firebaseUser.getEmail() != null ? firebaseUser.getEmail().split("@")[0] : "Người dùng mới";
-        User newUser = new User(firebaseUser.getUid(), name, firebaseUser.getEmail(), "", "", "", "", 0.0f, 0, false, "active", false, "not_connected", 0);
+
+        // === BẮT ĐẦU SỬA LỖI 1: TẠO USER ĐĂNG KÝ BẰNG EMAIL ===
+        // Sử dụng constructor rỗng và các phương thức setter
+        User newUser = new User();
+        newUser.setId(firebaseUser.getUid());
+        newUser.setName(name);
+        newUser.setEmail(firebaseUser.getEmail());
+        newUser.setPhone("");
+        newUser.setBio("");
+        newUser.setProfileImageUrl("");
+        newUser.setAddress("");
+        newUser.setRating(0.0f);
+        newUser.setReviewCount(0);
+        newUser.setVerified(false); // Quan trọng: người dùng mới đăng ký email chưa được xác thực
+        newUser.setAccountStatus("active");
+        newUser.setFlagged(false);
+        newUser.setWalletStatus("not_connected");
+        newUser.setNotificationCount(0);
+        newUser.setMemberSince(new Date()); // Gán ngày đăng ký là thời điểm hiện tại
+        // === KẾT THÚC SỬA LỖI 1 ===
 
         db.collection("users").document(firebaseUser.getUid())
                 .set(newUser)
@@ -149,8 +167,8 @@ public class RegisterActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         Log.d(TAG, "Email xác thực đã được gửi.");
                         Toast.makeText(RegisterActivity.this, "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.", Toast.LENGTH_LONG).show();
-                        // Chuyển người dùng đến màn hình Login để họ đăng nhập lại sau khi xác thực
-                        Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                        // Chuyển người dùng đến màn hình xác thực
+                        Intent intent = new Intent(RegisterActivity.this, EmailVerificationActivity.class);
                         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
                         finish();
@@ -161,7 +179,6 @@ public class RegisterActivity extends AppCompatActivity {
                 });
     }
 
-    // Đăng nhập/Đăng ký bằng Google
     private void performGoogleSignIn() {
         showLoading(true);
         GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
@@ -225,14 +242,25 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void saveNewGoogleUserAndNavigate(FirebaseUser firebaseUser) {
-        User newUser = new User(
-                firebaseUser.getUid(),
-                firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "Người dùng Google",
-                firebaseUser.getEmail(),
-                "", "",
-                firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : "",
-                "", 0.0f, 0, true, "active", false, "not_connected", 0
-        );
+        // === BẮT ĐẦU SỬA LỖI 2: TẠO USER ĐĂNG KÝ BẰNG GOOGLE ===
+        User newUser = new User();
+        newUser.setId(firebaseUser.getUid());
+        newUser.setName(firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "Người dùng Google");
+        newUser.setEmail(firebaseUser.getEmail());
+        newUser.setPhone("");
+        newUser.setBio("");
+        newUser.setProfileImageUrl(firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : "");
+        newUser.setAddress("");
+        newUser.setRating(0.0f);
+        newUser.setReviewCount(0);
+        newUser.setVerified(true); // Tài khoản Google mặc định là đã xác thực email
+        newUser.setAccountStatus("active");
+        newUser.setFlagged(false);
+        newUser.setWalletStatus("not_connected");
+        newUser.setNotificationCount(0);
+        newUser.setMemberSince(new Date());
+        // === KẾT THÚC SỬA LỖI 2 ===
+
         db.collection("users").document(newUser.getId()).set(newUser)
                 .addOnSuccessListener(aVoid -> {
                     prefsHelper.saveCurrentUser(newUser);
@@ -259,7 +287,6 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> navigateToMainActivity());
     }
 
-    // Các hàm Helper
     private boolean validateInputs(String email, String password, String confirmPassword) {
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password) || TextUtils.isEmpty(confirmPassword)) {
             Toast.makeText(this, "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
@@ -284,24 +311,17 @@ public class RegisterActivity extends AppCompatActivity {
         String defaultMessage = "Đăng ký thất bại. Vui lòng thử lại.";
         if (exception == null) return defaultMessage;
 
-        String errorCode = "";
-        // FirebaseAuthException cung cấp mã lỗi cụ thể hơn
+        // Xử lý các mã lỗi cụ thể từ Firebase
         if (exception instanceof com.google.firebase.auth.FirebaseAuthUserCollisionException) {
-            errorCode = ((com.google.firebase.auth.FirebaseAuthUserCollisionException) exception).getErrorCode();
+            return "Địa chỉ email này đã được sử dụng bởi một tài khoản khác.";
         }
-
-        // Kiểm tra mã lỗi cụ thể
-        if ("ERROR_EMAIL_ALREADY_IN_USE".equals(errorCode)) {
+        if (exception instanceof com.google.firebase.auth.FirebaseAuthWeakPasswordException) {
+            return "Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn.";
+        }
+        if (exception.getMessage() != null && exception.getMessage().contains("EMAIL_EXISTS")) {
             return "Địa chỉ email này đã được sử dụng bởi một tài khoản khác.";
         }
 
-        // Bạn có thể thêm các trường hợp lỗi khác ở đây
-        // Ví dụ:
-        if ("ERROR_WEAK_PASSWORD".equals(errorCode)) {
-            return "Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn.";
-        }
-
-        // Trả về thông báo mặc định nếu không khớp mã lỗi nào
         return defaultMessage;
     }
 

@@ -8,7 +8,6 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -24,39 +23,40 @@ import java.util.Objects;
 
 public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAdapter.ListingViewHolder> {
 
-    private final OnItemInteractionListener viewListener;
-    private final OnItemInteractionListener editListener;
-    private final OnItemInteractionListener deleteListener;
-
-    public interface OnItemInteractionListener {
-        void onItemClick(Listing listing);
+    public interface OnListingInteractionListener {
+        void onViewDetailsClick(Listing listing);
+        void onEditClick(Listing listing);
+        void onDeleteClick(Listing listing);
+        void onViewOffersClick(Listing listing); // Thêm hàm này
     }
 
-    public ManageListingsAdapter(OnItemInteractionListener viewListener, OnItemInteractionListener editListener, OnItemInteractionListener deleteListener) {
+    private final OnListingInteractionListener listener;
+
+    public ManageListingsAdapter(@NonNull OnListingInteractionListener listener) {
         super(DIFF_CALLBACK);
-        this.viewListener = viewListener;
-        this.editListener = editListener;
-        this.deleteListener = deleteListener;
+        this.listener = listener;
     }
 
     @NonNull
     @Override
     public ListingViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_post_management, parent, false);
+        // Không truyền listener vào constructor của ViewHolder nữa
         return new ListingViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ListingViewHolder holder, int position) {
         Listing listing = getItem(position);
-        holder.bind(listing, viewListener, editListener, deleteListener);
+        // <<< SỬA ĐỔI 2: Truyền cả listing và listener vào hàm bind >>>
+        holder.bind(listing, listener);
     }
 
-    static class ListingViewHolder extends RecyclerView.ViewHolder {
+    // Bỏ 'static' để ViewHolder có thể tham chiếu đến phương thức getItem của Adapter
+    public static class ListingViewHolder extends RecyclerView.ViewHolder {
         ImageView imgPost;
         TextView txtTitle, txtPrice, txtPostedTime, txtStatus, txtViews, txtOffers;
-        Button btnEdit, btnDelete;
-        ImageView btnMoreOptions;
+        Button btnEdit, btnDelete, btnViewOffers; // Thêm btnViewOffers
 
         public ListingViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -65,23 +65,21 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
             txtPrice = itemView.findViewById(R.id.txt_price);
             txtPostedTime = itemView.findViewById(R.id.txt_posted_time);
             txtStatus = itemView.findViewById(R.id.txt_status);
-            // SỬA LỖI: Xóa txtLocation vì nó không có trong layout mới
-            // txtLocation = itemView.findViewById(R.id.txt_location);
             txtViews = itemView.findViewById(R.id.txt_views);
             txtOffers = itemView.findViewById(R.id.txt_offers);
             btnEdit = itemView.findViewById(R.id.btn_edit);
             btnDelete = itemView.findViewById(R.id.btn_delete);
-            btnMoreOptions = itemView.findViewById(R.id.btn_more_options);
+            btnViewOffers = itemView.findViewById(R.id.btn_view_offers); // Ánh xạ nút mới từ layout
         }
 
+        // <<< SỬA ĐỔI 3: Di chuyển TOÀN BỘ logic vào hàm BIND >>>
         @SuppressLint({"SetTextI18n", "DefaultLocale"})
-        public void bind(final Listing listing, final OnItemInteractionListener viewListener, final OnItemInteractionListener editListener, final OnItemInteractionListener deleteListener) {
+        public void bind(final Listing listing, final OnListingInteractionListener listener) {
             Context context = itemView.getContext();
 
+            // Cập nhật dữ liệu UI
             txtTitle.setText(listing.getTitle());
             txtPrice.setText(listing.getFormattedPrice());
-
-            // SỬA LỖI: Bind dữ liệu views và offers
             txtViews.setText(String.valueOf(listing.getViews()));
             txtOffers.setText(String.format("%d đề nghị", listing.getOffersCount()));
 
@@ -101,14 +99,15 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
             } else {
                 imgPost.setImageResource(R.drawable.img_placeholder);
             }
-
             updateStatusUI(listing.getStatus(), context);
 
-            itemView.setOnClickListener(v -> viewListener.onItemClick(listing));
-            btnEdit.setOnClickListener(v -> editListener.onItemClick(listing));
-            btnDelete.setOnClickListener(v -> deleteListener.onItemClick(listing));
-            btnMoreOptions.setOnClickListener(v -> Toast.makeText(context, "Thêm tùy chọn...", Toast.LENGTH_SHORT).show());
+            // Gán sự kiện click ở đây, nơi chúng ta có thể truy cập `listing`
+            itemView.setOnClickListener(v -> listener.onViewDetailsClick(listing));
+            btnEdit.setOnClickListener(v -> listener.onEditClick(listing));
+            btnDelete.setOnClickListener(v -> listener.onDeleteClick(listing));
+            btnViewOffers.setOnClickListener(v -> listener.onViewOffersClick(listing));
         }
+        // === KẾT THÚC SỬA LỖI LOGIC ===
 
         private void updateStatusUI(String status, Context context) {
             if (txtStatus == null) return;
@@ -117,6 +116,7 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
             int statusColor;
             switch (safeStatus) {
                 case "available":
+                case "pending_payment":
                     statusColor = ContextCompat.getColor(context, R.color.success);
                     break;
                 case "paused":
@@ -135,6 +135,7 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
         private String getStatusDisplayName(String status) {
             switch (status) {
                 case "available": return "Đang hiển thị";
+                case "pending_payment": return "Chờ thanh toán";
                 case "paused": return "Tạm dừng";
                 case "sold": return "Đã bán";
                 default: return "Không rõ";

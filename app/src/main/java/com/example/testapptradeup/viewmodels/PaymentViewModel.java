@@ -22,7 +22,10 @@ public class PaymentViewModel extends ViewModel {
 
     public void startEscrowPayment(String listingId, String sellerId, double amount) {
         _isLoading.setValue(true);
+        // Repository sẽ gọi Cloud Function và trả về LiveData chứa các khóa
         paymentKeys = paymentRepository.createEscrowIntent(listingId, sellerId, amount);
+
+        // Quan sát kết quả để tắt loading hoặc báo lỗi
         paymentKeys.observeForever(keys -> {
             _isLoading.setValue(false);
             if (keys == null) {

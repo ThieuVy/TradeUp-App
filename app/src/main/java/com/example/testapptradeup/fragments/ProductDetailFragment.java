@@ -12,6 +12,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+// <<< THÊM MỚI: Import lớp AppCompatActivity để thiết lập Toolbar >>>
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -28,18 +30,25 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class ProductDetailFragment extends Fragment {
     private ProductDetailViewModel viewModel;
     private NavController navController;
     private String listingId;
 
+    // --- Khai báo UI Views ---
     private ImageView productImage, btnMoreOptions;
     private TextView productTitle, productPrice, productDescription;
     private CollapsingToolbarLayout collapsingToolbar;
     private MaterialToolbar toolbar;
     private Button btnMakeOffer;
+    // <<< THÊM MỚI: Tham chiếu đến nút Chat và thanh action dưới cùng >>>
+    private Button btnChat;
+    private View bottomActionBar; // Dùng View hoặc LinearLayout
+
     private Listing currentListing;
+    private String currentUserId;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -47,6 +56,8 @@ public class ProductDetailFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(ProductDetailViewModel.class);
         if (getArguments() != null) {
             listingId = ProductDetailFragmentArgs.fromBundle(getArguments()).getListingId();
+            // Lấy cả listing preview nếu có
+            currentListing = ProductDetailFragmentArgs.fromBundle(getArguments()).getListingPreview();
         }
     }
 
@@ -59,42 +70,58 @@ public class ProductDetailFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         navController = Navigation.findNavController(view);
+
+        // <<< TỐI ƯU: Gọi các hàm thiết lập một lần >>>
         initViews(view);
-        setupListeners(); // <<< THÊM DÒNG NÀY
+        setupToolbar(); // Thiết lập toolbar trước
+        setupListeners();
 
-        toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
-
-        // Logic kiểm tra argument mới
-        if (getArguments() != null) {
-            listingId = ProductDetailFragmentArgs.fromBundle(getArguments()).getListingId();
-            currentListing = ProductDetailFragmentArgs.fromBundle(getArguments()).getListingPreview();
-
-            if (currentListing != null) {
-                // Chế độ xem trước: Dữ liệu được truyền trực tiếp
-                populateUI(currentListing);
-                // Ẩn các nút không cần thiết trong chế độ xem trước
-                btnMakeOffer.setVisibility(View.GONE);
-            } else if (listingId != null) {
-                // Chế độ xem tin đã đăng: Tải dữ liệu từ ViewModel
-                viewModel.loadListingDetail(listingId);
-                observeViewModel();
-            }
+        // Xử lý logic hiển thị dựa trên arguments
+        if (currentListing != null) {
+            // Chế độ xem trước: Dữ liệu đã có sẵn
+            populateUI(currentListing);
+            btnMakeOffer.setVisibility(View.GONE);
+            btnChat.setVisibility(View.GONE);
+            btnMoreOptions.setVisibility(View.GONE); // Ẩn nút "..." khi xem trước
+        } else if (listingId != null) {
+            // Chế độ xem tin đã đăng: Tải dữ liệu
+            viewModel.loadListingDetail(listingId);
+            observeViewModel();
+        } else {
+            // Trường hợp lỗi: không có dữ liệu để hiển thị
+            Toast.makeText(getContext(), "Lỗi: Không có dữ liệu sản phẩm.", Toast.LENGTH_LONG).show();
+            navController.popBackStack();
         }
-
-        btnMakeOffer.setOnClickListener(v -> {
-            if (currentListing != null) {
-                OfferBottomSheetDialogFragment bottomSheet =
-                        OfferBottomSheetDialogFragment.newInstance(currentListing.getId(), currentListing.getSellerId());
-                bottomSheet.show(getChildFragmentManager(), bottomSheet.getTag());
-            }
-        });
     }
 
+    // <<< TỐI ƯU: Ánh xạ view tập trung tại một nơi >>>
+    private void initViews(View view) {
+        productImage = view.findViewById(R.id.product_image);
+        productTitle = view.findViewById(R.id.product_title);
+        productPrice = view.findViewById(R.id.product_price);
+        productDescription = view.findViewById(R.id.product_description);
+        collapsingToolbar = view.findViewById(R.id.collapsing_toolbar);
+        toolbar = view.findViewById(R.id.toolbar);
+        btnMakeOffer = view.findViewById(R.id.btn_make_offer);
+        btnChat = view.findViewById(R.id.btn_chat); // Ánh xạ nút chat mới
+        bottomActionBar = view.findViewById(R.id.bottom_action_bar);
+        btnMoreOptions = view.findViewById(R.id.btn_more_options);
+    }
+
+    // <<< SỬA LỖI QUAN TRỌNG: Thiết lập Toolbar đúng cách >>>
+    private void setupToolbar() {
+        if (getActivity() instanceof AppCompatActivity) {
+            ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
+            Objects.requireNonNull(((AppCompatActivity) getActivity()).getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
+            ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayShowTitleEnabled(false); // Ẩn tiêu đề mặc định của Toolbar
+        }
+    }
+
+    // <<< TỐI ƯU: Gom tất cả các listener vào một chỗ >>>
     private void setupListeners() {
         toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
 
         btnMoreOptions.setOnClickListener(v -> {
-            // Chỉ hiển thị menu nếu không phải ở chế độ xem trước
             if (currentListing != null && listingId != null) {
                 showListingOptionsDialog();
             }
@@ -107,6 +134,68 @@ public class ProductDetailFragment extends Fragment {
                 bottomSheet.show(getChildFragmentManager(), bottomSheet.getTag());
             }
         });
+
+        btnChat.setOnClickListener(v -> {
+            // <<< TỐI ƯU: Đã có sẵn currentUserId >>>
+            if (currentListing == null) {
+                Toast.makeText(getContext(), "Dữ liệu sản phẩm chưa sẵn sàng.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (currentUserId == null) {
+                Toast.makeText(getContext(), "Vui lòng đăng nhập để bắt đầu trò chuyện.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (currentUserId.equals(currentListing.getSellerId())) {
+                Toast.makeText(getContext(), "Bạn không thể tự chat với mình.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // ... (code gọi viewModel và điều hướng giữ nguyên)
+            viewModel.findOrCreateChat(currentListing.getSellerId()).observe(getViewLifecycleOwner(), chatId -> {
+                if (chatId != null && !chatId.isEmpty()) {
+                    ProductDetailFragmentDirections.ActionProductDetailToChatDetail action =
+                            ProductDetailFragmentDirections.actionProductDetailToChatDetail(chatId, currentListing.getSellerName());
+                    action.setListingId(currentListing.getId());
+                    navController.navigate(action);
+                } else {
+                    Toast.makeText(getContext(), "Không thể bắt đầu cuộc trò chuyện. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+    }
+
+    private void observeViewModel() {
+        viewModel.getListingDetail().observe(getViewLifecycleOwner(), listing -> {
+            if (listing != null) {
+                this.currentListing = listing;
+                populateUI(listing);
+            } else {
+                Toast.makeText(getContext(), "Không tìm thấy sản phẩm.", Toast.LENGTH_SHORT).show();
+                navController.popBackStack();
+            }
+        });
+    }
+
+    private void populateUI(Listing listing) {
+        if (listing == null || getContext() == null) return;
+
+        collapsingToolbar.setTitle(listing.getTitle());
+        productTitle.setText(listing.getTitle());
+        productPrice.setText(listing.getFormattedPrice());
+        productDescription.setText(listing.getDescription());
+
+        Glide.with(getContext())
+                .load(listing.getPrimaryImageUrl())
+                .placeholder(R.drawable.img_placeholder)
+                .into(productImage);
+
+        // <<< SỬA LỖI 3: Dùng biến thành viên đã được khởi tạo >>>
+        // Thay vì gọi FirebaseAuth.getInstance().getUid() một lần nữa.
+        if (currentUserId != null && currentUserId.equals(listing.getSellerId())) {
+            bottomActionBar.setVisibility(View.GONE);
+        } else {
+            bottomActionBar.setVisibility(View.VISIBLE);
+        }
     }
 
     private void showListingOptionsDialog() {
@@ -169,39 +258,5 @@ public class ProductDetailFragment extends Fragment {
                 .addOnFailureListener(e ->
                         Toast.makeText(getContext(), "Gửi báo cáo thất bại. Vui lòng thử lại.", Toast.LENGTH_SHORT).show()
                 );
-    }
-
-    // Tạo hàm riêng để hiển thị dữ liệu lên UI
-    private void populateUI(Listing listing) {
-        if (listing == null) return;
-        collapsingToolbar.setTitle(listing.getTitle());
-        productTitle.setText(listing.getTitle());
-        productPrice.setText(listing.getFormattedPrice());
-        productDescription.setText(listing.getDescription());
-        if (getContext() != null) {
-            Glide.with(getContext()).load(listing.getPrimaryImageUrl()).into(productImage);
-        }
-    }
-
-    private void initViews(View view) {
-        productImage = view.findViewById(R.id.product_image);
-        productTitle = view.findViewById(R.id.product_title);
-        productPrice = view.findViewById(R.id.product_price);
-        productDescription = view.findViewById(R.id.product_description);
-        collapsingToolbar = view.findViewById(R.id.collapsing_toolbar);
-        toolbar = view.findViewById(R.id.toolbar);
-        btnMakeOffer = view.findViewById(R.id.btn_make_offer);
-        toolbar = view.findViewById(R.id.toolbar);
-        btnMakeOffer = view.findViewById(R.id.btn_make_offer);
-        btnMoreOptions = view.findViewById(R.id.btn_more_options); // Ánh xạ nút mới
-    }
-
-    private void observeViewModel() {
-        viewModel.getListingDetail().observe(getViewLifecycleOwner(), listing -> {
-            if (listing != null) {
-                this.currentListing = listing;
-                populateUI(listing); // Gọi hàm populateUI
-            }
-        });
     }
 }

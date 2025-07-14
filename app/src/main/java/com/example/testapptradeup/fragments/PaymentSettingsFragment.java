@@ -76,7 +76,7 @@ public class PaymentSettingsFragment extends Fragment {
             if (keys != null) {
                 // **QUAN TRỌNG**: Khởi tạo PublishableKey của Stripe
                 // Bạn phải thay thế bằng Publishable Key thật của mình (bắt đầu bằng pk_test_...)
-                PaymentConfiguration.init(requireContext(), "pk_test_YOUR_PUBLISHABLE_KEY");
+                PaymentConfiguration.init(requireContext(), "pk_test_51RhD48PPXaf7jnxkz9AGkIEOJFaO3lymdKq9kFR82MpO0F8WIWjsmGS9DCW7ixsMjnHMiypKb9Jm5ePclVm53PtU00t0ZU99U3");
 
                 // Khi có đủ key, hiển thị PaymentSheet
                 presentPaymentSheet(keys);

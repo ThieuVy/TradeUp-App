@@ -5,9 +5,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="6dp"
     app:cardCornerRadius="12dp"
     app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/white"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?android:attr/selectableItemBackground">
@@ -18,105 +20,115 @@
         android:orientation="horizontal"
         android:padding="12dp">
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="0dp">
+        <!-- Ảnh sản phẩm -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/listing_image"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:contentDescription="Ảnh tin rao"
+            android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium"
+            tools:ignore="HardcodedText,ImageContrastCheck"
+            tools:src="@drawable/img_placeholder" />
 
-            <ImageView
-                android:id="@+id/listing_image"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:contentDescription="@string/app_name"
-                tools:src="@drawable/img" />
-
-        </com.google.android.material.card.MaterialCardView>
-
+        <!-- Khối thông tin bên phải -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="8dp">
+            android:layout_marginStart="12dp">
 
+            <!-- (Các TextView cho title và price giữ nguyên...) -->
             <TextView
                 android:id="@+id/listing_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Running Shoes"
-                android:textColor="@color/text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold"
                 android:maxLines="2"
                 android:ellipsize="end"
-                tools:ignore="HardcodedText" />
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                tools:text="Giày Chạy Bộ Nam Chính Hãng Siêu Bền Đẹp"/>
 
             <TextView
                 android:id="@+id/listing_price"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="$89.99"
-                android:textColor="@color/accent_color"
-                android:textSize="18sp"
-                android:textStyle="bold"
                 android:layout_marginTop="4dp"
-                tools:ignore="HardcodedText" />
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorPrimary"
+                android:textStyle="bold"
+                tools:text="850.000đ"/>
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                tools:ignore="NestedWeights" />
+
+            <!-- (LinearLayout cho vị trí và thời gian giữ nguyên...) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="8dp"
+                tools:ignore="UseCompoundDrawables">
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_location"
+                    app:tint="@color/text_secondary"
+                    android:contentDescription="icon vị trí"
+                    tools:ignore="HardcodedText" />
+                <TextView
+                    android:id="@+id/listing_location"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    tools:text="Quận 1, TP. Hồ Chí Minh"/>
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginTop="8dp">
-
+                android:layout_marginTop="4dp"
+                tools:ignore="UseCompoundDrawables">
                 <ImageView
                     android:layout_width="14dp"
                     android:layout_height="14dp"
-                    android:src="@drawable/ic_location"
-                    android:layout_marginEnd="4dp"
+                    android:src="@drawable/ic_time"
                     app:tint="@color/text_secondary"
-                    android:contentDescription="@string/location_icon_desc" />
-
-                <TextView
-                    android:id="@+id/listing_distance"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="1.5km away"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp"
+                    android:contentDescription="icon thời gian"
                     tools:ignore="HardcodedText" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/listing_condition"
+                <TextView
+                    android:id="@+id/listing_time_posted"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/condition_like_new"
+                    android:layout_marginStart="4dp"
+                    android:textSize="12sp"
                     android:textColor="@color/text_secondary"
-                    android:textSize="10sp"
-                    app:chipBackgroundColor="@color/chip_background"
-                    app:chipCornerRadius="8dp"
-                    app:chipMinHeight="20dp"
-                    tools:ignore="SmallSp" />
-
+                    tools:text="2 giờ trước"/>
             </LinearLayout>
-
         </LinearLayout>
 
+        <!-- <<< THÊM MỚI: Nút yêu thích >>> -->
         <ImageView
             android:id="@+id/favorite_icon"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_gravity="top"
-            android:src="@drawable/ic_favorite"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_favorite_outline"
+            app:tint="@color/text_secondary"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="4dp"
-            android:contentDescription="@string/app_name"
-            app:tint="@color/text_secondary" />
+            android:contentDescription="Nút yêu thích"
+            tools:ignore="HardcodedText" />
 
     </LinearLayout>
-
 </com.google.android.material.card.MaterialCardView>

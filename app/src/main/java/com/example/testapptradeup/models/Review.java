@@ -18,15 +18,14 @@ public class Review implements Parcelable {
     private String transactionId;
     @ServerTimestamp
     private Date reviewDate;
-
-    // === THÊM MỚI: Trường để kiểm duyệt ===
     private String moderationStatus; // "pending", "approved", "rejected"
 
     public Review() {
-        // === THÊM MỚI: Gán giá trị mặc định ===
         this.moderationStatus = "pending";
     }
 
+    // Các Getters và Setters giữ nguyên...
+    // [Các getters và setters của bạn ở đây]
     public String getReviewId() { return reviewId; }
     public void setReviewId(String reviewId) { this.reviewId = reviewId; }
     public String getReviewedUserId() { return reviewedUserId; }
@@ -45,12 +44,10 @@ public class Review implements Parcelable {
     public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
     public Date getReviewDate() { return reviewDate; }
     public void setReviewDate(Date reviewDate) { this.reviewDate = reviewDate; }
-
-    // === THÊM MỚI: Getter và Setter cho moderationStatus ===
     public String getModerationStatus() { return moderationStatus; }
     public void setModerationStatus(String moderationStatus) { this.moderationStatus = moderationStatus; }
 
-
+    // --- BẮT ĐẦU SỬA LỖI 3.2 CHO LỚP REVIEW ---
     protected Review(Parcel in) {
         reviewId = in.readString();
         reviewedUserId = in.readString();
@@ -62,31 +59,30 @@ public class Review implements Parcelable {
         transactionId = in.readString();
         long tmpDate = in.readLong();
         reviewDate = tmpDate == -1 ? null : new Date(tmpDate);
-        // === THÊM MỚI: Đọc từ Parcel ===
         moderationStatus = in.readString();
     }
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(reviewId);
-        dest.writeString(reviewedUserId);
-        dest.writeString(reviewerId);
-        dest.writeString(reviewerName);
-        dest.writeString(reviewerImageUrl);
+        dest.writeString(reviewId != null ? reviewId : "");
+        dest.writeString(reviewedUserId != null ? reviewedUserId : "");
+        dest.writeString(reviewerId != null ? reviewerId : "");
+        dest.writeString(reviewerName != null ? reviewerName : "");
+        dest.writeString(reviewerImageUrl != null ? reviewerImageUrl : "");
         dest.writeFloat(rating);
-        dest.writeString(comment);
-        dest.writeString(transactionId);
+        dest.writeString(comment != null ? comment : "");
+        dest.writeString(transactionId != null ? transactionId : "");
         dest.writeLong(reviewDate != null ? reviewDate.getTime() : -1);
-        // === THÊM MỚI: Ghi vào Parcel ===
-        dest.writeString(moderationStatus);
+        dest.writeString(moderationStatus != null ? moderationStatus : "");
     }
+    // --- KẾT THÚC SỬA LỖI ---
 
     @Override
     public int describeContents() {
         return 0;
     }
 
-    public static final Creator<Review> CREATOR = new Creator<>() {
+    public static final Creator<Review> CREATOR = new Creator<Review>() {
         @Override
         public Review createFromParcel(Parcel in) {
             return new Review(in);

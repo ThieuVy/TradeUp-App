@@ -69,6 +69,10 @@
         tools:layout="@layout/fragment_profile">
         <!-- Đặt lại tên ID của các action cho chuẩn -->
         <action
+            android:id="@+id/action_navigation_profile_to_personalInfoFragment"
+            app:destination="@id/personalInfoFragment" />
+
+        <action
             android:id="@+id/action_navigation_profile_to_editProfileFragment"
             app:destination="@id/editProfileFragment" />
         <action
@@ -149,6 +153,9 @@
             app:nullable="true"
             android:defaultValue="@null" />
 
+        <action
+            android:id="@+id/action_productDetail_to_chatDetail"
+            app:destination="@id/chatDetailFragment" />
     </fragment>
 
     <!-- ======================================================= -->
@@ -284,4 +291,10 @@
             android:name="offerPrice"
             app:argType="float" />
     </fragment>
+
+    <fragment
+        android:id="@+id/personalInfoFragment"
+        android:name="com.example.testapptradeup.fragments.PersonalInfoFragment"
+        android:label="Thông tin cá nhân"
+        tools:layout="@layout/fragment_personal_info" />
 </navigation>

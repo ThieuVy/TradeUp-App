@@ -1,12 +1,19 @@
 package com.example.testapptradeup.activities;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.content.Intent;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.content.ContextCompat;
@@ -40,6 +47,30 @@ public class MainActivity extends AppCompatActivity {
     private List<LinearLayout> menuItems;
     private MainViewModel mainViewModel;
 
+    // Khai báo launcher để xử lý kết quả yêu cầu quyền
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    // Người dùng đã cấp quyền. Không cần làm gì thêm ở đây.
+                    Log.d(TAG, "POST_NOTIFICATIONS permission granted.");
+                } else {
+                    // Người dùng từ chối. Có thể hiển thị một thông báo giải thích.
+                    Toast.makeText(this, "Bạn sẽ không nhận được thông báo quan trọng.", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+    // Phương thức để yêu cầu quyền
+    private void askNotificationPermission() {
+        // Chỉ chạy trên Android 13 (TIRAMISU) trở lên
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED) {
+                // Yêu cầu quyền
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,10 +85,9 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // ========== SỬA LỖI: Tải dữ liệu người dùng vào ViewModel tập trung ==========
-        loadUserIntoViewModel();
-        // ========================================================================
+        askNotificationPermission();
 
+        loadUserIntoViewModel();
         setupUI();
     }
 

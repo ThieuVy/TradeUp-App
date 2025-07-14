@@ -62,6 +62,14 @@ public class MyListingsViewModel extends ViewModel {
     private boolean isLastPage = false;
     private boolean isCurrentlyLoading = false;
 
+    /**
+     * Trả về trạng thái loading hiện tại (cả tải mới và tải thêm).
+     * @return true nếu đang tải dữ liệu, ngược lại là false.
+     */
+    public boolean isCurrentlyLoading() {
+        return isCurrentlyLoading;
+    }
+
     public MyListingsViewModel() {
         this.listingRepository = new ListingRepository();
         this.userId = FirebaseAuth.getInstance().getUid();
@@ -174,7 +182,7 @@ public class MyListingsViewModel extends ViewModel {
     // Hàm xóa bây giờ không còn dùng observeForever
     public LiveData<Boolean> deleteListing(String listingId) {
         MutableLiveData<Boolean> deleteResult = new MutableLiveData<>();
-        listingRepository.deleteListing(listingId).observeForever(new androidx.lifecycle.Observer<Boolean>() {
+        listingRepository.deleteListing(listingId).observeForever(new androidx.lifecycle.Observer<>() {
             @Override
             public void onChanged(Boolean success) {
                 if (Boolean.TRUE.equals(success)) {

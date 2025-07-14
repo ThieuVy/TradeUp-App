@@ -33,6 +33,7 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -55,7 +56,8 @@ public class SearchFragment extends Fragment {
 
     // UI Components
     private EditText searchInput;
-    private ImageButton clearSearch, filterToggle;
+    // <<< SỬA LỖI 1: KHAI BÁO BIẾN CHO NÚT BACK >>>
+    private ImageButton clearSearch, filterToggle, btnBackSearch;
     private ScrollView filtersContainer;
     private LinearLayout sortHeaderCard, emptyState, loadingState;
     private AutoCompleteTextView categoryFilter, conditionFilter, sortFilter;
@@ -123,6 +125,8 @@ public class SearchFragment extends Fragment {
         loadingState = view.findViewById(R.id.loading_state);
         loadMoreButton = view.findViewById(R.id.load_more_button);
         loadMoreProgress = view.findViewById(R.id.load_more_progress);
+        btnBackSearch = view.findViewById(R.id.btn_back_search);
+
     }
 
     private void setupAdapters() {
@@ -143,13 +147,32 @@ public class SearchFragment extends Fragment {
 
     private void setupListeners() {
         searchInput.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
             @Override
             public void afterTextChanged(Editable s) {
-                handler.removeCallbacks(searchRunnable);
-                searchRunnable = () -> viewModel.startNewSearch(collectSearchParamsFromUi());
+                // <<< SỬA ĐỔI QUAN TRỌNG BẮT ĐẦU TẠI ĐÂY >>>
+                // 1. Luôn hủy bỏ tác vụ tìm kiếm cũ trước khi tạo một tác vụ mới.
+                if (searchRunnable != null) {
+                    handler.removeCallbacks(searchRunnable);
+                }
+
+                // 2. Tạo một tác vụ tìm kiếm mới sẽ được thực thi sau một khoảng trễ.
+                searchRunnable = () -> {
+                    // 3. KIỂM TRA AN TOÀN: Chỉ chạy nếu Fragment còn được gắn vào Context.
+                    if (isAdded() && getContext() != null) {
+                        Log.d("SearchFragment", "Bắt đầu tìm kiếm sau độ trễ...");
+                        viewModel.startNewSearch(collectSearchParamsFromUi());
+                    }
+                };
+
+                // 4. Lên lịch thực thi tác vụ sau DEBOUNCE_DELAY_MS.
                 handler.postDelayed(searchRunnable, DEBOUNCE_DELAY_MS);
+                // <<< KẾT THÚC SỬA ĐỔI >>>
             }
         });
 
@@ -177,6 +200,17 @@ public class SearchFragment extends Fragment {
         });
 
         sortFilter.setOnItemClickListener((parent, view, position, id) -> viewModel.startNewSearch(collectSearchParamsFromUi()));
+
+        btnBackSearch.setOnClickListener(v -> Navigation.findNavController(v).popBackStack());
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Hủy bỏ bất kỳ tác vụ nào còn đang chờ khi Fragment bị hủy
+        if (searchRunnable != null) {
+            handler.removeCallbacks(searchRunnable);
+        }
     }
 
     private void observeViewModel() {

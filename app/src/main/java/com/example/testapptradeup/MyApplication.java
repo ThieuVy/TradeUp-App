@@ -10,6 +10,9 @@ import androidx.lifecycle.ProcessLifecycleOwner;
 
 import com.example.testapptradeup.utils.CloudinaryManager;
 import com.example.testapptradeup.utils.SharedPrefsHelper;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.appcheck.FirebaseAppCheck;
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory;
 import com.google.firebase.auth.FirebaseAuth;
 
 public class MyApplication extends Application implements LifecycleObserver {
@@ -25,12 +28,14 @@ public class MyApplication extends Application implements LifecycleObserver {
     @Override
     public void onCreate() {
         super.onCreate();
+        FirebaseApp.initializeApp(this);
 
-        // Khởi tạo các thành phần khác
+        FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
+        firebaseAppCheck.installAppCheckProviderFactory(
+                PlayIntegrityAppCheckProviderFactory.getInstance());
+
         CloudinaryManager.setup(this);
         prefsHelper = new SharedPrefsHelper(this);
-
-        // *** ĐĂNG KÝ LẮNG NGHE VÒNG ĐỜI CỦA TOÀN BỘ ỨNG DỤNG ***
         ProcessLifecycleOwner.get().getLifecycle().addObserver(this);
     }
 

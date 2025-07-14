@@ -5,10 +5,12 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -24,6 +26,7 @@ import com.example.testapptradeup.databinding.FragmentHomeBinding;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.viewmodels.HomeViewModel;
 import com.example.testapptradeup.viewmodels.MainViewModel;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class HomeFragment extends Fragment {
 
@@ -154,8 +157,40 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void onFavoriteClick(Listing listing) {
-        Toast.makeText(getContext(), "Yêu thích: " + listing.getTitle(), Toast.LENGTH_SHORT).show();
+    private void onFavoriteClick(Listing listing, ImageView favoriteIcon) {
+        // 1. Kiểm tra người dùng đã đăng nhập chưa
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập để sử dụng chức năng này", Toast.LENGTH_SHORT).show();
+            // TODO: Có thể điều hướng tới màn hình đăng nhập ở đây
+            return;
+        }
+
+        // 2. Cập nhật giao diện ngay lập tức để người dùng thấy phản hồi
+        // Giả sử listing.isFavorited() là một trường boolean trong model của bạn (cần thêm vào)
+        boolean isCurrentlyFavorited = (favoriteIcon.getTag() != null && (boolean) favoriteIcon.getTag());
+        boolean newFavoriteState = !isCurrentlyFavorited;
+
+        updateFavoriteIconUI(favoriteIcon, newFavoriteState);
+
+        // 3. Gọi ViewModel để xử lý logic thêm/xóa yêu thích ở backend
+        // viewModel.toggleFavorite(listing.getId(), newFavoriteState); // <- Đây là cách làm đúng
+
+        // Tạm thời hiển thị Toast
+        String message = newFavoriteState ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích";
+        Toast.makeText(getContext(), message + ": " + listing.getTitle(), Toast.LENGTH_SHORT).show();
+    }
+
+    // <<< THÊM MỚI: Hàm helper để cập nhật giao diện cho icon >>>
+    private void updateFavoriteIconUI(ImageView favoriteIcon, boolean isFavorite) {
+        if (isFavorite) {
+            favoriteIcon.setImageResource(R.drawable.ic_favorite_filled); // Icon trái tim đầy
+            favoriteIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.red_error)); // Màu đỏ
+            favoriteIcon.setTag(true); // Dùng tag để lưu trạng thái
+        } else {
+            favoriteIcon.setImageResource(R.drawable.ic_favorite_outline); // Icon trái tim rỗng
+            favoriteIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.text_secondary)); // Màu xám
+            favoriteIcon.setTag(false);
+        }
     }
 
     private void navigateTo(int destinationId) {

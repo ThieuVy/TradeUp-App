@@ -204,29 +204,31 @@ public class Listing implements Parcelable {
         geohash = in.readString();
     }
 
+    @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(id);
-        dest.writeString(title);
-        dest.writeString(description);
+        // Kiểm tra null cho TẤT CẢ các trường String
+        dest.writeString(id != null ? id : "");
+        dest.writeString(title != null ? title : "");
+        dest.writeString(description != null ? description : "");
         dest.writeDouble(price);
         dest.writeStringList(imageUrls);
-        dest.writeString(location);
+        dest.writeString(location != null ? location : "");
         dest.writeLong(timePosted != null ? timePosted.getTime() : -1);
-        dest.writeString(categoryId);
+        dest.writeString(categoryId != null ? categoryId : "");
         dest.writeFloat(rating);
         dest.writeInt(reviewCount);
-        dest.writeString(sellerId);
-        dest.writeString(sellerName);
-        dest.writeString(condition);
+        dest.writeString(sellerId != null ? sellerId : "");
+        dest.writeString(sellerName != null ? sellerName : "");
+        dest.writeString(condition != null ? condition : "");
         dest.writeByte((byte) (isNegotiable ? 1 : 0));
-        dest.writeString(status);
+        dest.writeString(status != null ? status : "");
         dest.writeInt(views);
         dest.writeInt(offersCount);
         dest.writeByte((byte) (isSold ? 1 : 0));
         dest.writeStringList(tags);
         dest.writeDouble(latitude);
         dest.writeDouble(longitude);
-        dest.writeString(geohash);
+        dest.writeString(geohash != null ? geohash : "");
     }
 
     public int describeContents() {

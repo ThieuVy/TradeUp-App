@@ -87,6 +87,9 @@ dependencies {
 
     implementation(libs.google.firebase.messaging)
     implementation (libs.geofire.android)
+
+    implementation(libs.firebase.appcheck.playintegrity)
+
 }
 configurations.all {
     exclude(group = "xpp3", module = "xpp3")

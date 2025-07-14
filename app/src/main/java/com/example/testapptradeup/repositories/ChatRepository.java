@@ -14,9 +14,11 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -194,5 +196,66 @@ public class ChatRepository {
                 });
 
         return sendStatus;
+    }
+    /**
+     * Tìm một cuộc trò chuyện hiện có giữa người dùng hiện tại và một người dùng khác.
+     * Nếu không tồn tại, tạo một cuộc trò chuyện mới.
+     * @param otherUserId ID của người dùng cần chat cùng.
+     * @return LiveData chứa ID của cuộc trò chuyện (chatId).
+     */
+    public LiveData<String> findOrCreateChat(String otherUserId) {
+        MutableLiveData<String> chatIdLiveData = new MutableLiveData<>();
+        if (currentUserId == null || otherUserId == null || currentUserId.equals(otherUserId)) {
+            chatIdLiveData.setValue(null); // Không thể tự chat với chính mình
+            return chatIdLiveData;
+        }
+
+        // Tạo một danh sách members để truy vấn
+        List<String> membersToFind = Arrays.asList(currentUserId, otherUserId);
+
+        // Truy vấn để tìm cuộc trò chuyện có chính xác 2 thành viên này
+        db.collection("chats")
+                .whereEqualTo("members", membersToFind)
+                .limit(1)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        QuerySnapshot snapshots = task.getResult();
+                        if (snapshots != null && !snapshots.isEmpty()) {
+                            // Đã tìm thấy cuộc trò chuyện, trả về ID của nó
+                            String existingChatId = snapshots.getDocuments().get(0).getId();
+                            Log.d(TAG, "Đã tìm thấy cuộc trò chuyện có sẵn: " + existingChatId);
+                            chatIdLiveData.postValue(existingChatId);
+                        } else {
+                            // Không tìm thấy, tiến hành tạo mới
+                            Log.d(TAG, "Không tìm thấy cuộc trò chuyện, đang tạo mới...");
+                            createChat(otherUserId, chatIdLiveData);
+                        }
+                    } else {
+                        Log.e(TAG, "Lỗi khi tìm cuộc trò chuyện: ", task.getException());
+                        chatIdLiveData.postValue(null);
+                    }
+                });
+
+        return chatIdLiveData;
+    }
+
+    private void createChat(String otherUserId, MutableLiveData<String> chatIdLiveData) {
+        DocumentReference newChatRef = db.collection("chats").document();
+
+        Map<String, Object> chatData = new HashMap<>();
+        chatData.put("members", Arrays.asList(currentUserId, otherUserId));
+        chatData.put("timestamp", FieldValue.serverTimestamp());
+        chatData.put("lastMessage", "Hãy bắt đầu cuộc trò chuyện!"); // Tin nhắn khởi tạo
+
+        newChatRef.set(chatData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Tạo cuộc trò chuyện mới thành công: " + newChatRef.getId());
+                    chatIdLiveData.postValue(newChatRef.getId());
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi khi tạo cuộc trò chuyện mới: ", e);
+                    chatIdLiveData.postValue(null);
+                });
     }
 }

@@ -3,7 +3,6 @@ package com.example.testapptradeup.viewmodels;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.Offer;
 import com.example.testapptradeup.repositories.OfferRepository;
 import java.util.List;
@@ -11,14 +10,11 @@ import java.util.List;
 public class OffersViewModel extends ViewModel {
     private final OfferRepository offerRepository;
     private LiveData<List<Offer>> offersForListing;
-    // Sử dụng LiveData này cho tất cả các hành động để theo dõi trạng thái chung
     private final MutableLiveData<ActionStatus> actionStatus = new MutableLiveData<>();
 
-    // Lớp nội bộ để biểu thị kết quả của một hành động
     public static class ActionStatus {
         public final boolean isSuccess;
         public final String message;
-
         private ActionStatus(boolean isSuccess, String message) {
             this.isSuccess = isSuccess;
             this.message = message;
@@ -40,12 +36,15 @@ public class OffersViewModel extends ViewModel {
         return actionStatus;
     }
 
-    // SỬA LỖI: Hàm này bây giờ nhận cả Listing
-    public void acceptOffer(Offer offer, Listing listing) {
-        // Gọi hàm repository đã được sửa đổi
-        offerRepository.acceptOffer(offer, listing).observeForever(success -> {
+    /**
+     * Chấp nhận một đề nghị.
+     * @param offer Đề nghị cần chấp nhận.
+     */
+    public void acceptOffer(Offer offer) {
+        // Phương thức này chỉ nhận 1 tham số
+        offerRepository.acceptOffer(offer).observeForever(success -> {
             if (Boolean.TRUE.equals(success)) {
-                actionStatus.setValue(new ActionStatus(true, "Đã chấp nhận đề nghị và hoàn tất giao dịch!"));
+                actionStatus.setValue(new ActionStatus(true, "Đã chấp nhận đề nghị! Đang chờ người mua thanh toán."));
             } else {
                 actionStatus.setValue(new ActionStatus(false, "Lỗi khi chấp nhận đề nghị."));
             }
@@ -59,7 +58,6 @@ public class OffersViewModel extends ViewModel {
         offerRepository.updateOfferStatus(offer.getId(), "rejected").observeForever(success -> {
             if (Boolean.TRUE.equals(success)) {
                 actionStatus.setValue(new ActionStatus(true, "Đã từ chối đề nghị."));
-                // Làm mới danh sách để cập nhật UI
                 refreshOffers();
             } else {
                 actionStatus.setValue(new ActionStatus(false, "Lỗi khi từ chối đề nghị."));
@@ -78,7 +76,7 @@ public class OffersViewModel extends ViewModel {
     }
 
     /**
-     * Reset trạng thái để dialog không hiện lại khi xoay màn hình
+     * Reset trạng thái để thông báo không hiện lại.
      */
     public void clearActionStatus() {
         actionStatus.setValue(null);

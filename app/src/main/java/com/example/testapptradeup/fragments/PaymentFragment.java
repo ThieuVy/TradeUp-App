@@ -26,11 +26,9 @@ public class PaymentFragment extends Fragment {
     private NavController navController;
     private PaymentSheet paymentSheet;
 
-    // Data from arguments
     private String listingId, sellerId;
     private float offerPrice;
 
-    // UI
     private ProgressBar progressBar;
     private TextView statusText;
 
@@ -66,6 +64,7 @@ public class PaymentFragment extends Fragment {
 
         observeViewModel();
 
+        // Bắt đầu quá trình thanh toán ngay khi màn hình được tạo
         if (listingId != null) {
             viewModel.startEscrowPayment(listingId, sellerId, offerPrice);
         } else {
@@ -75,7 +74,10 @@ public class PaymentFragment extends Fragment {
     }
 
     private void observeViewModel() {
-        viewModel.isLoading().observe(getViewLifecycleOwner(), isLoading -> progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE));
+        viewModel.isLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            statusText.setText(isLoading ? "Đang chuẩn bị thanh toán..." : "Sẵn sàng để thanh toán.");
+            progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        });
 
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
             if (error != null) {
@@ -84,32 +86,39 @@ public class PaymentFragment extends Fragment {
             }
         });
 
+        // Lắng nghe khi các khóa từ Stripe đã sẵn sàng
         viewModel.getPaymentKeys().observe(getViewLifecycleOwner(), keys -> {
             if (keys != null && getContext() != null) {
-                // Thay thế bằng Publishable Key của bạn
-                String stripePublishableKey = "pk_test_YOUR_PUBLISHABLE_KEY";
+                // THAY THẾ BẰNG PUBLISHABLE KEY CỦA BẠN
+                String stripePublishableKey = "pk_test_YOUR_STRIPE_PUBLISHABLE_KEY";
                 PaymentConfiguration.init(requireContext(), stripePublishableKey);
 
                 String customerId = keys.get("customerId");
-                String ephemeralKey = keys.get("ephemeralKeySecret"); // Tên key từ function v1
+                String ephemeralKey = keys.get("ephemeralKeySecret");
                 String clientSecret = keys.get("clientSecret");
 
                 if (customerId != null && ephemeralKey != null && clientSecret != null) {
+                    // Hiển thị giao diện thanh toán của Stripe
                     paymentSheet.presentWithPaymentIntent(clientSecret,
                             new PaymentSheet.Configuration.Builder("TradeUp Inc.")
                                     .customer(new PaymentSheet.CustomerConfiguration(customerId, ephemeralKey))
                                     .allowsDelayedPaymentMethods(true)
                                     .build()
                     );
+                } else {
+                    Toast.makeText(getContext(), "Lỗi cấu hình thanh toán.", Toast.LENGTH_LONG).show();
                 }
             }
         });
     }
 
+    // Callback xử lý kết quả sau khi người dùng hoàn tất (hoặc hủy) trên PaymentSheet
     private void onPaymentSheetResult(final PaymentSheetResult paymentSheetResult) {
         if (paymentSheetResult instanceof PaymentSheetResult.Completed) {
             Toast.makeText(getContext(), "Thanh toán thành công! Vui lòng chờ người bán giao hàng.", Toast.LENGTH_LONG).show();
-            // TODO: Cập nhật trạng thái tin đăng/offer thành "pending_confirmation"
+            // TODO: (Quan trọng) Tại đây, bạn cần gọi một phương thức trong ViewModel để
+            // cập nhật trạng thái của Listing trên Firestore thành 'pending_delivery' hoặc tương tự.
+            // viewModel.updateListingStatusAfterPayment(listingId, "pending_delivery");
             navController.popBackStack();
         } else if (paymentSheetResult instanceof PaymentSheetResult.Canceled) {
             Toast.makeText(getContext(), "Đã hủy thanh toán.", Toast.LENGTH_SHORT).show();

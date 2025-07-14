@@ -30,6 +30,16 @@
             android:paddingStart="20dp"
             android:paddingEnd="8dp">
 
+            <ImageButton
+                android:id="@+id/btn_back_search"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Quay lại"
+                android:src="@drawable/ic_arrow_back"
+                app:tint="@color/text_secondary"
+                tools:ignore="HardcodedText" />
+
             <EditText
                 android:id="@+id/search_input"
                 android:layout_width="0dp"

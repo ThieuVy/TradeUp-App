@@ -138,7 +138,7 @@ public class ProfileFragment extends Fragment {
             // nơi người dùng có thể xem các giao dịch đang ký quỹ của họ.
             Toast.makeText(getContext(), "Điều hướng đến màn hình quản lý giao dịch ký quỹ (đang phát triển)", Toast.LENGTH_SHORT).show();
         });
-        menuPersonalInfo.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_editProfileFragment));
+        menuPersonalInfo.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_personalInfoFragment));
         menuChangePassword.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_changePasswordFragment));
         menuNotificationSettings.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_notificationSettingsFragment));
         menuPaymentMethods.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_paymentSettingsFragment));
