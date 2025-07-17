@@ -193,6 +193,9 @@ public class MainActivity extends AppCompatActivity {
     public void performLogout() {
         mAuth.signOut();
         prefsHelper.clearUserData();
+
+        mainViewModel.setCurrentUser(null);
+
         navigateToLogin();
     }
 

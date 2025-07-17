@@ -140,13 +140,30 @@ public class ProfileFragment extends Fragment {
         btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
     }
 
+    @SuppressLint("SetTextI18n")
+    private void clearUI() {
+        this.currentUser = null;
+        textDisplayName.setText("Đang tải..."); // Hoặc chuỗi mặc định
+        textEmail.setText("");
+        textBio.setText("Chưa có tiểu sử.");
+        textRatingInfo.setText("Chưa có đánh giá");
+        profileImage.setImageResource(R.drawable.ic_profile_placeholder);
+        // Xóa các trường dữ liệu khác nếu cần
+        textSavedItemsCount.setText("0");
+        textOffersCount.setText("0");
+        textPurchasesCount.setText("0");
+    }
+
     @SuppressLint("NotifyDataSetChanged")
     private void observeViewModels() {
         mainViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
+                // Nếu có người dùng, cập nhật UI
                 updateUI(user);
-                // Bây giờ lệnh gọi này là hợp lệ
                 profileViewModel.loadUserReviews(user.getId());
+            } else {
+                // Nếu người dùng là null (đã đăng xuất), xóa UI
+                clearUI();
             }
         });
 
