@@ -18,14 +18,15 @@ public class Review implements Parcelable {
     private String transactionId;
     @ServerTimestamp
     private Date reviewDate;
+    // BƯỚC 1.1: THÊM TRƯỜNG moderationStatus
     private String moderationStatus; // "pending", "approved", "rejected"
 
     public Review() {
+        // BƯỚC 1.2: ĐẶT GIÁ TRỊ MẶC ĐỊNH LÀ "pending"
         this.moderationStatus = "pending";
     }
 
-    // Các Getters và Setters giữ nguyên...
-    // [Các getters và setters của bạn ở đây]
+    // Getters and Setters
     public String getReviewId() { return reviewId; }
     public void setReviewId(String reviewId) { this.reviewId = reviewId; }
     public String getReviewedUserId() { return reviewedUserId; }
@@ -47,7 +48,8 @@ public class Review implements Parcelable {
     public String getModerationStatus() { return moderationStatus; }
     public void setModerationStatus(String moderationStatus) { this.moderationStatus = moderationStatus; }
 
-    // --- BẮT ĐẦU SỬA LỖI 3.2 CHO LỚP REVIEW ---
+
+    // BƯỚC 1.3: CẬP NHẬT PARCELABLE
     protected Review(Parcel in) {
         reviewId = in.readString();
         reviewedUserId = in.readString();
@@ -75,14 +77,13 @@ public class Review implements Parcelable {
         dest.writeLong(reviewDate != null ? reviewDate.getTime() : -1);
         dest.writeString(moderationStatus != null ? moderationStatus : "");
     }
-    // --- KẾT THÚC SỬA LỖI ---
 
     @Override
     public int describeContents() {
         return 0;
     }
 
-    public static final Creator<Review> CREATOR = new Creator<Review>() {
+    public static final Creator<Review> CREATOR = new Creator<>() {
         @Override
         public Review createFromParcel(Parcel in) {
             return new Review(in);
@@ -107,11 +108,12 @@ public class Review implements Parcelable {
                 Objects.equals(reviewerImageUrl, review.reviewerImageUrl) &&
                 Objects.equals(comment, review.comment) &&
                 Objects.equals(transactionId, review.transactionId) &&
-                Objects.equals(reviewDate, review.reviewDate);
+                Objects.equals(reviewDate, review.reviewDate) &&
+                Objects.equals(moderationStatus, review.moderationStatus); // Thêm vào equals
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(reviewId, reviewedUserId, reviewerId, reviewerName, reviewerImageUrl, rating, comment, transactionId, reviewDate);
+        return Objects.hash(reviewId, reviewedUserId, reviewerId, reviewerName, reviewerImageUrl, rating, comment, transactionId, reviewDate, moderationStatus); // Thêm vào hashCode
     }
 }

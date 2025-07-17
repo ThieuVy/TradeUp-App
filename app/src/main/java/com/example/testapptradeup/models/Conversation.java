@@ -2,14 +2,20 @@ package com.example.testapptradeup.models;
 
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
+import java.util.List; // <<< THÊM MỚI
 import java.util.Objects;
 
 public class Conversation {
-    private String id; // ID này sẽ được gán thủ công trong Repository
+    private String id;
     private String otherUserId;
     private String otherUserName;
     private String otherUserAvatarUrl;
     private String lastMessage;
+
+    // ================= SỬA LỖI: THÊM TRƯỜNG NÀY =================
+    private List<String> members; // Danh sách ID của 2 người dùng trong cuộc trò chuyện
+    // ==========================================================
+
     @ServerTimestamp
     private Date timestamp;
     private int unreadCount;
@@ -19,13 +25,7 @@ public class Conversation {
     }
 
     // Getters
-    // REMOVE @Exclude from here
     public String getId() { return id; }
-
-    // Setters
-    // REMOVE @Exclude from here
-    public void setId(String id) { this.id = id; }
-
     public String getOtherUserId() { return otherUserId; }
     public String getOtherUserName() { return otherUserName; }
     public String getOtherUserAvatarUrl() { return otherUserAvatarUrl; }
@@ -33,6 +33,11 @@ public class Conversation {
     public Date getTimestamp() { return timestamp; }
     public int getUnreadCount() { return unreadCount; }
 
+    public List<String> getMembers() { return members; }
+    public void setMembers(List<String> members) { this.members = members; }
+
+    // Setters
+    public void setId(String id) { this.id = id; }
     public void setOtherUserId(String otherUserId) { this.otherUserId = otherUserId; }
     public void setOtherUserName(String otherUserName) { this.otherUserName = otherUserName; }
     public void setOtherUserAvatarUrl(String otherUserAvatarUrl) { this.otherUserAvatarUrl = otherUserAvatarUrl; }

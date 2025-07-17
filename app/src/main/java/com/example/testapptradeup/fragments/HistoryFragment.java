@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -23,6 +22,7 @@ public class HistoryFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        // Layout fragment_history đã có sẵn, chỉ cần inflate nó
         return inflater.inflate(R.layout.fragment_history, container, false);
     }
 
@@ -35,11 +35,15 @@ public class HistoryFragment extends Fragment {
         TabLayout tabLayout = view.findViewById(R.id.tab_layout_history);
         ViewPager2 viewPager = view.findViewById(R.id.view_pager_history);
 
+        // Thiết lập nút back trên toolbar
         toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
 
-        HistoryPagerAdapter adapter = new HistoryPagerAdapter(requireActivity());
+        // Tạo adapter cho ViewPager2
+        // Truyền `this` (HistoryFragment) vào constructor của PagerAdapter
+        HistoryPagerAdapter adapter = new HistoryPagerAdapter(this);
         viewPager.setAdapter(adapter);
 
+        // Kết nối TabLayout với ViewPager2
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             if (position == 0) {
                 tab.setText("Lịch sử mua");

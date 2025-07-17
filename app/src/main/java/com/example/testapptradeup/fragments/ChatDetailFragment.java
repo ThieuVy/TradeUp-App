@@ -51,10 +51,9 @@ public class ChatDetailFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(ChatDetailViewModel.class);
 
         if (getArguments() != null) {
-            chatId = ChatDetailFragmentArgs.fromBundle(getArguments()).getChatId();
-            otherUserName = ChatDetailFragmentArgs.fromBundle(getArguments()).getOtherUserName();
-            // Lấy otherUserId từ conversation trong ViewModel hoặc từ argument nếu có
-            // Tạm thời sẽ để logic lấy ID này trong onViewCreated
+            ChatDetailFragmentArgs args = ChatDetailFragmentArgs.fromBundle(getArguments());
+            chatId = args.getChatId();
+            otherUserName = args.getOtherUserName();
         }
     }
 
@@ -73,10 +72,10 @@ public class ChatDetailFragment extends Fragment {
         setupListeners();
 
         if (chatId != null) {
-            viewModel.loadMessages(chatId); // Báo ViewModel tải tin nhắn cho cuộc trò chuyện này
+            // SỬA LỖI: Chỉ cần gọi một hàm để bắt đầu tải
+            viewModel.loadChat(chatId);
             observeViewModel();
         } else {
-            // Xử lý trường hợp không có chatId -> quay lại
             Toast.makeText(getContext(), "Lỗi: Không tìm thấy cuộc trò chuyện.", Toast.LENGTH_SHORT).show();
             navController.popBackStack();
         }
@@ -87,33 +86,28 @@ public class ChatDetailFragment extends Fragment {
         etMessage = view.findViewById(R.id.edit_text_message);
         btnSend = view.findViewById(R.id.btn_send);
         toolbar = view.findViewById(R.id.toolbar_chat);
-        // === THÊM MỚI: Ánh xạ nút more options ===
         btnMoreOptions = view.findViewById(R.id.btn_more_options_chat);
-
         if (otherUserName != null) {
             toolbar.setTitle(otherUserName);
         }
     }
 
+    private void setupListeners() {
+        toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
+        btnSend.setOnClickListener(v -> sendMessage());
+        btnMoreOptions.setOnClickListener(v -> showChatOptionsDialog());
+    }
+
     private void setupRecyclerView() {
         adapter = new ChatMessageAdapter();
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
-        layoutManager.setStackFromEnd(true); // Quan trọng: Giúp RecyclerView bắt đầu từ dưới cùng
+        layoutManager.setStackFromEnd(true);
         recyclerMessages.setLayoutManager(layoutManager);
         recyclerMessages.setAdapter(adapter);
     }
 
-    private void setupListeners() {
-        toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
-        btnSend.setOnClickListener(v -> sendMessage());
-
-        // === THÊM MỚI: Bắt sự kiện cho nút more options ===
-        btnMoreOptions.setOnClickListener(v -> showChatOptionsDialog());
-    }
-
     private void showChatOptionsDialog() {
         if (getContext() == null) return;
-
         final CharSequence[] options = {"Báo cáo cuộc trò chuyện", "Chặn người dùng", "Hủy"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
@@ -132,7 +126,7 @@ public class ChatDetailFragment extends Fragment {
     }
 
     private void showReportReasonDialog() {
-        if (getContext() == null || chatId == null) return;
+        if (getContext() == null) return;
 
         final String[] reportReasons = {"Nội dung không phù hợp", "Spam hoặc Lừa đảo", "Quấy rối", "Lý do khác"};
 
@@ -147,10 +141,23 @@ public class ChatDetailFragment extends Fragment {
     }
 
     private void observeViewModel() {
-        // Lắng nghe danh sách tin nhắn từ ViewModel
-        viewModel.messages.observe(getViewLifecycleOwner(), messages -> {
+        // Lắng nghe dữ liệu cuộc trò chuyện để lấy ID người dùng còn lại
+        viewModel.getChatData().observe(getViewLifecycleOwner(), conversation -> {
+            // ĐOẠN CODE NÀY BÂY GIỜ SẼ HỢP LỆ
+            if (conversation != null && conversation.getMembers() != null) {
+                String currentUid = FirebaseAuth.getInstance().getUid();
+                if (currentUid != null) {
+                    conversation.getMembers().stream()
+                            .filter(memberId -> !memberId.equals(currentUid))
+                            .findFirst()
+                            .ifPresent(id -> this.otherUserId = id);
+                }
+            }
+        });
+
+        // Lắng nghe danh sách tin nhắn để cập nhật RecyclerView
+        viewModel.getMessages().observe(getViewLifecycleOwner(), messages -> {
             adapter.submitList(messages);
-            // Tự động cuộn xuống tin nhắn mới nhất
             if (messages != null && !messages.isEmpty()) {
                 recyclerMessages.smoothScrollToPosition(messages.size() - 1);
             }
@@ -161,24 +168,30 @@ public class ChatDetailFragment extends Fragment {
         String messageText = etMessage.getText().toString().trim();
         if (!messageText.isEmpty()) {
             viewModel.sendMessage(chatId, messageText);
-            etMessage.setText(""); // Xóa nội dung trong ô nhập sau khi gửi
+            etMessage.setText("");
         }
     }
 
     private void sendConversationReport(String reason) {
         String reporterId = FirebaseAuth.getInstance().getUid();
         if (reporterId == null) {
-            Toast.makeText(getContext(), "Bạn cần đăng nhập để thực hiện hành động này.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Bạn cần đăng nhập để báo cáo.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (otherUserId == null) {
+            Toast.makeText(getContext(), "Lỗi: Không xác định được người dùng cần báo cáo.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         Map<String, Object> report = new HashMap<>();
         report.put("reporterId", reporterId);
-        report.put("chatId", chatId); // Thêm ID của cuộc trò chuyện để dễ dàng truy vết
+        report.put("reportedUserId", otherUserId); // Báo cáo người dùng đối thoại
+        report.put("chatId", chatId); // Thêm ID cuộc trò chuyện để dễ truy vết
         report.put("reason", reason);
         report.put("timestamp", FieldValue.serverTimestamp());
         report.put("type", "conversation"); // Phân loại báo cáo
-        report.put("status", "pending"); // Trạng thái ban đầu của báo cáo
+        report.put("status", "pending");
 
         FirebaseFirestore.getInstance().collection("reports").add(report)
                 .addOnSuccessListener(documentReference ->

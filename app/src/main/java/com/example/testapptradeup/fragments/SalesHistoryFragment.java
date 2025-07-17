@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,6 +27,7 @@ public class SalesHistoryFragment extends Fragment implements TransactionHistory
     private TransactionHistoryAdapter adapter;
     private TextView emptyStateText;
     private RecyclerView recyclerView;
+    private ProgressBar progressBar;
     private NavController navController;
 
     @Override
@@ -45,11 +47,15 @@ public class SalesHistoryFragment extends Fragment implements TransactionHistory
         super.onViewCreated(view, savedInstanceState);
         navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment);
 
-        emptyStateText = view.findViewById(R.id.text_empty_history);
-        recyclerView = view.findViewById(R.id.recycler_history);
-
+        initViews(view);
         setupRecyclerView();
         observeViewModel();
+    }
+
+    private void initViews(View view) {
+        emptyStateText = view.findViewById(R.id.text_empty_history);
+        recyclerView = view.findViewById(R.id.recycler_history);
+        progressBar = view.findViewById(R.id.progress_bar_history);
     }
 
     private void setupRecyclerView() {
@@ -60,7 +66,12 @@ public class SalesHistoryFragment extends Fragment implements TransactionHistory
 
     @SuppressLint("SetTextI18n")
     private void observeViewModel() {
+        progressBar.setVisibility(View.VISIBLE);
+        recyclerView.setVisibility(View.GONE);
+        emptyStateText.setVisibility(View.GONE);
+
         viewModel.getMySales().observe(getViewLifecycleOwner(), transactions -> {
+            progressBar.setVisibility(View.GONE);
             if (transactions != null && !transactions.isEmpty()) {
                 adapter.submitList(transactions);
                 recyclerView.setVisibility(View.VISIBLE);
@@ -75,11 +86,11 @@ public class SalesHistoryFragment extends Fragment implements TransactionHistory
 
     @Override
     public void onReviewClick(Transaction transaction) {
-        // Khi bán hàng, người cần đánh giá là người mua (buyer)
+        // Khi bán hàng, người được đánh giá là người mua (buyer)
         HistoryFragmentDirections.ActionHistoryFragmentToAddReviewFragment action =
                 HistoryFragmentDirections.actionHistoryFragmentToAddReviewFragment(
                         transaction.getId(),
-                        transaction.getBuyerId() // <<< Truyền ID của người mua
+                        transaction.getBuyerId() // Truyền ID của người mua
                 );
         navController.navigate(action);
     }

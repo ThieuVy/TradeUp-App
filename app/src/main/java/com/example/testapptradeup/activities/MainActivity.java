@@ -1,6 +1,7 @@
 package com.example.testapptradeup.activities;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -47,26 +48,30 @@ public class MainActivity extends AppCompatActivity {
     private List<LinearLayout> menuItems;
     private MainViewModel mainViewModel;
 
-    // Khai báo launcher để xử lý kết quả yêu cầu quyền
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
-                    // Người dùng đã cấp quyền. Không cần làm gì thêm ở đây.
-                    Log.d(TAG, "POST_NOTIFICATIONS permission granted.");
+                    Log.d(TAG, "Quyền POST_NOTIFICATIONS đã được cấp.");
                 } else {
-                    // Người dùng từ chối. Có thể hiển thị một thông báo giải thích.
                     Toast.makeText(this, "Bạn sẽ không nhận được thông báo quan trọng.", Toast.LENGTH_SHORT).show();
                 }
             });
 
-    // Phương thức để yêu cầu quyền
     private void askNotificationPermission() {
-        // Chỉ chạy trên Android 13 (TIRAMISU) trở lên
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-                    PackageManager.PERMISSION_GRANTED) {
-                // Yêu cầu quyền
-                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Cần quyền gửi thông báo")
+                            .setMessage("Chúng tôi cần quyền này để gửi cho bạn các cập nhật quan trọng về tin nhắn và ưu đãi. Vui lòng cấp quyền.")
+                            .setPositiveButton("OK", (dialog, which) -> requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS))
+                            .setNegativeButton("Hủy", null)
+                            .show();
+                } else {
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+                }
+            } else {
+                Log.d(TAG, "Quyền POST_NOTIFICATIONS đã được cấp trước đó.");
             }
         }
     }
@@ -169,14 +174,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // ========== SỬA LỖI: Hàm mới để tập trung hóa dữ liệu ==========
     private void loadUserIntoViewModel() {
         User user = prefsHelper.getCurrentUser();
         if (user != null) {
             mainViewModel.setCurrentUser(user);
         } else {
-            // Trường hợp hiếm gặp: đã đăng nhập nhưng không có dữ liệu trong SharedPreferences.
-            // Có thể đăng xuất hoặc tải lại từ Firestore. Ở đây ta chọn đăng xuất cho an toàn.
             performLogout();
         }
     }

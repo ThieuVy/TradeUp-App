@@ -34,7 +34,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.util.Date; // Thêm import Date
+import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 
@@ -127,8 +127,6 @@ public class RegisterActivity extends AppCompatActivity {
     private void saveUserToFirestoreAndSendVerification(FirebaseUser firebaseUser) {
         String name = firebaseUser.getEmail() != null ? firebaseUser.getEmail().split("@")[0] : "Người dùng mới";
 
-        // === BẮT ĐẦU SỬA LỖI 1: TẠO USER ĐĂNG KÝ BẰNG EMAIL ===
-        // Sử dụng constructor rỗng và các phương thức setter
         User newUser = new User();
         newUser.setId(firebaseUser.getUid());
         newUser.setName(name);
@@ -139,13 +137,12 @@ public class RegisterActivity extends AppCompatActivity {
         newUser.setAddress("");
         newUser.setRating(0.0f);
         newUser.setReviewCount(0);
-        newUser.setVerified(false); // Quan trọng: người dùng mới đăng ký email chưa được xác thực
+        newUser.setVerified(false);
         newUser.setAccountStatus("active");
         newUser.setFlagged(false);
         newUser.setWalletStatus("not_connected");
         newUser.setNotificationCount(0);
-        newUser.setMemberSince(new Date()); // Gán ngày đăng ký là thời điểm hiện tại
-        // === KẾT THÚC SỬA LỖI 1 ===
+        newUser.setMemberSince(new Date());
 
         db.collection("users").document(firebaseUser.getUid())
                 .set(newUser)
@@ -167,7 +164,6 @@ public class RegisterActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         Log.d(TAG, "Email xác thực đã được gửi.");
                         Toast.makeText(RegisterActivity.this, "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.", Toast.LENGTH_LONG).show();
-                        // Chuyển người dùng đến màn hình xác thực
                         Intent intent = new Intent(RegisterActivity.this, EmailVerificationActivity.class);
                         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
@@ -242,7 +238,6 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void saveNewGoogleUserAndNavigate(FirebaseUser firebaseUser) {
-        // === BẮT ĐẦU SỬA LỖI 2: TẠO USER ĐĂNG KÝ BẰNG GOOGLE ===
         User newUser = new User();
         newUser.setId(firebaseUser.getUid());
         newUser.setName(firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "Người dùng Google");
@@ -253,13 +248,12 @@ public class RegisterActivity extends AppCompatActivity {
         newUser.setAddress("");
         newUser.setRating(0.0f);
         newUser.setReviewCount(0);
-        newUser.setVerified(true); // Tài khoản Google mặc định là đã xác thực email
+        newUser.setVerified(true);
         newUser.setAccountStatus("active");
         newUser.setFlagged(false);
         newUser.setWalletStatus("not_connected");
         newUser.setNotificationCount(0);
         newUser.setMemberSince(new Date());
-        // === KẾT THÚC SỬA LỖI 2 ===
 
         db.collection("users").document(newUser.getId()).set(newUser)
                 .addOnSuccessListener(aVoid -> {
@@ -311,7 +305,6 @@ public class RegisterActivity extends AppCompatActivity {
         String defaultMessage = "Đăng ký thất bại. Vui lòng thử lại.";
         if (exception == null) return defaultMessage;
 
-        // Xử lý các mã lỗi cụ thể từ Firebase
         if (exception instanceof com.google.firebase.auth.FirebaseAuthUserCollisionException) {
             return "Địa chỉ email này đã được sử dụng bởi một tài khoản khác.";
         }
@@ -327,6 +320,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void showLoading(boolean isLoading) {
         progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        signUpButton.setText(isLoading ? "" : getString(R.string.auth_register));
         signUpButton.setEnabled(!isLoading);
         googleLogin.setEnabled(!isLoading);
         loginLink.setEnabled(!isLoading);

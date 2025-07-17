@@ -120,7 +120,8 @@
             android:textSize="20sp"
             android:textStyle="bold"
             app:backgroundTint="@color/muted_gold"
-            app:cornerRadius="12dp" />
+            app:cornerRadius="12dp"
+            tools:ignore="DuplicateSpeakableTextCheck" />
 
         <ProgressBar
             android:id="@+id/progressBar"
@@ -168,7 +169,7 @@
             android:contentDescription="Google Login"
             android:focusable="true"
             android:src="@drawable/logo_gg"
-            tools:ignore="HardcodedText" />
+            tools:ignore="HardcodedText,TouchTargetSizeCheck" />
     </LinearLayout>
 
     <!-- Liên kết Sign Up -->

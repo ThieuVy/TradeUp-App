@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 
@@ -48,24 +49,18 @@ public class MyListingsViewModel extends ViewModel {
     private final MutableLiveData<LoadParams> loadTrigger = new MutableLiveData<>();
     private final LiveData<PagedResult<Listing>> pagedResult;
     private final MediatorLiveData<List<Listing>> allMyListings = new MediatorLiveData<>();
-
-    // ========== PHẦN SỬA LỖI 1: SỬA KHAI BÁO ==========
-    // Khai báo là MediatorLiveData để có thể dùng addSource
     private final MediatorLiveData<List<Listing>> displayedListings = new MediatorLiveData<>();
-    // ===============================================
-
     private final MutableLiveData<String> filterStatus = new MutableLiveData<>("all");
     public final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
     public final MutableLiveData<Boolean> isLoadingMore = new MutableLiveData<>(false);
+
+    // BƯỚC 1: KHAI BÁO BIẾN _errorMessage
+    private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
 
     private DocumentSnapshot lastVisibleDocument = null;
     private boolean isLastPage = false;
     private boolean isCurrentlyLoading = false;
 
-    /**
-     * Trả về trạng thái loading hiện tại (cả tải mới và tải thêm).
-     * @return true nếu đang tải dữ liệu, ngược lại là false.
-     */
     public boolean isCurrentlyLoading() {
         return isCurrentlyLoading;
     }
@@ -86,6 +81,8 @@ public class MyListingsViewModel extends ViewModel {
 
         allMyListings.addSource(pagedResult, result -> {
             if (result == null || !result.isSuccess() || result.getData() == null) {
+                // Bây giờ dòng này sẽ không còn báo lỗi
+                _errorMessage.setValue("Không thể tải danh sách tin đăng.");
                 resetLoadingStates();
                 return;
             }
@@ -97,7 +94,6 @@ public class MyListingsViewModel extends ViewModel {
             } else {
                 List<Listing> currentList = allMyListings.getValue();
                 if (currentList == null) currentList = new ArrayList<>();
-                // Tạo một list mới để LiveData nhận biết sự thay đổi
                 List<Listing> updatedList = new ArrayList<>(currentList);
                 updatedList.addAll(result.getData());
                 allMyListings.setValue(updatedList);
@@ -108,19 +104,14 @@ public class MyListingsViewModel extends ViewModel {
             resetLoadingStates();
         });
 
-        // ========== PHẦN SỬA LỖI 2: GỌI addSource TRÊN ĐỐI TƯỢNG ĐÚNG ==========
-        // Lời gọi addSource bây giờ hoàn toàn hợp lệ
         displayedListings.addSource(allMyListings, listings -> {
-            // Kiểm tra null cho status để tránh lỗi
             String currentFilter = filterStatus.getValue();
             applyFilterAndPost(listings, currentFilter);
         });
         displayedListings.addSource(filterStatus, status -> {
-            // Kiểm tra null cho listings để tránh lỗi
             List<Listing> currentListings = allMyListings.getValue();
             applyFilterAndPost(currentListings, status);
         });
-        // ===================================================================
 
         refreshListings();
     }
@@ -164,14 +155,13 @@ public class MyListingsViewModel extends ViewModel {
         loadTrigger.setValue(new LoadParams(userId, null));
     }
 
-    // Getters cho Fragment
-    // Trả về dưới dạng LiveData để Fragment không thể sửa đổi (nguyên tắc đóng gói)
-    public LiveData<List<Listing>> getDisplayedListings() {
-        return displayedListings;
-    }
+    public LiveData<List<Listing>> getDisplayedListings() { return displayedListings; }
     public LiveData<Boolean> isLoading() { return isLoading; }
     public LiveData<Boolean> isLoadingMore() { return isLoadingMore; }
     public boolean isLastPage() { return isLastPage; }
+
+    // BƯỚC 2: THÊM HÀM GETTER
+    public LiveData<String> getErrorMessage() { return _errorMessage; }
 
     public void setFilter(String status) {
         if (!Objects.equals(filterStatus.getValue(), status)) {
@@ -179,23 +169,20 @@ public class MyListingsViewModel extends ViewModel {
         }
     }
 
-    // Hàm xóa bây giờ không còn dùng observeForever
     public LiveData<Boolean> deleteListing(String listingId) {
         MutableLiveData<Boolean> deleteResult = new MutableLiveData<>();
-        listingRepository.deleteListing(listingId).observeForever(new androidx.lifecycle.Observer<>() {
+        listingRepository.deleteListing(listingId).observeForever(new Observer<>() {
             @Override
             public void onChanged(Boolean success) {
                 if (Boolean.TRUE.equals(success)) {
                     List<Listing> currentList = allMyListings.getValue();
                     if (currentList != null) {
-                        // Tạo list mới để trigger update
                         List<Listing> updatedList = new ArrayList<>(currentList);
                         updatedList.removeIf(l -> l.getId().equals(listingId));
                         allMyListings.setValue(updatedList);
                     }
                 }
                 deleteResult.setValue(success);
-                // Xóa observer ngay sau khi nhận được kết quả
                 listingRepository.deleteListing(listingId).removeObserver(this);
             }
         });

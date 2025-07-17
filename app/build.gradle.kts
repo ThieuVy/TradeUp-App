@@ -90,6 +90,8 @@ dependencies {
 
     implementation(libs.firebase.appcheck.playintegrity)
 
+    implementation(libs.flexbox)
+    implementation (libs.geofire.android.common)
 }
 configurations.all {
     exclude(group = "xpp3", module = "xpp3")

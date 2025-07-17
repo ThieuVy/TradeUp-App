@@ -49,14 +49,13 @@ import com.google.firebase.auth.FirebaseAuth;
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class SearchFragment extends Fragment {
+public abstract class SearchFragment extends Fragment implements SearchResultsAdapter.OnProductClickListener, SearchResultsAdapter.OnFavoriteClickListener {
 
     private static final int DEBOUNCE_DELAY_MS = 300;
     private SearchViewModel viewModel;
 
     // UI Components
     private EditText searchInput;
-    // <<< SỬA LỖI 1: KHAI BÁO BIẾN CHO NÚT BACK >>>
     private ImageButton clearSearch, filterToggle, btnBackSearch;
     private ScrollView filtersContainer;
     private LinearLayout sortHeaderCard, emptyState, loadingState;
@@ -130,7 +129,7 @@ public class SearchFragment extends Fragment {
     }
 
     private void setupAdapters() {
-        searchResultsAdapter = new SearchResultsAdapter(new ArrayList<>(), this::onProductClick, this::onFavoriteClick);
+        searchResultsAdapter = new SearchResultsAdapter(this, this);
         searchResultsRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         searchResultsRecyclerView.setAdapter(searchResultsAdapter);
 
@@ -155,25 +154,21 @@ public class SearchFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-                // <<< SỬA ĐỔI QUAN TRỌNG BẮT ĐẦU TẠI ĐÂY >>>
-                // 1. Luôn hủy bỏ tác vụ tìm kiếm cũ trước khi tạo một tác vụ mới.
                 if (searchRunnable != null) {
                     handler.removeCallbacks(searchRunnable);
                 }
-
-                // 2. Tạo một tác vụ tìm kiếm mới sẽ được thực thi sau một khoảng trễ.
                 searchRunnable = () -> {
-                    // 3. KIỂM TRA AN TOÀN: Chỉ chạy nếu Fragment còn được gắn vào Context.
                     if (isAdded() && getContext() != null) {
-                        Log.d("SearchFragment", "Bắt đầu tìm kiếm sau độ trễ...");
                         viewModel.startNewSearch(collectSearchParamsFromUi());
                     }
                 };
-
-                // 4. Lên lịch thực thi tác vụ sau DEBOUNCE_DELAY_MS.
+                // SỬA LỖI: Sử dụng hằng số thay vì magic number
                 handler.postDelayed(searchRunnable, DEBOUNCE_DELAY_MS);
-                // <<< KẾT THÚC SỬA ĐỔI >>>
             }
+        });
+        clearSearch.setOnClickListener(v -> {
+            searchInput.setText("");
+            viewModel.startNewSearch(new SearchParams());
         });
 
         applyFiltersButton.setOnClickListener(v -> {
@@ -207,7 +202,7 @@ public class SearchFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // Hủy bỏ bất kỳ tác vụ nào còn đang chờ khi Fragment bị hủy
+        // Rất quan trọng: Hủy callback để tránh crash và memory leak
         if (searchRunnable != null) {
             handler.removeCallbacks(searchRunnable);
         }
@@ -215,7 +210,7 @@ public class SearchFragment extends Fragment {
 
     private void observeViewModel() {
         viewModel.getSearchResults().observe(getViewLifecycleOwner(), results -> {
-            searchResultsAdapter.updateResults(results);
+            searchResultsAdapter.submitList(new ArrayList<>(results)); // Truyền vào một bản sao mới của list
             resultsCount.setText(getString(R.string.search_results_count, results.size()));
         });
 
@@ -273,7 +268,7 @@ public class SearchFragment extends Fragment {
 
         String condition = conditionFilter.getText().toString();
         // SỬA LỖI: So sánh với R.string
-        if (!condition.equals(getString(R.string.search_category_all))) {
+        if (!condition.equals(getString(R.string.search_condition_all))) {
             params.setCondition(mapConditionToValue(condition));
         }
 
@@ -347,21 +342,30 @@ public class SearchFragment extends Fragment {
         });
     }
 
-    private void onProductClick(SearchResult result) {
+    @Override
+    public void onProductClick(SearchResult result) {
         Toast.makeText(requireContext(), "Xem: " + result.getTitle(), Toast.LENGTH_SHORT).show();
+        // TODO: Điều hướng đến màn hình chi tiết sản phẩm
     }
 
-    private void onFavoriteClick(SearchResult result, boolean isFavorite) {
+    @Override
+    public void onFavoriteClick(SearchResult result, int position) {
         if (FirebaseAuth.getInstance().getUid() == null) {
             Toast.makeText(requireContext(), "Vui lòng đăng nhập để yêu thích.", Toast.LENGTH_SHORT).show();
-            int position = searchResultsAdapter.getResults().indexOf(result);
-            if (position != -1) {
-                result.setFavorite(!isFavorite);
-                searchResultsAdapter.notifyItemChanged(position);
-            }
+
+            // SỬA LỖI: Logic đảo ngược trạng thái và thông báo cho adapter
+            // Không cần lấy lại list, chỉ cần đảo ngược trạng thái trong đối tượng và báo cho adapter vẽ lại item đó
+            boolean isCurrentlyFavorite = result.isFavorite();
+            result.setFavorite(!isCurrentlyFavorite); // Đảo ngược lại trạng thái "lỡ" cập nhật trong adapter
+            searchResultsAdapter.notifyItemChanged(position); // Báo cho adapter vẽ lại item tại vị trí đó
             return;
         }
-        viewModel.toggleFavorite(result.getId(), isFavorite);
+
+        boolean newFavoriteState = !result.isFavorite();
+        result.setFavorite(newFavoriteState); // Cập nhật trạng thái trong model để UI không bị "giật" lại
+        searchResultsAdapter.notifyItemChanged(position); // Vẽ lại UI ngay lập tức
+
+        viewModel.toggleFavorite(result.getId(), newFavoriteState);
     }
 
     private String mapConditionToValue(String conditionText) {

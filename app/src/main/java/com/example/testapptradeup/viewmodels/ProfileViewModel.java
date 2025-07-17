@@ -10,6 +10,7 @@ import com.example.testapptradeup.models.Review;
 import com.example.testapptradeup.repositories.UserRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.functions.FirebaseFunctions;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ProfileViewModel extends ViewModel {
@@ -18,9 +19,7 @@ public class ProfileViewModel extends ViewModel {
     private final String userId;
     private final FirebaseFunctions functions = FirebaseFunctions.getInstance();
 
-    // SỬA LỖI: Xóa các LiveData và logic liên quan đến việc tải lại User
-    // userProfileData, userIdTrigger, và các Transformations liên quan đã bị xóa.
-
+    private final MutableLiveData<String> userIdTriggerForReviews = new MutableLiveData<>();
     private final LiveData<List<Review>> userReviewsData;
     private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
 
@@ -28,26 +27,30 @@ public class ProfileViewModel extends ViewModel {
         this.userRepository = new UserRepository();
         this.userId = FirebaseAuth.getInstance().getUid();
 
-        // Logic lấy review vẫn có thể giữ lại, vì nó là một phần của profile.
-        // Nó được kích hoạt một lần duy nhất khi ViewModel được tạo.
-        MutableLiveData<String> userIdTriggerForReviews = new MutableLiveData<>();
-        if(this.userId != null) {
-            userIdTriggerForReviews.setValue(this.userId);
-        }
-
+        // Sử dụng switchMap để tự động tải lại review khi userIdTriggerForReviews thay đổi
         userReviewsData = Transformations.switchMap(userIdTriggerForReviews, id -> {
-            if (id == null || id.isEmpty()) return new MutableLiveData<>(new java.util.ArrayList<>());
+            if (id == null || id.isEmpty()) {
+                return new MutableLiveData<>(new ArrayList<>());
+            }
             return userRepository.getUserReviews(id);
         });
     }
 
-    // SỬA LỖI: Xóa các hàm không còn cần thiết
-    // public void refreshUserProfile() { }
-    // public LiveData<User> getUserProfileData() { }
+    /**
+     * Kích hoạt việc tải danh sách đánh giá cho một người dùng cụ thể.
+     * @param userId ID của người dùng cần tải đánh giá.
+     */
+    public void loadUserReviews(String userId) {
+        // Chỉ kích hoạt nếu userId mới khác với userId hiện tại để tránh tải lại không cần thiết
+        if (userId != null && !userId.equals(userIdTriggerForReviews.getValue())) {
+            userIdTriggerForReviews.setValue(userId);
+        }
+    }
 
     public LiveData<List<Review>> getUserReviewsData() {
         return userReviewsData;
     }
+
     public LiveData<String> getErrorMessage() {
         return _errorMessage;
     }

@@ -31,13 +31,12 @@ import com.example.testapptradeup.repositories.ListingRepository;
 import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.example.testapptradeup.viewmodels.MyListingsViewModel;
 
-// === BƯỚC 1: TRIỂN KHAI INTERFACE ĐẦY ĐỦ ===
 public class MyListingsFragment extends Fragment implements ManageListingsAdapter.OnListingInteractionListener {
 
     private MyListingsViewModel viewModel;
     private NavController navController;
-    private RecyclerView recyclerView;
     private ManageListingsAdapter adapter;
+    private RecyclerView recyclerView;
     private LinearLayout emptyState;
     private ProgressBar loadingState;
     private TextView tabAll, tabActive, tabPaused, tabSold, sortText, headerTitle;
@@ -63,7 +62,9 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         navController = Navigation.findNavController(view);
 
-        // === BƯỚC 2: HỢP NHẤT LOGIC KHỞI TẠO VÀO MỘT CHỖ ===
+        adapter = new ManageListingsAdapter(this);
+        recyclerView.setAdapter(adapter);
+
         setupViewsAndListeners(view);
         observeViewModel();
         observeSharedViewModel();
@@ -172,6 +173,12 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
         viewModel.isLoadingMore().observe(getViewLifecycleOwner(), isLoadingMore -> {
             // Ví dụ: adapter.showFooter(isLoadingMore);
         });
+
+        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), errorMessage -> {
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                Toast.makeText(getContext(), errorMessage, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     // ... Các hàm helper (updateHeaderTitle, updateFilterButtonUI, checkEmptyState) giữ nguyên ...
@@ -205,45 +212,63 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
 
     @Override
     public void onViewDetailsClick(Listing listing) {
-        Toast.makeText(getContext(), "Xem chi tiết: " + listing.getTitle(), Toast.LENGTH_SHORT).show();
-        // TODO: Điều hướng đến màn hình chi tiết sản phẩm nếu cần
-        // MyListingsFragmentDirections.ActionMyListingsFragmentToProductDetailFragment action = ...
-        // navController.navigate(action);
+        // SỬA LỖI CRASH: Thêm kiểm tra null
+        if (listing != null && listing.getId() != null) {
+            // Giả sử bạn đã tạo action này trong mobile_navigation.xml
+            MyListingsFragmentDirections.ActionMyListingsFragmentToProductDetailFragment action =
+                    MyListingsFragmentDirections.actionMyListingsFragmentToProductDetailFragment(listing.getId());
+            action.setListingPreview(null); // Không phải chế độ xem trước
+            navController.navigate(action);
+        } else {
+            Toast.makeText(getContext(), "Không thể mở chi tiết. Dữ liệu không hợp lệ.", Toast.LENGTH_SHORT).show();
+            Log.e("MyListingsFragment", "onViewDetailsClick: Listing hoặc Listing ID bị null.");
+        }
     }
 
     @Override
     public void onEditClick(Listing listing) {
-        Toast.makeText(getContext(), "Chỉnh sửa: " + listing.getTitle(), Toast.LENGTH_SHORT).show();
-        // TODO: Điều hướng đến màn hình sửa tin đăng, truyền vào listing.getId()
-        // MyListingsFragmentDirections.ActionMyListingsFragmentToEditListingFragment action = ...
-        // navController.navigate(action);
+        if (listing != null && listing.getId() != null) {
+            // SỬA LỖI: Gọi đúng action đã định nghĩa
+            MyListingsFragmentDirections.ActionMyListingsFragmentToEditPostFragment action =
+                    MyListingsFragmentDirections.actionMyListingsFragmentToEditPostFragment(listing.getId());
+            navController.navigate(action);
+        } else {
+            Toast.makeText(getContext(), "Không thể sửa. Dữ liệu không hợp lệ.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
     public void onDeleteClick(Listing listing) {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Xác nhận xóa")
-                .setMessage("Bạn có chắc chắn muốn xóa tin \"" + listing.getTitle() + "\"?")
-                .setPositiveButton("Xóa", (dialog, which) -> viewModel.deleteListing(listing.getId()).observe(getViewLifecycleOwner(), success -> {
-                    if (success != null && success) {
-                        Toast.makeText(getContext(), "Đã xóa tin thành công", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(getContext(), "Lỗi khi xóa tin", Toast.LENGTH_SHORT).show();
-                    }
-                }))
-                .setNegativeButton("Hủy", null)
-                .show();
+        if (listing != null && listing.getId() != null) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Xác nhận xóa")
+                    .setMessage("Bạn có chắc chắn muốn xóa tin \"" + listing.getTitle() + "\"?")
+                    .setPositiveButton("Xóa", (dialog, which) -> viewModel.deleteListing(listing.getId()).observe(getViewLifecycleOwner(), success -> {
+                        if (success != null && success) {
+                            Toast.makeText(getContext(), "Đã xóa tin thành công", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(getContext(), "Lỗi khi xóa tin", Toast.LENGTH_SHORT).show();
+                        }
+                    }))
+                    .setNegativeButton("Hủy", null)
+                    .show();
+        } else {
+            Toast.makeText(getContext(), "Không thể xóa. Dữ liệu không hợp lệ.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
     public void onViewOffersClick(Listing listing) {
-        if (listing.getOffersCount() > 0) {
-            Toast.makeText(getContext(), "Đang mở danh sách đề nghị...", Toast.LENGTH_SHORT).show();
-            MyListingsFragmentDirections.ActionMyListingsFragmentToOfferListFragment action =
-                    MyListingsFragmentDirections.actionMyListingsFragmentToOfferListFragment(listing.getId(), listing);
-            navController.navigate(action);
+        if (listing != null && listing.getId() != null) {
+            if (listing.getOffersCount() > 0) {
+                MyListingsFragmentDirections.ActionMyListingsFragmentToOfferListFragment action =
+                        MyListingsFragmentDirections.actionMyListingsFragmentToOfferListFragment(listing.getId(), listing);
+                navController.navigate(action);
+            } else {
+                Toast.makeText(getContext(), "Chưa có đề nghị nào cho sản phẩm này.", Toast.LENGTH_SHORT).show();
+            }
         } else {
-            Toast.makeText(getContext(), "Chưa có đề nghị nào cho sản phẩm này.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Không thể xem đề nghị. Dữ liệu không hợp lệ.", Toast.LENGTH_SHORT).show();
         }
     }
 }

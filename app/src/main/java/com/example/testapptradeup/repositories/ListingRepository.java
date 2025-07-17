@@ -21,6 +21,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -120,6 +121,7 @@ public class ListingRepository {
     public LiveData<PagedResult<Listing>> searchListings(SearchParams params, @Nullable DocumentSnapshot lastVisible) {
         MutableLiveData<PagedResult<Listing>> resultLiveData = new MutableLiveData<>();
 
+        // Ưu tiên GeoQuery nếu có đủ thông tin
         if (params.getUserLocation() != null && params.getMaxDistance() > 0) {
             performGeoQuery(params, resultLiveData);
         } else {
@@ -184,7 +186,7 @@ public class ListingRepository {
     }
 
     private void performGeoQuery(SearchParams params, MutableLiveData<PagedResult<Listing>> resultLiveData) {
-        final GeoLocation center = new GeoLocation(params.getUserLocation().getLatitude(), params.getUserLocation().getLongitude());
+        final GeoLocation center = new GeoLocation(Objects.requireNonNull(params.getUserLocation()).getLatitude(), params.getUserLocation().getLongitude());
         final double radiusInM = params.getMaxDistance() * 1000.0;
 
         List<GeoQueryBounds> bounds = GeoFireUtils.getGeoHashQueryBounds(center, radiusInM);
@@ -196,12 +198,9 @@ public class ListingRepository {
                     .startAt(b.startHash)
                     .endAt(b.endHash);
 
-            if (params.getCategory() != null && !params.getCategory().isEmpty()) {
-                q = q.whereEqualTo("categoryId", params.getCategory());
-            }
-            if (params.getCondition() != null && !params.getCondition().isEmpty()) {
-                q = q.whereEqualTo("condition", params.getCondition());
-            }
+            // Áp dụng các bộ lọc khác nếu có
+            if (params.getCategory() != null && !params.getCategory().isEmpty()) q = q.whereEqualTo("categoryId", params.getCategory());
+            if (params.getCondition() != null && !params.getCondition().isEmpty()) q = q.whereEqualTo("condition", params.getCondition());
 
             tasks.add(q.get());
         }
@@ -223,7 +222,7 @@ public class ListingRepository {
                 }
             }
 
-            // Lọc giá ở client-side nếu có
+            // Lọc giá ở client-side
             if (params.hasPriceFilter()) {
                 matchingDocs.removeIf(listing ->
                         (params.getMinPrice() != null && listing.getPrice() < params.getMinPrice()) ||
@@ -232,17 +231,46 @@ public class ListingRepository {
             }
 
             // Sắp xếp theo khoảng cách
-            matchingDocs.sort(Comparator.comparingDouble(l ->
-                    GeoFireUtils.getDistanceBetween(new GeoLocation(l.getLatitude(), l.getLongitude()), center)
-            ));
+            matchingDocs.sort(Comparator.comparingDouble(l -> GeoFireUtils.getDistanceBetween(new GeoLocation(l.getLatitude(), l.getLongitude()), center)));
 
-            // TODO: Sắp xếp và phân trang ở client nếu cần
+            // TODO: Triển khai phân trang ở client cho GeoQuery nếu cần
             resultLiveData.setValue(new PagedResult<>(matchingDocs, null, null));
 
         }).addOnFailureListener(e -> {
             Log.e(TAG, "Lỗi Geo-query", e);
             resultLiveData.setValue(new PagedResult<>(null, null, e));
         });
+    }
+
+    public LiveData<List<Listing>> getPrioritizedRecentListings(GeoLocation userLocation) {
+        MutableLiveData<List<Listing>> prioritizedData = new MutableLiveData<>();
+
+        // Lấy 50 tin mới nhất để có đủ dữ liệu để sắp xếp lại
+        db.collection("listings")
+                .whereEqualTo("status", "available")
+                .orderBy("timePosted", Query.Direction.DESCENDING)
+                .limit(50)
+                .get()
+                .addOnSuccessListener(snapshots -> {
+                    List<Listing> listings = snapshots.toObjects(Listing.class);
+                    if (userLocation != null) {
+                        // Sắp xếp lại danh sách: ưu tiên các tin gần nhất
+                        listings.sort(Comparator.comparingDouble(l -> {
+                            if (l.getLatitude() != 0 && l.getLongitude() != 0) {
+                                return GeoFireUtils.getDistanceBetween(new GeoLocation(l.getLatitude(), l.getLongitude()), userLocation);
+                            }
+                            return Double.MAX_VALUE; // Đẩy các tin không có vị trí xuống cuối
+                        }));
+                    }
+                    prioritizedData.setValue(listings);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi khi lấy tin đăng ưu tiên vị trí", e);
+                    // Trả về danh sách rỗng nếu có lỗi
+                    prioritizedData.setValue(new ArrayList<>());
+                });
+
+        return prioritizedData;
     }
 
     public LiveData<List<Listing>> getRecentListings() {
@@ -268,6 +296,7 @@ public class ListingRepository {
 
     /**
      * Lấy thông tin chi tiết của một tin đăng bằng ID.
+     * Dùng addSnapshotListener để dữ liệu tự động cập nhật nếu có thay đổi từ server.
      */
     public LiveData<Listing> getListingById(String listingId) {
         MutableLiveData<Listing> listingData = new MutableLiveData<>();
@@ -276,7 +305,7 @@ public class ListingRepository {
             return listingData;
         }
         db.collection("listings").document(listingId)
-                .addSnapshotListener((snapshot, error) -> { // Dùng addSnapshotListener để tự cập nhật
+                .addSnapshotListener((snapshot, error) -> {
                     if (error != null) {
                         Log.e(TAG, "Lỗi khi lấy chi tiết tin đăng: ", error);
                         listingData.setValue(null);
@@ -398,5 +427,34 @@ public class ListingRepository {
         query.get().addOnSuccessListener(snapshots -> data.setValue(snapshots.toObjects(Listing.class))).addOnFailureListener(e -> data.setValue(Collections.emptyList()));
 
         return data;
+    }
+
+    /**
+     * Cập nhật một tin đăng đã có trên Firestore.
+     * @param listing Đối tượng Listing chứa ID và các trường đã được cập nhật.
+     * @return LiveData<Boolean> báo hiệu thành công (true) hoặc thất bại (false).
+     */
+    public LiveData<Boolean> updateListing(Listing listing) {
+        MutableLiveData<Boolean> status = new MutableLiveData<>();
+        if (listing == null || listing.getId() == null || listing.getId().isEmpty()) {
+            status.setValue(false);
+            return status;
+        }
+
+        // Sử dụng set() với SetOptions.merge() để chỉ cập nhật các trường có trong
+        // đối tượng `listing`, các trường khác trên Firestore sẽ được giữ nguyên.
+        // Điều này an toàn hơn là dùng update() với một Map lớn.
+        db.collection("listings").document(listing.getId())
+                .set(listing, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Cập nhật tin đăng thành công: " + listing.getId());
+                    status.setValue(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi khi cập nhật tin đăng: ", e);
+                    status.setValue(false);
+                });
+
+        return status;
     }
 }

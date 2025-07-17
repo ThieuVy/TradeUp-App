@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,31 +27,38 @@ public class PurchaseHistoryFragment extends Fragment implements TransactionHist
     private TransactionHistoryAdapter adapter;
     private TextView emptyStateText;
     private RecyclerView recyclerView;
+    private ProgressBar progressBar;
     private NavController navController;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Lấy ViewModel được chia sẻ từ Activity cha hoặc Fragment cha (HistoryFragment)
         viewModel = new ViewModelProvider(requireActivity()).get(HistoryViewModel.class);
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        // Sử dụng lại layout chung cho danh sách
         return inflater.inflate(R.layout.fragment_history_list, container, false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        // Lấy NavController từ NavHostFragment của Activity
+        // Lấy NavController từ NavHostFragment của Activity để đảm bảo điều hướng đúng
         navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment);
 
-        emptyStateText = view.findViewById(R.id.text_empty_history);
-        recyclerView = view.findViewById(R.id.recycler_history);
-
+        initViews(view);
         setupRecyclerView();
         observeViewModel();
+    }
+
+    private void initViews(View view) {
+        emptyStateText = view.findViewById(R.id.text_empty_history);
+        recyclerView = view.findViewById(R.id.recycler_history);
+        progressBar = view.findViewById(R.id.progress_bar_history);
     }
 
     private void setupRecyclerView() {
@@ -61,7 +69,13 @@ public class PurchaseHistoryFragment extends Fragment implements TransactionHist
 
     @SuppressLint("SetTextI18n")
     private void observeViewModel() {
+        // Hiển thị loading ban đầu
+        progressBar.setVisibility(View.VISIBLE);
+        recyclerView.setVisibility(View.GONE);
+        emptyStateText.setVisibility(View.GONE);
+
         viewModel.getMyPurchases().observe(getViewLifecycleOwner(), transactions -> {
+            progressBar.setVisibility(View.GONE); // Ẩn loading khi có dữ liệu (kể cả rỗng)
             if (transactions != null && !transactions.isEmpty()) {
                 adapter.submitList(transactions);
                 recyclerView.setVisibility(View.VISIBLE);
@@ -76,11 +90,11 @@ public class PurchaseHistoryFragment extends Fragment implements TransactionHist
 
     @Override
     public void onReviewClick(Transaction transaction) {
-        // Khi mua hàng, người cần đánh giá là người bán (seller)
+        // Khi mua hàng, người được đánh giá là người bán (seller)
         HistoryFragmentDirections.ActionHistoryFragmentToAddReviewFragment action =
                 HistoryFragmentDirections.actionHistoryFragmentToAddReviewFragment(
                         transaction.getId(),
-                        transaction.getSellerId() // <<< Truyền ID của người bán
+                        transaction.getSellerId() // Truyền ID của người bán
                 );
         navController.navigate(action);
     }

@@ -7,17 +7,14 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Transaction;
 import com.google.firebase.auth.FirebaseAuth;
-
 import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.Objects;
@@ -27,6 +24,7 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
     private final String currentUserId;
     private final OnReviewButtonClickListener listener;
 
+    // Interface để xử lý sự kiện click nút "Đánh giá"
     public interface OnReviewButtonClickListener {
         void onReviewClick(Transaction transaction);
     }
@@ -64,7 +62,6 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
             btnReview = itemView.findViewById(R.id.btn_review);
         }
 
-        // ========== BẮT ĐẦU PHẦN SỬA ĐỔI ==========
         @SuppressLint("SetTextI18n")
         public void bind(final Transaction transaction, String currentUserId, final OnReviewButtonClickListener listener) {
             listingTitle.setText(transaction.getListingTitle());
@@ -81,7 +78,7 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
 
             if (currentUserId == null) return;
 
-            // Xác định vai trò của người dùng hiện tại trong giao dịch
+            // Xác định vai trò của người dùng hiện tại và cập nhật UI
             boolean amIBuyer = currentUserId.equals(transaction.getBuyerId());
 
             if (amIBuyer) { // Tôi là người mua
@@ -116,10 +113,9 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
 
         @Override
         public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
-            // Chỉ cần redraw lại item nếu trạng thái đánh giá thay đổi
+            // Chỉ cần vẽ lại item nếu trạng thái đánh giá thay đổi
             return oldItem.isBuyerReviewed() == newItem.isBuyerReviewed() &&
-                    oldItem.isSellerReviewed() == newItem.isSellerReviewed() &&
-                    Objects.equals(oldItem.getListingTitle(), newItem.getListingTitle());
+                    oldItem.isSellerReviewed() == newItem.isSellerReviewed();
         }
     };
 }

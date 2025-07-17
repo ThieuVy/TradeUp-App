@@ -158,22 +158,19 @@ public class HomeFragment extends Fragment {
     }
 
     private void onFavoriteClick(Listing listing, ImageView favoriteIcon) {
-        // 1. Kiểm tra người dùng đã đăng nhập chưa
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            Toast.makeText(getContext(), "Vui lòng đăng nhập để sử dụng chức năng này", Toast.LENGTH_SHORT).show();
-            // TODO: Có thể điều hướng tới màn hình đăng nhập ở đây
+            Toast.makeText(getContext(), "Vui lòng đăng nhập để yêu thích.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // 2. Cập nhật giao diện ngay lập tức để người dùng thấy phản hồi
-        // Giả sử listing.isFavorited() là một trường boolean trong model của bạn (cần thêm vào)
-        boolean isCurrentlyFavorited = (favoriteIcon.getTag() != null && (boolean) favoriteIcon.getTag());
+        boolean isCurrentlyFavorited = favoriteIcon.getTag() != null && (boolean) favoriteIcon.getTag();
         boolean newFavoriteState = !isCurrentlyFavorited;
 
+        // Cập nhật giao diện ngay lập tức
         updateFavoriteIconUI(favoriteIcon, newFavoriteState);
 
-        // 3. Gọi ViewModel để xử lý logic thêm/xóa yêu thích ở backend
-        // viewModel.toggleFavorite(listing.getId(), newFavoriteState); // <- Đây là cách làm đúng
+        // Gọi ViewModel để xử lý logic ở backend
+        viewModel.toggleFavorite(listing.getId(), newFavoriteState);
 
         // Tạm thời hiển thị Toast
         String message = newFavoriteState ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích";

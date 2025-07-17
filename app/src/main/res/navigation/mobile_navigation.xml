@@ -41,6 +41,17 @@
         <action
             android:id="@+id/action_myListingsFragment_to_offerListFragment"
             app:destination="@id/offerListFragment" />
+        <action
+            android:id="@+id/action_myListingsFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" >
+            <argument
+                android:name="listingId"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_myListingsFragment_to_editPostFragment"
+            app:destination="@id/editPostFragment" />
     </fragment>
 
     <fragment
@@ -270,7 +281,6 @@
         android:name="com.example.testapptradeup.fragments.MyOffersFragment"
         android:label="Lịch sử trả giá"
         tools:layout="@layout/fragment_my_offers" >
-        <!-- === THÊM ACTION MỚI ĐỂ ĐIỀU HƯỚNG ĐẾN MÀN HÌNH THANH TOÁN === -->
         <action
             android:id="@+id/action_myOffersFragment_to_paymentFragment"
             app:destination="@id/paymentFragment" />
@@ -290,6 +300,9 @@
         <argument
             android:name="offerPrice"
             app:argType="float" />
+        <argument
+            android:name="offerId"
+            app:argType="string" />
     </fragment>
 
     <fragment
@@ -297,4 +310,14 @@
         android:name="com.example.testapptradeup.fragments.PersonalInfoFragment"
         android:label="Thông tin cá nhân"
         tools:layout="@layout/fragment_personal_info" />
+
+    <fragment
+        android:id="@+id/editPostFragment"
+        android:name="com.example.testapptradeup.fragments.EditPostFragment"
+        android:label="Chỉnh sửa tin"
+        tools:layout="@layout/fragment_post">
+        <argument
+            android:name="listingIdToEdit"
+            app:argType="string" />
+    </fragment>
 </navigation>

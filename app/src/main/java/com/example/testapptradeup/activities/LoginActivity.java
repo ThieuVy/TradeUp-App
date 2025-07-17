@@ -34,7 +34,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.util.Date; // Thêm import Date cho memberSince
+import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 
@@ -42,8 +42,6 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = "LoginActivity";
 
-    // Bỏ MainViewModel vì nó không được khởi tạo ở đây.
-    // private MainViewModel mainViewModel;
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private SharedPrefsHelper prefsHelper;
@@ -200,12 +198,7 @@ public class LoginActivity extends AppCompatActivity {
 
                             if (isNewUser) {
                                 Log.d(TAG, "New Google user. Saving data to Firestore.");
-
-                                // === BẮT ĐẦU SỬA LỖI: TẠO USER BẰNG SETTER ===
-                                // Tạo đối tượng User bằng constructor rỗng
                                 User newUser = new User();
-
-                                // Gán giá trị bằng các phương thức setter
                                 newUser.setId(user.getUid());
                                 newUser.setName(user.getDisplayName() != null ? user.getDisplayName() : "Người dùng Google");
                                 newUser.setEmail(user.getEmail());
@@ -215,13 +208,12 @@ public class LoginActivity extends AppCompatActivity {
                                 newUser.setAddress("");
                                 newUser.setRating(0.0f);
                                 newUser.setReviewCount(0);
-                                newUser.setVerified(true); // Người dùng Google mặc định là đã xác thực email
+                                newUser.setVerified(true);
                                 newUser.setAccountStatus("active");
                                 newUser.setFlagged(false);
                                 newUser.setWalletStatus("not_connected");
                                 newUser.setNotificationCount(0);
-                                newUser.setMemberSince(new Date()); // Gán ngày tham gia
-                                // === KẾT THÚC SỬA LỖI ===
+                                newUser.setMemberSince(new Date());
 
                                 saveNewUserAndNavigate(newUser);
                             } else {
@@ -249,7 +241,6 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error saving new Google user to Firestore: " + e.getMessage(), e);
                     Toast.makeText(LoginActivity.this, "Lỗi khi lưu thông tin người dùng.", Toast.LENGTH_SHORT).show();
-                    // Vẫn cho vào app nhưng dữ liệu có thể không đầy đủ
                     navigateToMainActivity();
                 });
     }
@@ -260,15 +251,13 @@ public class LoginActivity extends AppCompatActivity {
                     if (documentSnapshot.exists()) {
                         User user = documentSnapshot.toObject(User.class);
                         if (user != null) {
-                            user.setId(userId); // Đảm bảo ID được gán đúng
+                            user.setId(userId);
                             prefsHelper.saveCurrentUser(user);
                             Log.d(TAG, "Dữ liệu người dùng cho UID đã được tải: " + userId);
                         } else {
-                            // Trường hợp dữ liệu trên Firestore bị lỗi
                             createFallbackUserAndSave(userId, "Đối tượng người dùng từ Firestore là null");
                         }
                     } else {
-                        // Trường hợp không có document user trên Firestore dù đã login
                         createFallbackUserAndSave(userId, "Không tìm thấy tài liệu Firestore");
                     }
                     navigateToMainActivity();
@@ -276,7 +265,6 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Lỗi khi tải dữ liệu người dùng: " + e.getMessage(), e);
                     Toast.makeText(LoginActivity.this, "Lỗi khi tải dữ liệu người dùng.", Toast.LENGTH_SHORT).show();
-                    // Vẫn điều hướng khi có lỗi để người dùng không bị kẹt
                     navigateToMainActivity();
                 });
     }
@@ -285,7 +273,6 @@ public class LoginActivity extends AppCompatActivity {
         Log.d(TAG, "Đang tạo người dùng dự phòng: " + reason);
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser != null) {
-            // === BẮT ĐẦU SỬA LỖI: TẠO FALLBACK USER BẰNG SETTER ===
             User fallbackUser = new User();
             fallbackUser.setId(firebaseUser.getUid());
             fallbackUser.setName(firebaseUser.getDisplayName());
@@ -302,8 +289,6 @@ public class LoginActivity extends AppCompatActivity {
             fallbackUser.setWalletStatus("not_connected");
             fallbackUser.setNotificationCount(0);
             fallbackUser.setMemberSince(new Date());
-            // === KẾT THÚC SỬA LỖI ===
-
             prefsHelper.saveCurrentUser(fallbackUser);
         }
     }
@@ -321,6 +306,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private void showLoading(boolean isLoading) {
         progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        loginButton.setText(isLoading ? "" : getString(R.string.auth_login));
         loginButton.setEnabled(!isLoading);
         googleLogin.setEnabled(!isLoading);
         registerLink.setEnabled(!isLoading);
@@ -344,7 +330,6 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
-        // Kiểm tra nếu người dùng đã đăng nhập và đã xác thực email thì vào thẳng MainActivity
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser != null && firebaseUser.isEmailVerified()) {
             navigateToMainActivity();

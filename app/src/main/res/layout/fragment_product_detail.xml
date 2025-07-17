@@ -79,7 +79,60 @@
                 tools:text="25.000.000đ"/>
 
             <!-- Thông tin người bán -->
-            <!-- (Thêm layout thông tin người bán ở đây nếu cần) -->
+            <!-- Seller Info Section -->
+            <LinearLayout
+                android:id="@+id/seller_info_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="16dp"
+                android:padding="8dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/seller_avatar"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    tools:src="@drawable/ic_profile_placeholder"/>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+
+                    <TextView
+                        android:id="@+id/seller_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="Tên Người Bán"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Xem trang cá nhân"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        tools:ignore="HardcodedText" />
+
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_arrow_right"
+                    app:tint="@color/text_secondary"
+                    android:contentDescription="Xem trang cá nhân"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
 
             <!-- Mô tả sản phẩm -->
             <TextView

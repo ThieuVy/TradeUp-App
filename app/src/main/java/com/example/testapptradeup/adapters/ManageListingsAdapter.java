@@ -27,7 +27,7 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
         void onViewDetailsClick(Listing listing);
         void onEditClick(Listing listing);
         void onDeleteClick(Listing listing);
-        void onViewOffersClick(Listing listing); // Thêm hàm này
+        void onViewOffersClick(Listing listing);
     }
 
     private final OnListingInteractionListener listener;
@@ -41,25 +41,25 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
     @Override
     public ListingViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_post_management, parent, false);
-        // Không truyền listener vào constructor của ViewHolder nữa
         return new ListingViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ListingViewHolder holder, int position) {
         Listing listing = getItem(position);
-        // <<< SỬA ĐỔI 2: Truyền cả listing và listener vào hàm bind >>>
-        holder.bind(listing, listener);
+        holder.bind(listing, listener); // Truyền cả listener vào hàm bind
     }
 
-    // Bỏ 'static' để ViewHolder có thể tham chiếu đến phương thức getItem của Adapter
+    // Lớp ViewHolder bây giờ không cần 'static' nữa
     public static class ListingViewHolder extends RecyclerView.ViewHolder {
         ImageView imgPost;
         TextView txtTitle, txtPrice, txtPostedTime, txtStatus, txtViews, txtOffers;
-        Button btnEdit, btnDelete, btnViewOffers; // Thêm btnViewOffers
+        Button btnEdit, btnDelete, btnViewOffers;
+        View itemView;
 
         public ListingViewHolder(@NonNull View itemView) {
             super(itemView);
+            this.itemView = itemView;
             imgPost = itemView.findViewById(R.id.img_post);
             txtTitle = itemView.findViewById(R.id.txt_title);
             txtPrice = itemView.findViewById(R.id.txt_price);
@@ -69,15 +69,13 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
             txtOffers = itemView.findViewById(R.id.txt_offers);
             btnEdit = itemView.findViewById(R.id.btn_edit);
             btnDelete = itemView.findViewById(R.id.btn_delete);
-            btnViewOffers = itemView.findViewById(R.id.btn_view_offers); // Ánh xạ nút mới từ layout
+            btnViewOffers = itemView.findViewById(R.id.btn_view_offers);
         }
 
-        // <<< SỬA ĐỔI 3: Di chuyển TOÀN BỘ logic vào hàm BIND >>>
         @SuppressLint({"SetTextI18n", "DefaultLocale"})
         public void bind(final Listing listing, final OnListingInteractionListener listener) {
             Context context = itemView.getContext();
 
-            // Cập nhật dữ liệu UI
             txtTitle.setText(listing.getTitle());
             txtPrice.setText(listing.getFormattedPrice());
             txtViews.setText(String.valueOf(listing.getViews()));
@@ -90,24 +88,18 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
             }
 
             if (listing.getPrimaryImageUrl() != null && !listing.getPrimaryImageUrl().isEmpty()) {
-                Glide.with(context)
-                        .load(listing.getPrimaryImageUrl())
-                        .placeholder(R.drawable.img_placeholder)
-                        .error(R.drawable.img_placeholder)
-                        .centerCrop()
-                        .into(imgPost);
+                Glide.with(context).load(listing.getPrimaryImageUrl()).placeholder(R.drawable.img_placeholder).error(R.drawable.img_placeholder).centerCrop().into(imgPost);
             } else {
                 imgPost.setImageResource(R.drawable.img_placeholder);
             }
             updateStatusUI(listing.getStatus(), context);
 
-            // Gán sự kiện click ở đây, nơi chúng ta có thể truy cập `listing`
+            // SỬA LỖI: Gán listener ở đây, nơi có thể truy cập `listing` một cách an toàn
             itemView.setOnClickListener(v -> listener.onViewDetailsClick(listing));
             btnEdit.setOnClickListener(v -> listener.onEditClick(listing));
             btnDelete.setOnClickListener(v -> listener.onDeleteClick(listing));
             btnViewOffers.setOnClickListener(v -> listener.onViewOffersClick(listing));
         }
-        // === KẾT THÚC SỬA LỖI LOGIC ===
 
         private void updateStatusUI(String status, Context context) {
             if (txtStatus == null) return;
@@ -146,7 +138,7 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
     private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
-            return oldItem.getId().equals(newItem.getId());
+            return Objects.equals(oldItem.getId(), newItem.getId());
         }
 
         @Override

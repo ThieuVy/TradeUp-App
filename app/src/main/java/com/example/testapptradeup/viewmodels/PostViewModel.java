@@ -2,7 +2,6 @@ package com.example.testapptradeup.viewmodels;
 
 import android.app.Application;
 import android.net.Uri;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -21,6 +20,8 @@ public class PostViewModel extends AndroidViewModel {
     public static class PostStatus {
         public static final PostStatus IDLE = new PostStatus("IDLE");
         public static final PostStatus LOADING = new PostStatus("LOADING");
+
+        private final MutableLiveData<PostStatus> postStatus = new MutableLiveData<>(PostStatus.IDLE);
 
         // Thay đổi SUCCESS thành một lớp riêng để chứa dữ liệu
         public static class SUCCESS extends PostStatus {
@@ -42,7 +43,7 @@ public class PostViewModel extends AndroidViewModel {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (o == null || getClass().getSimpleName() != o.getClass().getSimpleName()) return false;
+            if (o == null || !getClass().getSimpleName().equals(o.getClass().getSimpleName())) return false;
             PostStatus that = (PostStatus) o;
             return Objects.equals(state, that.state);
         }
@@ -88,7 +89,7 @@ public class PostViewModel extends AndroidViewModel {
             return;
         }
 
-        postStatus.setValue(PostStatus.LOADING);
+        //postStatus.setValue(PostStatus.LOADING);
 
         // Bước 1: Upload ảnh
         postRepository.uploadImages(urisToUpload, getApplication()).observeForever(uploadedUrls -> {
@@ -105,9 +106,25 @@ public class PostViewModel extends AndroidViewModel {
                     // KHI THÀNH CÔNG: Gửi về trạng thái SUCCESS cùng với đối tượng Listing
                     postStatus.postValue(new PostStatus.SUCCESS(listing));
                 } else {
-                    postStatus.postValue(new PostStatus.Error("Lỗi khi lưu tin đăng: " + task.getException().getMessage()));
+                    postStatus.postValue(new PostStatus.Error("Lỗi khi lưu tin đăng: " + Objects.requireNonNull(task.getException()).getMessage()));
                 }
             });
         });
+    }
+
+    /**
+     * Cho phép Fragment chủ động đặt trạng thái loading.
+     * @param isLoading True nếu đang tải, false nếu không.
+     */
+    public void setLoadingState(boolean isLoading) {
+        if (isLoading) {
+            postStatus.setValue(PostStatus.LOADING);
+        } else {
+            // Chỉ reset về IDLE nếu trạng thái hiện tại là LOADING
+            // để tránh ghi đè lên trạng thái SUCCESS hoặc ERROR
+            if (postStatus.getValue() == PostStatus.LOADING) {
+                postStatus.setValue(PostStatus.IDLE);
+            }
+        }
     }
 }

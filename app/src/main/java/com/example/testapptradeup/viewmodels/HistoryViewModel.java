@@ -8,16 +8,24 @@ import java.util.List;
 
 public class HistoryViewModel extends ViewModel {
     private final HistoryRepository repository;
+    private LiveData<List<Transaction>> myPurchases;
+    private LiveData<List<Transaction>> mySales;
 
     public HistoryViewModel() {
         this.repository = new HistoryRepository();
     }
 
     public LiveData<List<Transaction>> getMyPurchases() {
-        return repository.getMyPurchases();
+        if (myPurchases == null) {
+            myPurchases = repository.getMyPurchases();
+        }
+        return myPurchases;
     }
 
     public LiveData<List<Transaction>> getMySales() {
-        return repository.getMySales();
+        if (mySales == null) {
+            mySales = repository.getMySales();
+        }
+        return mySales;
     }
 }

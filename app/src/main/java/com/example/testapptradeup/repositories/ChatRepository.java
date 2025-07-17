@@ -244,9 +244,10 @@ public class ChatRepository {
         DocumentReference newChatRef = db.collection("chats").document();
 
         Map<String, Object> chatData = new HashMap<>();
+        // Đảm bảo trường "members" được thêm vào đây
         chatData.put("members", Arrays.asList(currentUserId, otherUserId));
         chatData.put("timestamp", FieldValue.serverTimestamp());
-        chatData.put("lastMessage", "Hãy bắt đầu cuộc trò chuyện!"); // Tin nhắn khởi tạo
+        chatData.put("lastMessage", "Hãy bắt đầu cuộc trò chuyện!");
 
         newChatRef.set(chatData)
                 .addOnSuccessListener(aVoid -> {
@@ -257,5 +258,37 @@ public class ChatRepository {
                     Log.e(TAG, "Lỗi khi tạo cuộc trò chuyện mới: ", e);
                     chatIdLiveData.postValue(null);
                 });
+    }
+
+    /**
+     * Lắng nghe thông tin của một cuộc trò chuyện cụ thể bằng ID.
+     * @param chatId ID của cuộc trò chuyện.
+     * @return LiveData chứa đối tượng Conversation.
+     */
+    public LiveData<Conversation> getConversationById(String chatId) {
+        MutableLiveData<Conversation> conversationData = new MutableLiveData<>();
+        if (chatId == null || chatId.isEmpty()) {
+            conversationData.setValue(null);
+            return conversationData;
+        }
+
+        db.collection("chats").document(chatId)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Lỗi khi lấy dữ liệu cuộc trò chuyện: ", error);
+                        conversationData.setValue(null);
+                        return;
+                    }
+                    if (snapshot != null && snapshot.exists()) {
+                        Conversation conversation = snapshot.toObject(Conversation.class);
+                        if (conversation != null) {
+                            conversation.setId(snapshot.getId());
+                        }
+                        conversationData.setValue(conversation);
+                    } else {
+                        conversationData.setValue(null);
+                    }
+                });
+        return conversationData;
     }
 }

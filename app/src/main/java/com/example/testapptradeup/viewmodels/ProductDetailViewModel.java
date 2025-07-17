@@ -6,6 +6,7 @@ import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.Offer;
+import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.repositories.ChatRepository;
 import com.example.testapptradeup.repositories.ListingRepository;
 import com.example.testapptradeup.repositories.OfferRepository;
@@ -22,6 +23,7 @@ public class ProductDetailViewModel extends ViewModel {
     private final MutableLiveData<String> listingIdTrigger = new MutableLiveData<>();
 
     private final ChatRepository chatRepository = new ChatRepository();
+    private final LiveData<User> sellerProfile;
 
     public ProductDetailViewModel() {
         this.listingRepository = new ListingRepository();
@@ -42,6 +44,20 @@ public class ProductDetailViewModel extends ViewModel {
             // 2. Trả về LiveData từ repository
             return listingRepository.getListingById(id);
             // === KẾT THÚC SỬA LỖI ===
+        });
+
+        sellerProfile = Transformations.switchMap(listingDetail, listing -> {
+            if (listing == null || listing.getSellerId() == null) {
+                return new MutableLiveData<>(null);
+            }
+            // Gọi UserRepository để lấy thông tin user bằng sellerId
+            return Transformations.map(userRepository.getUserProfile(listing.getSellerId()), result -> {
+                if (result.isSuccess()) {
+                    return result.getData();
+                } else {
+                    return null; // Trả về null nếu có lỗi
+                }
+            });
         });
     }
 
@@ -82,5 +98,9 @@ public class ProductDetailViewModel extends ViewModel {
     public LiveData<String> findOrCreateChat(String otherUserId) {
         // ViewModel chỉ đơn giản là gọi Repository
         return chatRepository.findOrCreateChat(otherUserId);
+    }
+
+    public LiveData<User> getSellerProfile() {
+        return sellerProfile;
     }
 }

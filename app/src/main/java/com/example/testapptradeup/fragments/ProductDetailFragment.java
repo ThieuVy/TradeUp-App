@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,6 +50,10 @@ public class ProductDetailFragment extends Fragment {
 
     private Listing currentListing;
     private String currentUserId;
+
+    private LinearLayout sellerInfoLayout;
+    private ImageView sellerAvatar;
+    private TextView sellerName;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -106,6 +111,10 @@ public class ProductDetailFragment extends Fragment {
         btnChat = view.findViewById(R.id.btn_chat); // Ánh xạ nút chat mới
         bottomActionBar = view.findViewById(R.id.bottom_action_bar);
         btnMoreOptions = view.findViewById(R.id.btn_more_options);
+
+        sellerInfoLayout = view.findViewById(R.id.seller_info_layout);
+        sellerAvatar = view.findViewById(R.id.seller_avatar);
+        sellerName = view.findViewById(R.id.seller_name);
     }
 
     // <<< SỬA LỖI QUAN TRỌNG: Thiết lập Toolbar đúng cách >>>
@@ -172,6 +181,23 @@ public class ProductDetailFragment extends Fragment {
             } else {
                 Toast.makeText(getContext(), "Không tìm thấy sản phẩm.", Toast.LENGTH_SHORT).show();
                 navController.popBackStack();
+            }
+        });
+
+        viewModel.getSellerProfile().observe(getViewLifecycleOwner(), seller -> {
+            if (seller != null && getContext() != null) {
+                sellerName.setText(seller.getName());
+                Glide.with(getContext())
+                        .load(seller.getProfileImageUrl())
+                        .placeholder(R.drawable.ic_profile_placeholder)
+                        .circleCrop()
+                        .into(sellerAvatar);
+
+                // Bắt sự kiện click để xem trang cá nhân của người bán
+                sellerInfoLayout.setOnClickListener(v -> {
+                    // TODO: Điều hướng đến PublicProfileFragment với seller.getId()
+                    Toast.makeText(getContext(), "Xem trang cá nhân của " + seller.getName(), Toast.LENGTH_SHORT).show();
+                });
             }
         });
     }

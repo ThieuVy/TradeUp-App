@@ -35,8 +35,8 @@ import java.util.ArrayList;
 
 public class ProfileFragment extends Fragment {
 
-    private ProfileViewModel profileViewModel; // Vẫn cần cho các actions (delete, deactivate)
-    private MainViewModel mainViewModel; // SỬA LỖI: Thêm MainViewModel
+    private ProfileViewModel profileViewModel;
+    private MainViewModel mainViewModel; // ViewModel chia sẻ
     private NavController navController;
     private User currentUser;
 
@@ -56,9 +56,7 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Lấy ViewModel của Activity để chia sẻ dữ liệu
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
-        // Lấy ViewModel của Fragment cho logic riêng của màn hình này
         profileViewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
     }
 
@@ -75,14 +73,12 @@ public class ProfileFragment extends Fragment {
             initViews(view);
             setupRecyclerView();
             setupClickListeners();
-            observeViewModels(); // Đổi tên hàm để bao hàm cả hai ViewModel
+            observeViewModels();
         } catch (Exception e) {
             Log.e("ProfileFragmentCrash", "Lỗi trong onViewCreated", e);
             Toast.makeText(getContext(), "Đã xảy ra lỗi khi mở trang hồ sơ.", Toast.LENGTH_LONG).show();
         }
     }
-
-    // SỬA LỖI: Xóa onResume vì không cần refresh từ đây nữa.
 
     private void initViews(View view) {
         profileImage = view.findViewById(R.id.profile_image);
@@ -133,11 +129,7 @@ public class ProfileFragment extends Fragment {
         cardSavedItems.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_favoritesFragment));
         cardOffers.setOnClickListener(v -> navController.navigate(R.id.action_profile_to_myOffers));
         cardPurchases.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_historyFragment));
-        cardPayments.setOnClickListener(v -> {
-            // TODO: Điều hướng đến một Fragment mới (ví dụ: EscrowListFragment)
-            // nơi người dùng có thể xem các giao dịch đang ký quỹ của họ.
-            Toast.makeText(getContext(), "Điều hướng đến màn hình quản lý giao dịch ký quỹ (đang phát triển)", Toast.LENGTH_SHORT).show();
-        });
+        cardPayments.setOnClickListener(v -> Toast.makeText(getContext(), "Chức năng đang phát triển", Toast.LENGTH_SHORT).show());
         menuPersonalInfo.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_personalInfoFragment));
         menuChangePassword.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_changePasswordFragment));
         menuNotificationSettings.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_notificationSettingsFragment));
@@ -148,17 +140,16 @@ public class ProfileFragment extends Fragment {
         btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
     }
 
-    // SỬA LỖI: Tách hàm observe thành hai phần rõ rệt
     @SuppressLint("NotifyDataSetChanged")
     private void observeViewModels() {
-        // 1. Observe MainViewModel để lấy dữ liệu User chính
         mainViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
                 updateUI(user);
+                // Bây giờ lệnh gọi này là hợp lệ
+                profileViewModel.loadUserReviews(user.getId());
             }
         });
 
-        // 2. Observe ProfileViewModel cho các dữ liệu/trạng thái phụ (reviews, lỗi, etc.)
         profileViewModel.getUserReviewsData().observe(getViewLifecycleOwner(), reviews -> {
             if (reviewAdapter != null && reviews != null) {
                 reviewAdapter.setReviews(reviews);
@@ -176,9 +167,7 @@ public class ProfileFragment extends Fragment {
 
     @SuppressLint({"SetTextI18n", "StringFormatMatches"})
     private void updateUI(User user) {
-        if (user == null) {
-            return;
-        }
+        if (user == null) return;
         this.currentUser = user;
 
         textDisplayName.setText(user.getName() != null ? user.getName() : "Chưa có tên");
@@ -223,11 +212,7 @@ public class ProfileFragment extends Fragment {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Đăng xuất")
                 .setMessage("Bạn có chắc chắn muốn đăng xuất?")
-                .setPositiveButton("Đăng xuất", (dialog, which) -> {
-                    if (getActivity() instanceof MainActivity) {
-                        ((MainActivity) getActivity()).performLogout();
-                    }
-                })
+                .setPositiveButton("Đăng xuất", (dialog, which) -> logout())
                 .setNegativeButton("Hủy", null)
                 .show();
     }

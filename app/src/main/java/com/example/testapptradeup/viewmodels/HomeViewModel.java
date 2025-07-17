@@ -14,10 +14,12 @@ import com.example.testapptradeup.models.Category;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.repositories.CategoryRepository;
 import com.example.testapptradeup.repositories.ListingRepository;
+import com.example.testapptradeup.repositories.UserRepository;
 import com.firebase.geofire.GeoFireUtils;
 import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -34,11 +36,14 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
     private final LiveData<List<Listing>> recentListings;
     private final LiveData<Boolean> isLoading;
     private final LiveData<String> errorMessage;
+    private final UserRepository userRepository; // Cần có UserRepository
+    private final String currentUserId; // Cần có ID người dùng
 
     // SỬA LỖI 2: Thêm 'final'
     private final FusedLocationProviderClient fusedLocationClient;
     private final MutableLiveData<Location> userLocation = new MutableLiveData<>();
     private final MediatorLiveData<List<Listing>> prioritizedRecentListings = new MediatorLiveData<>();
+
     public HomeViewModel(@NonNull Application application) {
         super(application); // SỬA LỖI 1: Gọi super constructor của AndroidViewModel
         this.listingRepository = new ListingRepository();
@@ -50,19 +55,38 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
         this.categories = categoryRepository.getTopCategories(8);
         this.isLoading = listingRepository.isLoading();
         this.errorMessage = listingRepository.getErrorMessage();
+        this.userRepository = new UserRepository(); // Khởi tạo
+        this.currentUserId = FirebaseAuth.getInstance().getUid(); // Lấy ID
 
         // SỬA LỖI 1: Lấy context từ application được truyền vào
         this.fusedLocationClient = LocationServices.getFusedLocationProviderClient(application);
 
-        // Mediator sẽ lắng nghe cả 2 nguồn dữ liệu
+        // Lấy LiveData gốc từ repository
+        LiveData<List<Listing>> recentListingsSource = listingRepository.getRecentListings();
+
+        // Mediator sẽ lắng nghe cả vị trí và danh sách gốc
         prioritizedRecentListings.addSource(userLocation, location ->
-                combineAndSortListings(location, recentListings.getValue())
+                combineAndSort(location, recentListingsSource.getValue())
         );
-        prioritizedRecentListings.addSource(recentListings, listings ->
-                combineAndSortListings(userLocation.getValue(), listings)
+        prioritizedRecentListings.addSource(recentListingsSource, listings ->
+                combineAndSort(userLocation.getValue(), listings)
         );
 
         fetchUserLocation();
+    }
+
+    private void combineAndSort(Location location, List<Listing> listings) {
+        if (listings == null) return;
+
+        if (location != null) {
+            final GeoLocation center = new GeoLocation(location.getLatitude(), location.getLongitude());
+            listings.sort(Comparator.comparingDouble(l ->
+                    (l.getLatitude() != 0 && l.getLongitude() != 0)
+                            ? GeoFireUtils.getDistanceBetween(new GeoLocation(l.getLatitude(), l.getLongitude()), center)
+                            : Double.MAX_VALUE
+            ));
+        }
+        prioritizedRecentListings.setValue(listings);
     }
 
     public LiveData<List<Listing>> getPrioritizedRecentListings() {
@@ -107,6 +131,14 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
         listingRepository.fetchAll();
         categoryRepository.fetchAll();
         fetchUserLocation(); // Lấy lại vị trí mới khi refresh
+    }
+
+    public void toggleFavorite(String listingId, boolean isFavorite) {
+        if (currentUserId == null) {
+            // Có thể báo lỗi nếu cần
+            return;
+        }
+        userRepository.toggleFavorite(currentUserId, listingId, isFavorite);
     }
 
     // --- GETTERS CHO FRAGMENT OBSERVE ---

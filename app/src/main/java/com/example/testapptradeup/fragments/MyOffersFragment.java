@@ -103,16 +103,16 @@ public class MyOffersFragment extends Fragment implements MyOffersAdapter.OnOffe
         });
     }
 
-    // === PHƯƠNG THỨC QUAN TRỌNG: XỬ LÝ SỰ KIỆN CLICK ===
     @Override
     public void onPayNowClick(OfferWithListing item) {
         if (navController != null && item != null && item.getListing() != null && item.getOffer() != null) {
-            // Sử dụng Safe Args để điều hướng an toàn
+            // SỬA ĐỔI Ở ĐÂY:
             MyOffersFragmentDirections.ActionMyOffersFragmentToPaymentFragment action =
                     MyOffersFragmentDirections.actionMyOffersFragmentToPaymentFragment(
                             item.getListing().getId(),
                             item.getListing().getSellerId(),
-                            (float) item.getOffer().getOfferPrice() // Truyền giá đã được chấp nhận
+                            (float) item.getOffer().getOfferPrice(),
+                            item.getOffer().getId() // TRUYỀN OFFER ID VÀO ĐÂY
                     );
             navController.navigate(action);
         } else {

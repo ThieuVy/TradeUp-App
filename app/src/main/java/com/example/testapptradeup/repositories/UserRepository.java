@@ -88,7 +88,7 @@ public class UserRepository {
         }
         db.collection("reviews")
                 .whereEqualTo("reviewedUserId", userId)
-                // === THÊM MỚI: Chỉ lấy các đánh giá đã được duyệt ===
+                // BƯỚC 3: THÊM ĐIỀU KIỆN LỌC THEO TRẠNG THÁI
                 .whereEqualTo("moderationStatus", "approved")
                 .orderBy("reviewDate", Query.Direction.DESCENDING)
                 .limit(5)
