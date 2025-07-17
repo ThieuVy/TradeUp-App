@@ -2,6 +2,7 @@ package com.example.testapptradeup.activities;
 
 import android.os.Bundle;
 import android.os.Looper;
+import android.text.Editable;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Patterns;
@@ -54,7 +55,8 @@ public class ForgotPasswordActivity extends AppCompatActivity {
     }
 
     private void handlePasswordReset() {
-        String email = Objects.requireNonNull(editEmail.getText()).toString().trim();
+        Editable emailEditable = editEmail.getText();
+        String email = (emailEditable != null) ? emailEditable.toString().trim() : "";
 
         if (TextUtils.isEmpty(email) || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             editEmail.setError("Vui lòng nhập email hợp lệ");

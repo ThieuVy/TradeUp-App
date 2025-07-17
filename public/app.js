@@ -1,10 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // --- KHỞI TẠO FIREBASE & CÁC BIẾN ---
     const db = firebase.firestore();
     const auth = firebase.auth();
     const functions = firebase.app().functions('us-central1');
 
-    // DOM Elements
     const loginContainer = document.getElementById("login-container");
     const dashboardContainer = document.getElementById("dashboard-container");
     const loginButton = document.getElementById("login-button");
@@ -13,30 +11,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const adminPasswordInput = document.getElementById("admin-password");
     const loginError = document.getElementById("login-error");
     const adminUserEmail = document.getElementById("admin-user-email");
-    
-    // Elements cho Super Admin
-    const makeAdminButton = document.getElementById("make-admin-button");
-    const uidToMakeAdminInput = document.getElementById("uid-to-make-admin");
-    const claimStatus = document.getElementById("claim-status");
 
-    // Elements cho Reviews
     const pendingReviewsList = document.getElementById("pending-reviews-list");
     const reviewCountSpan = document.getElementById("review-count");
-    
-    // Elements cho Reports
+
     const pendingReportsList = document.getElementById("pending-reports-list");
     const reportCountSpan = document.getElementById("report-count");
 
-    // --- LOGIC XÁC THỰC ---
-
-    // Lắng nghe sự thay đổi trạng thái đăng nhập
     auth.onAuthStateChanged(async (user) => {
         if (user) {
             try {
-                // Buộc làm mới token để nhận custom claims mới nhất
                 const idTokenResult = await user.getIdTokenResult(true);
-
-                // Kiểm tra claim 'admin'
                 if (idTokenResult.claims.admin) {
                     console.log("Xác thực thành công, người dùng là Admin.");
                     showDashboard(user);
@@ -51,65 +36,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 showLogin("Đã xảy ra lỗi trong quá trình xác thực. Vui lòng thử lại.");
             }
         } else {
-            // Nếu không có user, hiển thị màn hình đăng nhập
             showLogin();
         }
     });
 
-    // Xử lý sự kiện nhấn nút đăng nhập
     loginButton.addEventListener("click", () => {
         const email = adminEmailInput.value;
         const password = adminPasswordInput.value;
-
         if (!email || !password) {
             loginError.textContent = "Vui lòng nhập đầy đủ email và mật khẩu.";
             return;
         }
-
-        loginError.textContent = ""; // Xóa thông báo lỗi cũ
+        loginError.textContent = "";
         auth.signInWithEmailAndPassword(email, password).catch(error => {
             console.error("Lỗi đăng nhập:", error.code, error.message);
             loginError.textContent = "Email hoặc mật khẩu không chính xác.";
         });
     });
 
-    // Xử lý sự kiện nhấn nút đăng xuất
     logoutButton.addEventListener("click", () => auth.signOut());
-
-    // --- CÔNG CỤ SUPER ADMIN (Chỉ dùng một lần để thiết lập) ---
-    makeAdminButton.addEventListener("click", () => {
-        const uid = uidToMakeAdminInput.value;
-        if (!uid) {
-            claimStatus.textContent = "Vui lòng nhập UID.";
-            claimStatus.style.color = "red";
-            return;
-        }
-
-        claimStatus.textContent = "Đang xử lý...";
-        claimStatus.style.color = "orange";
-
-        const setAdminClaim = functions.httpsCallable('setAdminClaim');
-        setAdminClaim({ uid: uid })
-            .then(result => {
-                console.log(result.data.message);
-                claimStatus.textContent = result.data.message;
-                claimStatus.style.color = "green";
-            })
-            .catch(error => {
-                console.error("Lỗi khi cấp quyền Admin:", error);
-                claimStatus.textContent = `Lỗi: ${error.message}`;
-                claimStatus.style.color = "red";
-            });
-    });
-
-
-    // --- CÁC HÀM HIỂN THỊ ---
 
     function showDashboard(user) {
         loginContainer.classList.add("hidden");
         dashboardContainer.classList.remove("hidden");
         adminUserEmail.textContent = user.email;
-        // Kích hoạt các listener để lấy dữ liệu cho dashboard
         listenForPendingReviews();
         listenForPendingReports();
     }
@@ -120,7 +70,6 @@ document.addEventListener("DOMContentLoaded", () => {
         loginError.textContent = errorMessage;
     }
 
-    // --- LOGIC KIỂM DUYỆT ĐÁNH GIÁ (Giữ nguyên) ---
     function listenForPendingReviews() {
         db.collection("reviews").where("moderationStatus", "==", "pending").onSnapshot(snapshot => {
             pendingReviewsList.innerHTML = "";
@@ -135,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }, err => console.error("Lỗi lắng nghe reviews:", err));
     }
-    
+
     function createReviewCard(id, review) {
         const card = document.createElement("div");
         card.className = "item-card";
@@ -155,11 +104,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function moderateReview(reviewId, newStatus) {
         const func = functions.httpsCallable('moderateReview');
-        func({ reviewId, newStatus }).then(res => console.log(res.data.message))
-        .catch(err => alert("Lỗi: " + err.message));
+        func({ reviewId, newStatus })
+            .then(res => {
+                Swal.fire('Thành công!', res.data.message, 'success');
+            })
+            .catch(err => {
+                Swal.fire('Lỗi!', err.message, 'error');
+            });
     }
-    
-    // --- LOGIC XỬ LÝ BÁO CÁO (Giữ nguyên) ---
+
     function listenForPendingReports() {
         db.collection("reports").where("status", "==", "pending").orderBy("timestamp", "desc").onSnapshot(snapshot => {
             pendingReportsList.innerHTML = "";
@@ -197,12 +150,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function resolveReport(reportId, reportedUserId, shouldSuspend) {
         const confirmationMessage = `Bạn có chắc muốn giải quyết báo cáo này? ${shouldSuspend ? 'Hành động này sẽ TREO tài khoản người dùng.' : ''}`;
-        if (!confirm(confirmationMessage)) {
-            return;
-        }
-        const func = functions.httpsCallable('resolveReport');
-        func({ reportId, reportedUserId, shouldSuspend })
-            .then(res => console.log(res.data.message))
-            .catch(err => alert("Lỗi: " + err.message));
+
+        // Thay vì dùng confirm()
+        Swal.fire({
+            title: 'Xác nhận hành động',
+            text: confirmationMessage,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý!',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const func = functions.httpsCallable('resolveReport');
+                func({ reportId, reportedUserId, shouldSuspend })
+                    .then(res => {
+                        console.log(res.data.message);
+                        // Thay vì alert()
+                        Swal.fire('Thành công!', res.data.message, 'success');
+                    })
+                    .catch(err => {
+                        Swal.fire('Lỗi!', err.message, 'error');
+                    });
+            }
+        });
     }
 });

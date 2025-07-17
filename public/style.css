@@ -1,3 +1,7 @@
+* {
+    box-sizing: border-box; /* Thêm vào đầu file */
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background-color: #f4f7f9;
@@ -42,7 +46,8 @@ h1 {
 }
 
 input[type="email"], input[type="password"] {
-    width: calc(100% - 20px);
+    /* width: calc(100% - 20px); */ /* Bỏ dòng này */
+    width: 100%; /* Giữ lại dòng này */
     padding: 10px;
     margin-bottom: 15px;
     border: 1px solid #ccc;

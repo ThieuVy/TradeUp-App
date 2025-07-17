@@ -1,6 +1,7 @@
 package com.example.testapptradeup.fragments;
 
 import android.os.Bundle;
+import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -129,19 +130,30 @@ public class EditProfileFragment extends Fragment {
             return;
         }
 
-        // Tạo một bản sao để chỉnh sửa, tránh thay đổi trực tiếp đối tượng trong MainViewModel
+        Editable nameEditable = editDisplayName.getText();
+        Editable phoneEditable = editPhoneNumber.getText();
+        Editable bioEditable = editUserBio.getText();
+        Editable addressEditable = editUserAddress.getText();
+
+        String name = nameEditable != null ? nameEditable.toString().trim() : "";
+        String phone = phoneEditable != null ? phoneEditable.toString().trim() : "";
+        String bio = bioEditable != null ? bioEditable.toString().trim() : "";
+        String address = addressEditable != null ? addressEditable.toString().trim() : "";
+
         User userToUpdate = new User();
         userToUpdate.setId(currentUser.getId());
-        userToUpdate.setEmail(currentUser.getEmail()); // Email không đổi
-        userToUpdate.setProfileImageUrl(currentUser.getProfileImageUrl()); // Tạm thời giữ ảnh cũ
-        userToUpdate.setRating(currentUser.getRating()); // Tạm thời giữ đánh giá cũ
-        userToUpdate.setReviewCount(currentUser.getReviewCount()); // Tạm thời giữ số lượng đánh giá cũ
-        userToUpdate.setFavoriteListingIds(currentUser.getFavoriteListingIds()); // Tạm thời giữ danh sách yêu thích cũ
-        userToUpdate.setCompletedSalesCount(currentUser.getCompletedSalesCount()); // Tạm thời giữ số lượng giao dịch cũ
-        userToUpdate.setName(Objects.requireNonNull(editDisplayName.getText()).toString().trim());
-        userToUpdate.setPhone(Objects.requireNonNull(editPhoneNumber.getText()).toString().trim());
-        userToUpdate.setBio(Objects.requireNonNull(editUserBio.getText()).toString().trim());
-        userToUpdate.setAddress(Objects.requireNonNull(editUserAddress.getText()).toString().trim());
+        userToUpdate.setEmail(currentUser.getEmail());
+        userToUpdate.setProfileImageUrl(currentUser.getProfileImageUrl());
+        userToUpdate.setRating(currentUser.getRating());
+        userToUpdate.setReviewCount(currentUser.getReviewCount());
+        userToUpdate.setFavoriteListingIds(currentUser.getFavoriteListingIds());
+        userToUpdate.setCompletedSalesCount(currentUser.getCompletedSalesCount());
+
+        // Sử dụng các biến an toàn
+        userToUpdate.setName(name);
+        userToUpdate.setPhone(phone);
+        userToUpdate.setBio(bio);
+        userToUpdate.setAddress(address);
 
         editProfileViewModel.saveUserProfile(userToUpdate);
     }

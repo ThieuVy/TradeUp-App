@@ -108,8 +108,10 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void performEmailPasswordLogin() {
-        String email = Objects.requireNonNull(editEmail.getText()).toString().trim();
-        String password = Objects.requireNonNull(editPassword.getText()).toString();
+        Editable emailEditable = editEmail.getText();
+        Editable passwordEditable = editPassword.getText();
+        String email = (emailEditable != null) ? emailEditable.toString().trim() : "";
+        String password = (passwordEditable != null) ? passwordEditable.toString() : "";
 
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
             Toast.makeText(LoginActivity.this, "Vui lòng điền vào tất cả các trường", Toast.LENGTH_SHORT).show();

@@ -17,7 +17,7 @@ public class ReviewRepository {
     public LiveData<Boolean> postReview(Review review) {
         MutableLiveData<Boolean> success = new MutableLiveData<>();
 
-        // BƯỚC 4: ĐẢM BẢO TRẠNG THÁI LUÔN LÀ "pending" KHI GỬI
+        // === SỬA ĐỔI: Đảm bảo trạng thái là "pending" khi gửi đi ===
         review.setModerationStatus("pending");
 
         db.runTransaction((Transaction.Function<Void>) transaction -> {

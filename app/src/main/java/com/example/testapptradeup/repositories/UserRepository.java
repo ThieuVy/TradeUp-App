@@ -88,13 +88,22 @@ public class UserRepository {
         }
         db.collection("reviews")
                 .whereEqualTo("reviewedUserId", userId)
-                // BƯỚC 3: THÊM ĐIỀU KIỆN LỌC THEO TRẠNG THÁI
+                // === SỬA ĐỔI QUAN TRỌNG: Lọc theo trạng thái đã duyệt ===
                 .whereEqualTo("moderationStatus", "approved")
                 .orderBy("reviewDate", Query.Direction.DESCENDING)
-                .limit(5)
+                .limit(5) // Giới hạn số lượng hiển thị trên trang cá nhân
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> reviewsData.setValue(queryDocumentSnapshots.toObjects(Review.class)))
-                .addOnFailureListener(e -> reviewsData.setValue(new ArrayList<>()));
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if(queryDocumentSnapshots != null) {
+                        reviewsData.setValue(queryDocumentSnapshots.toObjects(Review.class));
+                    } else {
+                        reviewsData.setValue(new ArrayList<>());
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("UserRepository", "Error getting user reviews", e);
+                    reviewsData.setValue(new ArrayList<>());
+                });
         return reviewsData;
     }
 

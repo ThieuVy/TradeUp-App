@@ -86,7 +86,6 @@ public class User implements Parcelable {
     public String getFcmToken() { return fcmToken; }
     public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
 
-    // --- BẮT ĐẦU SỬA LỖI 3.2 CHO LỚP USER ---
     protected User(Parcel in) {
         id = in.readString();
         name = in.readString();
@@ -138,7 +137,6 @@ public class User implements Parcelable {
         dest.writeTypedList(reviews);
         dest.writeString(fcmToken != null ? fcmToken : "");
     }
-    // --- KẾT THÚC SỬA LỖI ---
 
     @Override
     public int describeContents() {

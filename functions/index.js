@@ -48,15 +48,28 @@ const getOrCreateCustomer = async (userId) => {
     return customer.id;
 };
 
-// ========================================================
-// CLOUD FUNCTIONS DÀNH CHO ADMIN
-// ========================================================
-
 /**
- * Cloud Function: setAdminClaim
- * Gán quyền admin cho một người dùng.
+ * ===================================================================
+ * ===                    RỦI RO BẢO MẬT CAO                     ===
+ * ===================================================================
+ * Chức năng `setAdminClaim` dưới đây dùng để cấp quyền Admin cao nhất
+ * cho một tài khoản. Chỉ sử dụng chức năng này MỘT LẦN DUY NHẤT để
+ * thiết lập tài khoản admin đầu tiên.
+ *
+ * SAU KHI SỬ DỤNG, BẠN PHẢI VÔ HIỆU HÓA (COMMENT OUT) TOÀN BỘ
+ * KHỐI MÃ NÀY VÀ TRIỂN KHAI LẠI BẰNG LỆNH:
+ * `firebase deploy --only functions`
+ *
+ * Việc để chức năng này hoạt động có thể tạo ra lỗ hổng bảo mật nghiêm trọng.
  */
+/*
 exports.setAdminClaim = functions.https.onCall(async (data, context) => {
+    // Tạm thời comment ra để đảm bảo an toàn.
+    // Mở ra khi cần cấp quyền cho admin mới và deploy lại.
+    // Sau khi dùng xong, comment lại và deploy lần nữa.
+
+    // Bước 1: Xác thực người gọi phải là admin (nếu muốn admin hiện tại cấp quyền cho admin mới)
+    // Hoặc bỏ qua bước này cho lần cấp quyền đầu tiên.
     await verifyAdmin(context);
 
     const uid = data.uid;
@@ -73,6 +86,7 @@ exports.setAdminClaim = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("internal", "Không thể gán quyền admin.");
     }
 });
+*/
 
 /**
  * Cloud Function: moderateReview
@@ -284,7 +298,9 @@ exports.permanentlyDeleteUserAccount = functions.https.onCall(async (data, conte
 });
 
 /**
- * Cloud Function: sendChatNotification
+ * TRIGGER: Tự động tạo thông báo cho người nhận khi có tin nhắn mới.
+ * Đồng thời gửi Push Notification qua FCM.
+ * Kích hoạt mỗi khi có một document mới được tạo trong sub-collection 'messages'.
  */
 exports.sendChatNotification = functions.firestore
     .document("chats/{chatId}/messages/{messageId}")
@@ -293,64 +309,84 @@ exports.sendChatNotification = functions.firestore
         const chatId = context.params.chatId;
         const senderId = message.senderId;
 
-        // Lấy thông tin cuộc trò chuyện
+        // 1. Lấy thông tin cuộc trò chuyện để tìm người nhận
         const chatDoc = await admin.firestore().collection("chats").doc(chatId).get();
-        if (!chatDoc.exists) return null;
+        if (!chatDoc.exists) {
+            console.log("Không tìm thấy cuộc trò chuyện:", chatId);
+            return null;
+        }
 
-        // Xác định người nhận
+        // 2. Xác định ID của người nhận (không phải là người gửi)
         const recipientId = chatDoc.data().members.find((id) => id !== senderId);
-        if (!recipientId) return null;
+        if (!recipientId) {
+            console.log("Không tìm thấy người nhận trong cuộc trò chuyện:", chatId);
+            return null;
+        }
 
-        // Lấy thông tin người gửi và người nhận
+        // 3. Lấy thông tin của người gửi và người nhận để cá nhân hóa thông báo
         const senderDoc = await admin.firestore().collection("users").doc(senderId).get();
         const recipientDoc = await admin.firestore().collection("users").doc(recipientId).get();
-        if (!senderDoc.exists || !recipientDoc.exists) return null;
+
+        if (!senderDoc.exists || !recipientDoc.exists) {
+            console.log("Không tìm thấy thông tin người gửi hoặc người nhận.");
+            return null;
+        }
 
         const senderData = senderDoc.data();
         const recipientData = recipientDoc.data();
 
-        // 1. Gửi Push Notification (FCM) như cũ
+        // 4. Tạo payload cho document thông báo trong Firestore (để hiển thị trong app)
+        const notificationPayload = {
+            userId: recipientId, // Gửi thông báo cho người nhận
+            title: `Tin nhắn mới từ ${senderData.name || "Một người dùng"}`,
+            content: message.text || "Đã gửi một hình ảnh.",
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: "MESSAGE",
+            category: "Tin nhắn", // Phù hợp với các tab trong app
+            isRead: false,
+            actionUrl: `chat/${chatId}` // Deep link để mở cuộc trò chuyện
+        };
+
+        // 5. Ghi thông báo vào collection 'notifications'
+        await admin.firestore().collection("notifications").add(notificationPayload);
+        console.log("Đã tạo document thông báo trong Firestore cho:", recipientId);
+
+
+        // 6. (Tùy chọn) Gửi Push Notification (FCM) để thông báo real-time
         const fcmToken = recipientData.fcmToken;
         if (fcmToken) {
-            const payload = {
+            const pushPayload = {
                 notification: {
                     title: `Tin nhắn mới từ ${senderData.name}`,
-                    body: message.text,
+                    body: message.text || "Đã gửi một hình ảnh", // Hiển thị nội dung thay thế nếu là ảnh
                     icon: senderData.profileImageUrl || "default_icon_url",
-                    click_action: "FLUTTER_NOTIFICATION_CLICK", // Giữ nguyên cho app client
+                    click_action: "FLUTTER_NOTIFICATION_CLICK",
+                    tag: chatId, // Dùng chatId làm tag để nhóm các thông báo
                 },
-                data: { chatId, senderId },
+                data: {
+                    chatId: chatId,
+                    senderId: senderId,
+                    senderName: senderData.name,
+                    senderAvatar: senderData.profileImageUrl || "",
+                    messageType: message.imageUrl ? "IMAGE" : "TEXT", // Xác định loại tin nhắn
+                    // Thêm các dữ liệu khác để client có thể xử lý khi nhấn vào thông báo
+                },
             };
+
             try {
-                await admin.messaging().sendToDevice(fcmToken, payload);
+                await admin.messaging().sendToDevice(fcmToken, pushPayload);
                 console.log("Đã gửi push notification đến:", recipientId);
             } catch (error) {
                 console.error("Lỗi khi gửi push notification:", error);
             }
         }
 
-        // 2. TẠO DOCUMENT THÔNG BÁO MỚI TRONG FIRESTORE
-        const notificationPayload = {
-            userId: recipientId, // Gửi thông báo cho người nhận
-            title: `Tin nhắn mới từ ${senderData.name}`,
-            content: message.text,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            type: "MESSAGE",
-            category: "Tin nhắn",
-            isRead: false,
-            actionUrl: `chat/${chatId}` // Deep link để mở cuộc trò chuyện
-        };
-
-        // Ghi thông báo vào collection 'notifications'
-        await admin.firestore().collection("notifications").add(notificationPayload);
-        console.log("Đã tạo document thông báo trong Firestore cho:", recipientId);
-
         return null;
     });
 
 /**
  * TRIGGER: Tự động tạo thông báo cho người bán khi có một offer mới.
- * Kích hoạt mỗi khi có một document mới được tạo trong collection 'offers'.
+ * (Hàm này bạn đã viết đúng, chỉ cần đảm bảo nó tồn tại)
  */
 exports.sendNewOfferNotification = functions.firestore
     .document("offers/{offerId}")
@@ -363,6 +399,7 @@ exports.sendNewOfferNotification = functions.firestore
 
         const sellerId = offer.sellerId;
         const buyerName = offer.buyerName || "Một người dùng";
+        // Định dạng tiền tệ
         const offerPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(offer.offerPrice);
 
         // Lấy thông tin tin đăng để hiển thị tên sản phẩm
@@ -370,17 +407,15 @@ exports.sendNewOfferNotification = functions.firestore
         const listingTitle = listingDoc.exists ? listingDoc.data().title : "sản phẩm của bạn";
 
         const notificationPayload = {
-            userId: sellerId, // Gửi thông báo cho người bán
+            userId: sellerId,
             title: "Bạn có đề nghị mới!",
             content: `${buyerName} đã đề nghị ${offerPrice} cho sản phẩm "${listingTitle}".`,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            type: "PROMOTION", // Hoặc "OFFER" nếu bạn muốn định nghĩa type mới
+            type: "PROMOTION",
             category: "Ưu đãi",
             isRead: false,
-            actionUrl: `listing/${offer.listingId}` // Deep link để mở chi tiết sản phẩm
+            actionUrl: `listing/${offer.listingId}`
         };
 
-        // Ghi thông báo vào collection 'notifications'
         return admin.firestore().collection("notifications").add(notificationPayload);
     });
-

@@ -2,12 +2,10 @@ package com.example.testapptradeup.repositories;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-
 import com.example.testapptradeup.models.Transaction;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
-
 import java.util.ArrayList;
 import java.util.List;
 

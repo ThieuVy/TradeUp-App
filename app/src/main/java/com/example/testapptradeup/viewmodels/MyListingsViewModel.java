@@ -53,8 +53,6 @@ public class MyListingsViewModel extends ViewModel {
     private final MutableLiveData<String> filterStatus = new MutableLiveData<>("all");
     public final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
     public final MutableLiveData<Boolean> isLoadingMore = new MutableLiveData<>(false);
-
-    // BƯỚC 1: KHAI BÁO BIẾN _errorMessage
     private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
 
     private DocumentSnapshot lastVisibleDocument = null;
@@ -81,7 +79,6 @@ public class MyListingsViewModel extends ViewModel {
 
         allMyListings.addSource(pagedResult, result -> {
             if (result == null || !result.isSuccess() || result.getData() == null) {
-                // Bây giờ dòng này sẽ không còn báo lỗi
                 _errorMessage.setValue("Không thể tải danh sách tin đăng.");
                 resetLoadingStates();
                 return;
@@ -159,8 +156,6 @@ public class MyListingsViewModel extends ViewModel {
     public LiveData<Boolean> isLoading() { return isLoading; }
     public LiveData<Boolean> isLoadingMore() { return isLoadingMore; }
     public boolean isLastPage() { return isLastPage; }
-
-    // BƯỚC 2: THÊM HÀM GETTER
     public LiveData<String> getErrorMessage() { return _errorMessage; }
 
     public void setFilter(String status) {

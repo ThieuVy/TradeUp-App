@@ -206,7 +206,6 @@ public class Listing implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        // Kiểm tra null cho TẤT CẢ các trường String
         dest.writeString(id != null ? id : "");
         dest.writeString(title != null ? title : "");
         dest.writeString(description != null ? description : "");

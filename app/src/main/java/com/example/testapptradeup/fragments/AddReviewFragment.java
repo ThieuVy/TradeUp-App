@@ -1,6 +1,7 @@
 package com.example.testapptradeup.fragments;
 
 import android.os.Bundle;
+import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -98,7 +99,9 @@ public class AddReviewFragment extends Fragment {
             Toast.makeText(getContext(), "Vui lòng chọn số sao đánh giá", Toast.LENGTH_SHORT).show();
             return;
         }
-        String comment = commentEditText.getText().toString().trim();
+
+        Editable commentEditable = commentEditText.getText();
+        String comment = (commentEditable != null) ? commentEditable.toString().trim() : "";
 
         showLoading(true);
         viewModel.postReview(transactionId, reviewedUserId, rating, comment);

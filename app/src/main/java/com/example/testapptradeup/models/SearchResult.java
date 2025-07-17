@@ -79,7 +79,6 @@ public class SearchResult implements Parcelable {
         dest.writeString(category != null ? category : "");
         dest.writeByte((byte) (isFavorite ? 1 : 0));
     }
-    // --- KẾT THÚC SỬA LỖI ---
 
     public static final Creator<SearchResult> CREATOR = new Creator<SearchResult>() {
         @Override

@@ -1,0 +1,110 @@
+rules_version = '2';
+
+service cloud.firestore {
+    match /databases/{database}/documents {
+
+        // =====================================================================
+        // 1. CÁC HÀM HỖ TRỢ (GIỮ NGUYÊN)
+        // =====================================================================
+        function isAuthenticated() { return request.auth != null; }
+        function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
+        function isAdmin() { return isAuthenticated() && request.auth.token.admin == true; }
+
+        // =====================================================================
+        // 2. QUY TẮC CHO TỪNG BỘ SƯU TẬP
+        // =====================================================================
+
+        // --- Người dùng (users) ---
+        match /users/{userId} {
+            // Bất kỳ ai đã đăng nhập đều có thể đọc hồ sơ công khai
+            allow read: if isAuthenticated();
+            // Chỉ chủ sở hữu hoặc admin mới có thể ghi/cập nhật
+            allow write: if isOwner(userId) || isAdmin();
+        }
+
+        // --- Tin đăng (listings) ---
+        match /listings/{listingId} {
+            // Ai cũng có thể xem chi tiết 1 tin
+            allow get: if true;
+
+            // === BẮT ĐẦU GIẢI PHÁP BẢO MẬT ===
+            // CHỈ cho phép truy vấn danh sách nếu người dùng đã đăng nhập VÀ
+            // truy vấn đó có giới hạn số lượng document trả về không quá 50.
+            // Điều này ngăn chặn triệt để việc quét (scraping) toàn bộ collection
+            // và các truy vấn tốn kém, gây tăng vọt chi phí.
+            allow list: if isAuthenticated() && request.query.limit <= 50;
+            // === KẾT THÚC GIẢI PHÁP BẢO MẬT ===
+
+            allow create: if isAuthenticated();
+            allow update, delete: if isOwner(resource.data.sellerId) || isAdmin();
+        }
+
+        // --- Trò chuyện (chats) & Tin nhắn (messages) ---
+        match /chats/{chatId} {
+            function isChatMember() {
+                return request.auth.uid in resource.data.members;
+            }
+            allow read, write: if isAuthenticated() && isChatMember();
+
+            match /messages/{messageId} {
+                // Chỉ thành viên cuộc trò chuyện và là người gửi mới được tạo
+                allow create: if isChatMember() && isOwner(request.resource.data.senderId);
+                // Thành viên được đọc, nhưng không ai được sửa/xóa
+                allow read: if isChatMember();
+                allow update, delete: if false;
+            }
+        }
+
+        // --- Đề nghị (offers) ---
+        match /offers/{offerId} {
+            // Người mua hoặc người bán có thể đọc
+            allow read: if isAuthenticated() && (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId);
+            // Chỉ người mua được tạo
+            allow create: if isAuthenticated() && isOwner(request.resource.data.buyerId);
+            // Cả hai có thể cập nhật (ví dụ: người bán chấp nhận/từ chối)
+            allow update: if isAuthenticated() && (isOwner(resource.data.sellerId) || isOwner(resource.data.buyerId));
+            allow delete: if false; // Không cho phép xóa
+        }
+
+        // =====================================================================
+        // === BẮT ĐẦU PHẦN SỬA LỖI CHO NOTIFICATIONS & PAYMENTS ===
+        // =====================================================================
+
+        // --- Thông báo (notifications) ---
+        match /notifications/{notificationId} {
+            // **ĐÚNG:** Chỉ chủ sở hữu mới được đọc/cập nhật/xóa thông báo của chính mình.
+            allow read, update, delete: if isOwner(resource.data.userId);
+
+            // **ĐÚNG & QUAN TRỌNG:** Ngăn không cho client tự ý tạo thông báo.
+            // Việc này phải được thực hiện bởi Cloud Functions để đảm bảo tính toàn vẹn và bảo mật.
+            allow create: if false;
+        }
+
+        // --- Giao dịch (transactions) ---
+        match /transactions/{transactionId} {
+            // Chỉ người mua hoặc người bán được đọc lịch sử giao dịch của mình
+            allow read: if isAuthenticated() && (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId);
+            // Giao dịch chỉ được tạo từ backend sau khi thanh toán thành công
+            allow write: if false;
+        }
+
+        // --- Báo cáo (reports) ---
+        // Collection này chứa các báo cáo từ người dùng về các cuộc trò chuyện hoặc tin đăng.
+        match /reports/{reportId} {
+            // Chỉ người dùng đã đăng nhập mới có thể tạo một báo cáo mới.
+            allow create: if isAuthenticated();
+
+            // Chỉ quản trị viên (admin) mới có quyền đọc, cập nhật (ví dụ: thay đổi trạng thái)
+            // hoặc xóa các báo cáo.
+            allow read, update, delete: if isAdmin();
+        }
+
+        // --- Ký quỹ (Escrows) ---
+        match /escrows/{escrowId} {
+            // Người mua, bán, admin có thể đọc
+            allow read: if isAdmin() || (isAuthenticated() && (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId));
+            // Không ai được tạo/sửa/xóa từ client, tất cả qua Cloud Functions
+            allow write: if false;
+        }
+    }
+}

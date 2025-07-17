@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.text.Editable;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -208,10 +209,16 @@ public class PostFragment extends Fragment {
             Toast.makeText(getContext(), "Lỗi: Phiên đăng nhập không hợp lệ.", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        // Đặt trạng thái loading ngay lập tức trên luồng UI
         viewModel.setLoadingState(true);
         String locationString = Objects.requireNonNull(etLocation.getText()).toString().trim();
+
+        // Thực thi tác vụ I/O (Geocoding) trên luồng nền
         geocodingExecutor.execute(() -> {
             updateCoordinatesFromLocation(locationString);
+
+            // Quay lại luồng chính để tạo đối tượng và gọi ViewModel
             mainThreadHandler.post(() -> {
                 Listing listing = buildListingFromUI(currentUser, currentUserId);
                 Log.d("PostFragment", "Bắt đầu quá trình đăng tin sau khi Geocoding...");
@@ -221,11 +228,21 @@ public class PostFragment extends Fragment {
     }
 
     protected Listing buildListingFromUI(User currentUser, String currentUserId) {
+        Editable titleEditable = etProductTitle.getText();
+        Editable priceEditable = etPrice.getText();
+        Editable descEditable = etDescription.getText();
+        Editable locationEditable = etLocation.getText();
+
+        String title = titleEditable != null ? titleEditable.toString().trim() : "";
+        String priceStr = priceEditable != null ? priceEditable.toString().trim() : "0";
+        String description = descEditable != null ? descEditable.toString().trim() : "";
+        String location = locationEditable != null ? locationEditable.toString().trim() : "";
+
         Listing listing = new Listing();
-        listing.setTitle(Objects.requireNonNull(etProductTitle.getText()).toString().trim());
-        listing.setPrice(Double.parseDouble(Objects.requireNonNull(etPrice.getText()).toString().trim()));
+        listing.setTitle(title);
+        listing.setPrice(Double.parseDouble(priceStr));
         listing.setCategoryId(spinnerCategory.getText().toString());
-        listing.setDescription(Objects.requireNonNull(etDescription.getText()).toString().trim());
+        listing.setDescription(description);
         listing.setCondition(getSelectedCondition());
         listing.setSellerId(currentUserId);
         listing.setSellerName(currentUser.getName());
@@ -236,7 +253,7 @@ public class PostFragment extends Fragment {
         listing.setReviewCount(0);
         listing.setSold(false);
         listing.setNegotiable(true);
-        listing.setLocation(Objects.requireNonNull(etLocation.getText()).toString().trim());
+        listing.setLocation(location);
         listing.setLatitude(listingLatitude);
         listing.setLongitude(listingLongitude);
         if (listingLatitude != 0.0 && listingLongitude != 0.0) {
@@ -299,7 +316,6 @@ public class PostFragment extends Fragment {
         return "";
     }
 
-    // ================== BẮT ĐẦU SỬA ĐỔI LOGIC QUYỀN ==================
     private void requestLocationPermission() {
         if (getContext() == null) return;
 
@@ -335,20 +351,18 @@ public class PostFragment extends Fragment {
                 .setNegativeButton("Hủy", null)
                 .show();
     }
-    // ================== KẾT THÚC SỬA ĐỔI LOGIC QUYỀN ==================
 
     private void updateCoordinatesFromLocation(String locationString) {
         if (getContext() == null || locationString.isEmpty()) return;
         Geocoder geocoder = new Geocoder(getContext(), Locale.getDefault());
         try {
-            if (this.listingLatitude == 0.0 && this.listingLongitude == 0.0) {
-                List<Address> addresses = geocoder.getFromLocationName(locationString, 1);
-                if (addresses != null && !addresses.isEmpty()) {
-                    Address address = addresses.get(0);
-                    this.listingLatitude = address.getLatitude();
-                    this.listingLongitude = address.getLongitude();
-                    Log.d("PostFragment", "Geocoded in background: " + locationString + " -> lat: " + listingLatitude + ", lon: " + listingLongitude);
-                }
+            // Lời gọi mạng này giờ đang ở luồng nền, không gây ANR
+            List<Address> addresses = geocoder.getFromLocationName(locationString, 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                this.listingLatitude = address.getLatitude();
+                this.listingLongitude = address.getLongitude();
+                Log.d("PostFragment", "Geocoded in background: " + locationString + " -> lat: " + listingLatitude + ", lon: " + listingLongitude);
             }
         } catch (IOException e) {
             Log.e("PostFragment", "Lỗi Geocoding", e);

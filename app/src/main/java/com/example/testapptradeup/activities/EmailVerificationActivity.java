@@ -19,11 +19,11 @@ import com.example.testapptradeup.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-import java.util.Objects;
-
 public class EmailVerificationActivity extends AppCompatActivity {
 
     private static final String TAG = "EmailVerification";
+    // Tần suất kiểm tra lại trạng thái xác thực (5000ms = 5 giây)
+    private static final long AUTO_CHECK_INTERVAL = 5000;
 
     private FirebaseAuth mAuth;
     private FirebaseUser currentUser;
@@ -34,9 +34,13 @@ public class EmailVerificationActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private LinearLayout backToLoginLink;
 
-    private Handler timerHandler;
-    private Runnable timerRunnable;
+    // Timer cho việc khóa nút "Gửi lại"
+    private Handler resendCooldownHandler;
+    private Runnable resendCooldownRunnable;
     private int resendCooldownSeconds = 60;
+
+    private Handler autoCheckHandler;
+    private Runnable autoCheckRunnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,7 +53,6 @@ public class EmailVerificationActivity extends AppCompatActivity {
         initViews();
         setupListeners();
 
-        // Kiểm tra ngay lập tức nếu người dùng chưa đăng nhập
         if (currentUser == null) {
             Toast.makeText(this, "Phiên đăng nhập không hợp lệ.", Toast.LENGTH_SHORT).show();
             navigateToLogin();
@@ -69,10 +72,10 @@ public class EmailVerificationActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        btnCheckVerification.setOnClickListener(v -> checkEmailVerificationStatus());
+        btnCheckVerification.setOnClickListener(v -> checkEmailVerificationStatus(true)); // Kiểm tra thủ công thì hiện Toast
         btnResendEmail.setOnClickListener(v -> resendVerificationEmail());
         backToLoginLink.setOnClickListener(v -> {
-            mAuth.signOut(); // Đăng xuất người dùng trước khi quay về trang login
+            mAuth.signOut();
             navigateToLogin();
         });
     }
@@ -82,73 +85,121 @@ public class EmailVerificationActivity extends AppCompatActivity {
         tvVerificationMessage.setText("Một email xác thực đã được gửi đến:\n" + currentUser.getEmail() + "\n\nVui lòng kiểm tra hộp thư và nhấn vào liên kết để kích hoạt tài khoản.");
     }
 
-    private void checkEmailVerificationStatus() {
+    /**
+     * Kiểm tra trạng thái xác thực email.
+     * @param showToastIfUnverified true nếu muốn hiển thị Toast khi chưa xác thực (cho việc nhấn nút thủ công).
+     */
+    private void checkEmailVerificationStatus(boolean showToastIfUnverified) {
+        if (currentUser == null) return;
         showLoading(true);
-        // Phải tải lại thông tin người dùng từ Firebase để lấy trạng thái mới nhất
         currentUser.reload().addOnCompleteListener(task -> {
             showLoading(false);
             if (task.isSuccessful()) {
-                // Sau khi reload, kiểm tra lại trạng thái isEmailVerified
-                if (Objects.requireNonNull(mAuth.getCurrentUser()).isEmailVerified()) {
+                currentUser = mAuth.getCurrentUser(); // Lấy lại user mới nhất
+                if (currentUser != null && currentUser.isEmailVerified()) {
                     Toast.makeText(this, "Xác thực thành công!", Toast.LENGTH_SHORT).show();
-                    // Điều hướng đến MainActivity
-                    Intent intent = new Intent(EmailVerificationActivity.this, MainActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                    finish();
-                } else {
+                    navigateToMainActivity();
+                } else if (showToastIfUnverified) {
                     Toast.makeText(this, "Email chưa được xác thực. Vui lòng kiểm tra lại hộp thư.", Toast.LENGTH_LONG).show();
                 }
             } else {
                 Log.e(TAG, "Lỗi khi tải lại thông tin người dùng: ", task.getException());
-                Toast.makeText(this, "Lỗi: Không thể kiểm tra trạng thái xác thực.", Toast.LENGTH_SHORT).show();
+                if (showToastIfUnverified) {
+                    Toast.makeText(this, "Lỗi: Không thể kiểm tra trạng thái xác thực.", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
 
     private void resendVerificationEmail() {
         showLoading(true);
-        currentUser.sendEmailVerification()
-                .addOnCompleteListener(task -> {
-                    showLoading(false);
-                    if (task.isSuccessful()) {
-                        Toast.makeText(this, "Email xác thực mới đã được gửi.", Toast.LENGTH_SHORT).show();
-                        startResendCooldown(); // Bắt đầu đếm ngược
-                    } else {
-                        Log.e(TAG, "Lỗi gửi lại email xác thực: ", task.getException());
-                        Toast.makeText(this, "Lỗi: Không thể gửi lại email.", Toast.LENGTH_SHORT).show();
-                    }
-                });
+        currentUser.sendEmailVerification().addOnCompleteListener(task -> {
+            showLoading(false);
+            if (task.isSuccessful()) {
+                Toast.makeText(this, "Email xác thực mới đã được gửi.", Toast.LENGTH_SHORT).show();
+                startResendCooldown();
+            } else {
+                Log.e(TAG, "Lỗi gửi lại email xác thực: ", task.getException());
+                Toast.makeText(this, "Lỗi: Không thể gửi lại email.", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void startResendCooldown() {
         btnResendEmail.setEnabled(false);
         tvResendInfo.setVisibility(View.VISIBLE);
-        resendCooldownSeconds = 60; // Reset lại thời gian
+        resendCooldownSeconds = 60;
 
-        timerHandler = new Handler(Looper.getMainLooper());
-        timerRunnable = new Runnable() {
+        resendCooldownHandler = new Handler(Looper.getMainLooper());
+        resendCooldownRunnable = new Runnable() {
             @SuppressLint("SetTextI18n")
             @Override
             public void run() {
                 if (resendCooldownSeconds > 0) {
                     tvResendInfo.setText("Bạn có thể gửi lại sau " + resendCooldownSeconds + " giây");
                     resendCooldownSeconds--;
-                    timerHandler.postDelayed(this, 1000);
+                    resendCooldownHandler.postDelayed(this, 1000);
                 } else {
                     tvResendInfo.setVisibility(View.GONE);
                     btnResendEmail.setEnabled(true);
                 }
             }
         };
-        timerHandler.post(timerRunnable);
+        resendCooldownHandler.post(resendCooldownRunnable);
+    }
+
+    private void startAutoVerificationCheck() {
+        if (autoCheckHandler != null) return; // Đã chạy rồi thì thôi
+        Log.d(TAG, "Bắt đầu tự động kiểm tra xác thực...");
+        autoCheckHandler = new Handler(Looper.getMainLooper());
+        autoCheckRunnable = new Runnable() {
+            @Override
+            public void run() {
+                // Tải lại thông tin người dùng một cách "thầm lặng"
+                // và kiểm tra trạng thái mà không hiển thị Toast cho người dùng
+                Log.d(TAG, "Tự động kiểm tra trạng thái email...");
+                currentUser = mAuth.getCurrentUser();
+                if (currentUser == null) {
+                    stopAutoVerificationCheck();
+                    return;
+                }
+                currentUser.reload().addOnSuccessListener(aVoid -> {
+                    if (mAuth.getCurrentUser() != null && mAuth.getCurrentUser().isEmailVerified()) {
+                        stopAutoVerificationCheck();
+                        Toast.makeText(getApplicationContext(), "Tài khoản đã được xác thực!", Toast.LENGTH_SHORT).show();
+                        navigateToMainActivity();
+                    } else {
+                        // Nếu chưa xác thực, lên lịch chạy lại sau một khoảng thời gian
+                        if (autoCheckHandler != null) {
+                            autoCheckHandler.postDelayed(this, AUTO_CHECK_INTERVAL);
+                        }
+                    }
+                }).addOnFailureListener(e -> {
+                    // Nếu có lỗi, vẫn tiếp tục thử lại
+                    if (autoCheckHandler != null) {
+                        autoCheckHandler.postDelayed(this, AUTO_CHECK_INTERVAL);
+                    }
+                });
+            }
+        };
+        // Lên lịch chạy lần đầu
+        autoCheckHandler.postDelayed(autoCheckRunnable, AUTO_CHECK_INTERVAL);
+    }
+
+    private void stopAutoVerificationCheck() {
+        if (autoCheckHandler != null) {
+            Log.d(TAG, "Dừng tự động kiểm tra xác thực.");
+            autoCheckHandler.removeCallbacks(autoCheckRunnable);
+            autoCheckHandler = null;
+            autoCheckRunnable = null;
+        }
     }
 
     private void showLoading(boolean isLoading) {
         progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         btnCheckVerification.setEnabled(!isLoading);
-        // Chỉ bật nút resend nếu không trong thời gian cooldown
-        btnResendEmail.setEnabled(!isLoading && (timerHandler == null || resendCooldownSeconds <= 0));
+        boolean isResendButtonEnabled = btnResendEmail.isEnabled();
+        btnResendEmail.setEnabled(!isLoading && isResendButtonEnabled);
     }
 
     private void navigateToLogin() {
@@ -158,12 +209,34 @@ public class EmailVerificationActivity extends AppCompatActivity {
         finish();
     }
 
+    private void navigateToMainActivity() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Bắt đầu kiểm tra khi người dùng quay lại màn hình
+        startAutoVerificationCheck();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Dừng kiểm tra khi người dùng rời khỏi màn hình
+        stopAutoVerificationCheck();
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Dừng Handler để tránh memory leak
-        if (timerHandler != null && timerRunnable != null) {
-            timerHandler.removeCallbacks(timerRunnable);
+        // Dừng tất cả các timer để tránh rò rỉ bộ nhớ
+        if (resendCooldownHandler != null && resendCooldownRunnable != null) {
+            resendCooldownHandler.removeCallbacks(resendCooldownRunnable);
         }
+        stopAutoVerificationCheck();
     }
 }

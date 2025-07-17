@@ -1,0 +1,76 @@
+{
+  "indexes": [
+  {
+    "collectionGroup": "listings",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "categoryId", "order": "ASCENDING" },
+      { "fieldPath": "price", "order": "ASCENDING" }
+      ]
+  },
+  {
+    "collectionGroup": "listings",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "categoryId", "order": "ASCENDING" },
+      { "fieldPath": "price", "order": "DESCENDING" }
+      ]
+  },
+  {
+    "collectionGroup": "listings",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "sellerId", "order": "ASCENDING" },
+      { "fieldPath": "timePosted", "order": "DESCENDING" }
+      ]
+  },
+  {
+    "collectionGroup": "listings",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "timePosted", "order": "DESCENDING" }
+      ]
+  },
+  {
+    "collectionGroup": "chats",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "members", "arrayConfig": "CONTAINS" },
+      { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+  },
+  {
+    "collectionGroup": "reports",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+  },
+  {
+    "collectionGroup": "notifications",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "userId", "order": "ASCENDING" },
+      { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+  },
+  {
+    "collectionGroup": "listings",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "views", "order": "DESCENDING" }
+      ]
+  },
+  {
+    "collectionGroup": "listings",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "categoryId", "order": "ASCENDING" },
+      { "fieldPath": "timePosted", "order": "DESCENDING" }
+      ]
+  }
+  ]
+}

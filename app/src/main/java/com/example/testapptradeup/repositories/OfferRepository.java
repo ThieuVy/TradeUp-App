@@ -65,12 +65,6 @@ public class OfferRepository {
         return offersData;
     }
 
-    /**
-     * THÊM MỚI: Cập nhật trạng thái của một offer (dùng cho Reject, Counter, v.v.)
-     * @param offerId ID của offer cần cập nhật.
-     * @param status Trạng thái mới ("rejected", "countered", etc.).
-     * @return LiveData báo hiệu thành công/thất bại.
-     */
     public LiveData<Boolean> updateOfferStatus(String offerId, String status) {
         MutableLiveData<Boolean> success = new MutableLiveData<>();
         if (offerId == null || status == null) {
@@ -105,10 +99,11 @@ public class OfferRepository {
                     DocumentReference acceptedOfferRef = offersCollection.document(offer.getId());
                     batch.update(acceptedOfferRef, "status", "accepted");
 
-                    // 2. SỬA ĐỔI: Cập nhật tin đăng thành "pending_payment" (chờ thanh toán)
+                    // 2. === SỬA ĐỔI QUAN TRỌNG ===
+                    // Cập nhật tin đăng thành "pending_payment" (chờ thanh toán), KHÔNG phải "sold"
                     DocumentReference listingRef = listingsCollection.document(offer.getListingId());
                     batch.update(listingRef, "status", "pending_payment");
-                    // KHÔNG chuyển isSold thành true ở đây nữa
+                    // Không chuyển isSold thành true ở bước này
 
                     // 3. Từ chối tất cả các offer khác
                     for (QueryDocumentSnapshot doc : otherOffersSnapshot) {
@@ -135,7 +130,8 @@ public class OfferRepository {
     }
 
     /**
-     * THÊM MỚI: Hoàn tất giao dịch sau khi thanh toán thành công.
+     * === HÀM MỚI ===
+     * Hoàn tất giao dịch sau khi thanh toán thành công.
      * @param listingId ID của tin đăng.
      * @param acceptedOfferId ID của đề nghị đã được chấp nhận và thanh toán.
      * @return LiveData báo hiệu thành công/thất bại.
@@ -146,19 +142,21 @@ public class OfferRepository {
         DocumentReference listingRef = listingsCollection.document(listingId);
         DocumentReference offerRef = offersCollection.document(acceptedOfferId);
 
-        // Sử dụng get() để lấy dữ liệu một lần
+        // Sử dụng get() để lấy dữ liệu một lần, đảm bảo dữ liệu mới nhất
         Tasks.whenAllSuccess(listingRef.get(), offerRef.get()).addOnSuccessListener(results -> {
             DocumentSnapshot listingSnapshot = (DocumentSnapshot) results.get(0);
             DocumentSnapshot offerSnapshot = (DocumentSnapshot) results.get(1);
 
             if (!listingSnapshot.exists() || !offerSnapshot.exists()) {
-                Log.e(TAG, "Không tìm thấy tin đăng hoặc đề nghị.");
+                Log.e(TAG, "Không tìm thấy tin đăng hoặc đề nghị để hoàn tất giao dịch.");
                 success.setValue(false);
                 return;
             }
 
             Listing listing = listingSnapshot.toObject(Listing.class);
             Offer offer = offerSnapshot.toObject(Offer.class);
+
+            // Gán lại ID cho an toàn
             Objects.requireNonNull(listing).setId(listingSnapshot.getId());
 
             WriteBatch batch = db.batch();
@@ -168,14 +166,17 @@ public class OfferRepository {
 
             // 2. Tạo một document giao dịch mới
             DocumentReference transactionRef = transactionsCollection.document();
-            Transaction newTransaction = createTransactionFromOffer(Objects.requireNonNull(offer), listing, transactionRef);
+            Transaction newTransaction = createTransactionFromData(Objects.requireNonNull(offer), listing, transactionRef);
             batch.set(transactionRef, newTransaction);
 
             // 3. Commit batch
             batch.commit()
-                    .addOnSuccessListener(aVoid -> success.setValue(true))
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d(TAG, "Hoàn tất giao dịch thành công cho listing: " + listingId);
+                        success.setValue(true);
+                    })
                     .addOnFailureListener(e -> {
-                        Log.e(TAG, "Lỗi khi hoàn tất giao dịch", e);
+                        Log.e(TAG, "Lỗi khi commit batch hoàn tất giao dịch", e);
                         success.setValue(false);
                     });
 
@@ -194,7 +195,6 @@ public class OfferRepository {
             return resultLiveData;
         }
 
-        // Bước 1: Lấy tất cả các offer do người dùng gửi
         offersCollection.whereEqualTo("buyerId", userId)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .get()
@@ -205,8 +205,6 @@ public class OfferRepository {
                     }
 
                     List<Offer> offers = offerSnapshots.toObjects(Offer.class);
-
-                    // Bước 2: Thu thập các listingId duy nhất
                     List<String> listingIds = offers.stream()
                             .map(Offer::getListingId)
                             .distinct()
@@ -217,14 +215,11 @@ public class OfferRepository {
                         return;
                     }
 
-                    // Bước 3: Lấy thông tin các listing tương ứng
                     listingsCollection.whereIn(FieldPath.documentId(), listingIds)
                             .get()
                             .addOnSuccessListener(listingSnapshots -> {
                                 List<Listing> listings = listingSnapshots.toObjects(Listing.class);
                                 List<OfferWithListing> combinedList = new ArrayList<>();
-
-                                // Bước 4: Kết hợp dữ liệu
                                 for (Offer offer : offers) {
                                     listings.stream()
                                             .filter(l -> l.getId().equals(offer.getListingId()))
@@ -249,7 +244,7 @@ public class OfferRepository {
      * Helper method to create a Transaction object from an Offer and a Listing.
      */
     @NonNull
-    private Transaction createTransactionFromOffer(Offer offer, Listing listing, DocumentReference transactionRef) {
+    private Transaction createTransactionFromData(Offer offer, Listing listing, DocumentReference transactionRef) {
         Transaction newTransaction = new Transaction();
         newTransaction.setId(transactionRef.getId());
         newTransaction.setListingId(listing.getId());
@@ -260,29 +255,9 @@ public class OfferRepository {
         newTransaction.setBuyerId(offer.getBuyerId());
         newTransaction.setBuyerName(offer.getBuyerName());
         newTransaction.setFinalPrice(offer.getOfferPrice());
-        newTransaction.setSellerReviewed(false); // Mặc định là chưa đánh giá
-        newTransaction.setBuyerReviewed(false);  // Mặc định là chưa đánh giá
+        newTransaction.setSellerReviewed(false);
+        newTransaction.setBuyerReviewed(false);
         // transactionDate sẽ được tự động gán bởi @ServerTimestamp trên model
         return newTransaction;
-    }
-
-    public LiveData<List<Offer>> getOffersSentByUser(String userId) {
-        MutableLiveData<List<Offer>> offersData = new MutableLiveData<>();
-        if (userId == null || userId.isEmpty()) {
-            offersData.setValue(new ArrayList<>());
-            return offersData;
-        }
-
-        offersCollection.whereEqualTo("buyerId", userId)
-                .orderBy("timestamp", Query.Direction.DESCENDING)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots ->
-                        offersData.setValue(queryDocumentSnapshots.toObjects(Offer.class))
-                )
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Lỗi khi lấy offers của người dùng: ", e);
-                    offersData.setValue(null);
-                });
-        return offersData;
     }
 }

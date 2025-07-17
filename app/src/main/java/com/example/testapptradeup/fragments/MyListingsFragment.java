@@ -44,6 +44,7 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
     private GridLayoutManager layoutManager;
     private MainViewModel mainViewModel;
 
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,6 +63,8 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         navController = Navigation.findNavController(view);
 
+        recyclerView = view.findViewById(R.id.recycler_listings);
+
         adapter = new ManageListingsAdapter(this);
         recyclerView.setAdapter(adapter);
 
@@ -71,13 +74,11 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
     }
 
     private void setupViewsAndListeners(View view) {
-        // Ánh xạ các Views
-        recyclerView = view.findViewById(R.id.recycler_listings);
         emptyState = view.findViewById(R.id.empty_state);
         loadingState = view.findViewById(R.id.loading_state);
         ImageView btnBack = view.findViewById(R.id.btn_back);
         if (btnBack != null) {
-            btnBack.setVisibility(View.GONE); // Ẩn nút back vì đây là màn hình cấp cao nhất
+            btnBack.setVisibility(View.GONE);
         }
         tabAll = view.findViewById(R.id.tab_all);
         tabActive = view.findViewById(R.id.tab_active);
@@ -87,7 +88,6 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
         sortText = view.findViewById(R.id.sort_text);
         headerTitle = view.findViewById(R.id.header_title);
 
-        // Khởi tạo Adapter MỘT LẦN DUY NHẤT, truyền `this` làm listener
         adapter = new ManageListingsAdapter(this);
 
         // Setup RecyclerView
@@ -105,10 +105,7 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
                     int totalItemCount = layoutManager.getItemCount();
                     int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
 
-                    // === BẮT ĐẦU SỬA LỖI: SỬ DỤNG GETTER ===
-                    // Thay vì truy cập viewModel.isCurrentlyLoading, hãy gọi phương thức công khai
                     if (!viewModel.isCurrentlyLoading() && !viewModel.isLastPage()) {
-                        // === KẾT THÚC SỬA LỖI ===
                         if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
                                 && firstVisibleItemPosition >= 0
                                 && totalItemCount >= ListingRepository.PAGE_SIZE) {
@@ -212,23 +209,21 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
 
     @Override
     public void onViewDetailsClick(Listing listing) {
-        // SỬA LỖI CRASH: Thêm kiểm tra null
+        // KIỂM TRA NULL
         if (listing != null && listing.getId() != null) {
-            // Giả sử bạn đã tạo action này trong mobile_navigation.xml
             MyListingsFragmentDirections.ActionMyListingsFragmentToProductDetailFragment action =
                     MyListingsFragmentDirections.actionMyListingsFragmentToProductDetailFragment(listing.getId());
-            action.setListingPreview(null); // Không phải chế độ xem trước
             navController.navigate(action);
         } else {
             Toast.makeText(getContext(), "Không thể mở chi tiết. Dữ liệu không hợp lệ.", Toast.LENGTH_SHORT).show();
-            Log.e("MyListingsFragment", "onViewDetailsClick: Listing hoặc Listing ID bị null.");
+            Log.e("MyListingsFragment", "onViewDetailsClick: Listing hoặc Listing ID là null.");
         }
     }
 
     @Override
     public void onEditClick(Listing listing) {
+        // KIỂM TRA NULL
         if (listing != null && listing.getId() != null) {
-            // SỬA LỖI: Gọi đúng action đã định nghĩa
             MyListingsFragmentDirections.ActionMyListingsFragmentToEditPostFragment action =
                     MyListingsFragmentDirections.actionMyListingsFragmentToEditPostFragment(listing.getId());
             navController.navigate(action);
@@ -239,6 +234,7 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
 
     @Override
     public void onDeleteClick(Listing listing) {
+        // KIỂM TRA NULL
         if (listing != null && listing.getId() != null) {
             new AlertDialog.Builder(requireContext())
                     .setTitle("Xác nhận xóa")
@@ -259,6 +255,7 @@ public class MyListingsFragment extends Fragment implements ManageListingsAdapte
 
     @Override
     public void onViewOffersClick(Listing listing) {
+        // KIỂM TRA NULL
         if (listing != null && listing.getId() != null) {
             if (listing.getOffersCount() > 0) {
                 MyListingsFragmentDirections.ActionMyListingsFragmentToOfferListFragment action =

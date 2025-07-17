@@ -147,13 +147,15 @@ public class HomeFragment extends Fragment {
     }
 
     private void navigateToProductDetail(Listing listing) {
+        // KIỂM TRA NULL ĐỂ TRÁNH CRASH
         if (navController != null && listing != null && listing.getId() != null) {
             HomeFragmentDirections.ActionHomeToProductDetail action =
                     HomeFragmentDirections.actionHomeToProductDetail(listing.getId());
             navController.navigate(action);
         } else {
-            Log.e("HomeFragment", "Cannot navigate: listing or listing ID is null.");
-            Toast.makeText(getContext(), "Không thể mở chi tiết sản phẩm.", Toast.LENGTH_SHORT).show();
+            // Ghi log lỗi và thông báo cho người dùng một cách an toàn
+            Log.e("HomeFragment", "Không thể điều hướng: listing hoặc listing ID là null.");
+            Toast.makeText(getContext(), "Không thể mở chi tiết sản phẩm lúc này.", Toast.LENGTH_SHORT).show();
         }
     }
 

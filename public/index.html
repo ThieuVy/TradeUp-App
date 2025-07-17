@@ -11,48 +11,48 @@
     <script defer src="/__/firebase/9.6.1/firebase-firestore-compat.js"></script>
     <script defer src="/__/firebase/9.6.1/firebase-functions-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
+    <!-- Thêm thư viện SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
+<!-- Màn hình Đăng nhập -->
+<div id="login-container" class="container">
+    <h1>Đăng nhập Admin</h1>
+    <input type="email" id="admin-email" placeholder="Email" required>
+    <input type="password" id="admin-password" placeholder="Mật khẩu" required>
+    <button id="login-button">Đăng nhập</button>
+    <p id="login-error" class="error-message"></p>
+</div>
 
-    <!-- Màn hình Đăng nhập -->
-    <div id="login-container" class="container">
-        <h1>Đăng nhập Admin</h1>
-        <input type="email" id="admin-email" placeholder="Email" required>
-        <input type="password" id="admin-password" placeholder="Mật khẩu" required>
-        <button id="login-button">Đăng nhập</button>
-        <p id="login-error" class="error-message"></p>
-        
-    </div>
+<!-- Bảng Điều Khiển Chính (ẩn ban đầu) -->
+<div id="dashboard-container" class="container hidden">
+    <header>
+        <h1>Bảng Điều Khiển TradeUp</h1>
+        <div class="user-info">
+            <span id="admin-user-email"></span>
+            <button id="logout-button">Đăng xuất</button>
+        </div>
+    </header>
 
-    <!-- Bảng Điều Khiển Chính (ẩn ban đầu) -->
-    <div id="dashboard-container" class="container hidden">
-        <header>
-            <h1>Bảng Điều Khiển TradeUp</h1>
-            <div class="user-info">
-                <span id="admin-user-email"></span>
-                <button id="logout-button">Đăng xuất</button>
+    <main>
+        <!-- Phần Kiểm duyệt Đánh giá -->
+        <section class="moderation-section">
+            <h2>Đánh giá đang chờ duyệt (<span id="review-count">0</span>)</h2>
+            <div id="pending-reviews-list" class="item-list">
+                <!-- Các đánh giá sẽ được chèn vào đây bằng JavaScript -->
             </div>
-        </header>
+        </section>
 
-        <main>
-            <!-- Phần Kiểm duyệt Đánh giá -->
-            <section class="moderation-section">
-                <h2>Đánh giá đang chờ duyệt (<span id="review-count">0</span>)</h2>
-                <div id="pending-reviews-list" class="item-list">
-                    <!-- Các đánh giá sẽ được chèn vào đây bằng JavaScript -->
-                </div>
-            </section>
+        <!-- Phần Xử lý Báo cáo -->
+        <section class="moderation-section">
+            <h2>Báo cáo đang chờ xử lý (<span id="report-count">0</span>)</h2>
+            <div id="pending-reports-list" class="item-list">
+                <!-- Các báo cáo sẽ được chèn vào đây bằng JavaScript -->
+            </div>
+        </section>
+    </main>
+</div>
 
-            <!-- Phần Xử lý Báo cáo -->
-            <section class="moderation-section">
-                <h2>Báo cáo đang chờ xử lý (<span id="report-count">0</span>)</h2>
-                <div id="pending-reports-list" class="item-list">
-                    <!-- Các báo cáo sẽ được chèn vào đây bằng JavaScript -->
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

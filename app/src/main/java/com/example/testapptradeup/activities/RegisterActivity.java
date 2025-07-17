@@ -99,9 +99,12 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void performEmailRegistration() {
-        String email = Objects.requireNonNull(editEmail.getText()).toString().trim();
-        String password = Objects.requireNonNull(editPassword.getText()).toString();
-        String confirmPassword = Objects.requireNonNull(editConfirmPassword.getText()).toString();
+        Editable emailEditable = editEmail.getText();
+        Editable passwordEditable = editPassword.getText();
+        Editable confirmPasswordEditable = editConfirmPassword.getText();
+        String email = (emailEditable != null) ? emailEditable.toString().trim() : "";
+        String password = (passwordEditable != null) ? passwordEditable.toString() : "";
+        String confirmPassword = (confirmPasswordEditable != null) ? confirmPasswordEditable.toString() : "";
 
         if (!validateInputs(email, password, confirmPassword)) {
             return;

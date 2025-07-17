@@ -18,15 +18,15 @@ public class Review implements Parcelable {
     private String transactionId;
     @ServerTimestamp
     private Date reviewDate;
-    // BƯỚC 1.1: THÊM TRƯỜNG moderationStatus
+    // === BƯỚC 1: THÊM TRƯỜNG moderationStatus ===
     private String moderationStatus; // "pending", "approved", "rejected"
 
     public Review() {
-        // BƯỚC 1.2: ĐẶT GIÁ TRỊ MẶC ĐỊNH LÀ "pending"
+        // === BƯỚC 2: ĐẶT GIÁ TRỊ MẶC ĐỊNH KHI TẠO MỚI ===
         this.moderationStatus = "pending";
     }
 
-    // Getters and Setters
+    // (Getters và Setters khác giữ nguyên...)
     public String getReviewId() { return reviewId; }
     public void setReviewId(String reviewId) { this.reviewId = reviewId; }
     public String getReviewedUserId() { return reviewedUserId; }
@@ -49,7 +49,7 @@ public class Review implements Parcelable {
     public void setModerationStatus(String moderationStatus) { this.moderationStatus = moderationStatus; }
 
 
-    // BƯỚC 1.3: CẬP NHẬT PARCELABLE
+    // === BƯỚC 3: CẬP NHẬT PARCELABLE ===
     protected Review(Parcel in) {
         reviewId = in.readString();
         reviewedUserId = in.readString();
@@ -109,11 +109,11 @@ public class Review implements Parcelable {
                 Objects.equals(comment, review.comment) &&
                 Objects.equals(transactionId, review.transactionId) &&
                 Objects.equals(reviewDate, review.reviewDate) &&
-                Objects.equals(moderationStatus, review.moderationStatus); // Thêm vào equals
+                Objects.equals(moderationStatus, review.moderationStatus);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(reviewId, reviewedUserId, reviewerId, reviewerName, reviewerImageUrl, rating, comment, transactionId, reviewDate, moderationStatus); // Thêm vào hashCode
+        return Objects.hash(reviewId, reviewedUserId, reviewerId, reviewerName, reviewerImageUrl, rating, comment, transactionId, reviewDate, moderationStatus);
     }
 }

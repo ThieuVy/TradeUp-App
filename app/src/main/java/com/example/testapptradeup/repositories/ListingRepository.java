@@ -81,19 +81,27 @@ public class ListingRepository {
                 .addOnCompleteListener(task -> onTaskCompleted.run());
 
         db.collection("listings")
-                .whereEqualTo("status", "available").orderBy("timePosted", Query.Direction.DESCENDING).limit(10)
-                .get()
-                .addOnSuccessListener(result -> {
-                    List<Listing> listings = new ArrayList<>();
-                    for (QueryDocumentSnapshot doc : result) {
-                        Listing listing = doc.toObject(Listing.class);
-                        listing.setId(doc.getId());
-                        listings.add(listing);
+                .whereEqualTo("status", "available")
+                .orderBy("timePosted", Query.Direction.DESCENDING)
+                .limit(10)
+                .addSnapshotListener((snapshots, error) -> { // <-- Lắng nghe thay đổi liên tục
+                    onTaskCompleted.run(); // Đảm bảo gọi onTaskCompleted dù thành công hay thất bại
+                    if (error != null) {
+                        _errorMessage.setValue("Lỗi tải mục Rao gần đây: " + error.getMessage());
+                        return;
                     }
-                    recentListingsData.setValue(listings);
-                })
-                .addOnFailureListener(e -> _errorMessage.setValue("Lỗi tải tin gần đây"))
-                .addOnCompleteListener(task -> onTaskCompleted.run());
+
+                    if (snapshots != null) {
+                        List<Listing> listings = new ArrayList<>();
+                        for (QueryDocumentSnapshot doc : snapshots) {
+                            Listing listing = doc.toObject(Listing.class);
+                            listing.setId(doc.getId());
+                            listings.add(listing);
+                        }
+                        // Cập nhật LiveData mỗi khi có snapshot mới
+                        recentListingsData.setValue(listings);
+                    }
+                });
     }
 
     /**
@@ -121,7 +129,7 @@ public class ListingRepository {
     public LiveData<PagedResult<Listing>> searchListings(SearchParams params, @Nullable DocumentSnapshot lastVisible) {
         MutableLiveData<PagedResult<Listing>> resultLiveData = new MutableLiveData<>();
 
-        // Ưu tiên GeoQuery nếu có đủ thông tin
+        // Ưu tiên GeoQuery nếu có đủ thông tin về vị trí và khoảng cách
         if (params.getUserLocation() != null && params.getMaxDistance() > 0) {
             performGeoQuery(params, resultLiveData);
         } else {
@@ -186,25 +194,25 @@ public class ListingRepository {
     }
 
     private void performGeoQuery(SearchParams params, MutableLiveData<PagedResult<Listing>> resultLiveData) {
+        // 1. Xác định tâm và bán kính tìm kiếm
         final GeoLocation center = new GeoLocation(Objects.requireNonNull(params.getUserLocation()).getLatitude(), params.getUserLocation().getLongitude());
         final double radiusInM = params.getMaxDistance() * 1000.0;
 
+        // 2. Tính toán các vùng truy vấn Geohash
         List<GeoQueryBounds> bounds = GeoFireUtils.getGeoHashQueryBounds(center, radiusInM);
         final List<Task<QuerySnapshot>> tasks = new ArrayList<>();
 
+        // 3. Tạo các tác vụ truy vấn song song cho từng vùng
         for (GeoQueryBounds b : bounds) {
             Query q = db.collection("listings")
                     .orderBy("geohash")
                     .startAt(b.startHash)
                     .endAt(b.endHash);
-
-            // Áp dụng các bộ lọc khác nếu có
-            if (params.getCategory() != null && !params.getCategory().isEmpty()) q = q.whereEqualTo("categoryId", params.getCategory());
-            if (params.getCondition() != null && !params.getCondition().isEmpty()) q = q.whereEqualTo("condition", params.getCondition());
-
+            // (Kết hợp với các bộ lọc khác nếu có)
             tasks.add(q.get());
         }
 
+        // 4. Gộp kết quả và lọc lại phía client
         Tasks.whenAllSuccess(tasks).addOnSuccessListener(snapshots -> {
             List<Listing> matchingDocs = new ArrayList<>();
             for (Object snapshot : snapshots) {
@@ -230,10 +238,8 @@ public class ListingRepository {
                 );
             }
 
-            // Sắp xếp theo khoảng cách
+            // Sắp xếp kết quả theo khoảng cách tăng dần
             matchingDocs.sort(Comparator.comparingDouble(l -> GeoFireUtils.getDistanceBetween(new GeoLocation(l.getLatitude(), l.getLongitude()), center)));
-
-            // TODO: Triển khai phân trang ở client cho GeoQuery nếu cần
             resultLiveData.setValue(new PagedResult<>(matchingDocs, null, null));
 
         }).addOnFailureListener(e -> {
@@ -241,6 +247,8 @@ public class ListingRepository {
             resultLiveData.setValue(new PagedResult<>(null, null, e));
         });
     }
+
+    // File: repositories/ListingRepository.java
 
     public LiveData<List<Listing>> getPrioritizedRecentListings(GeoLocation userLocation) {
         MutableLiveData<List<Listing>> prioritizedData = new MutableLiveData<>();
