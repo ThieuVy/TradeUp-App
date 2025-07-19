@@ -3,12 +3,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root_view_chat"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/soft_white"
     tools:context=".fragments.ChatDetailFragment">
 
-    <!-- 1. Thanh Header (Toolbar) -->
+    <!-- Thanh Header (Toolbar) -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar_layout"
         android:layout_width="0dp"
@@ -30,7 +31,6 @@
             app:titleTextColor="@color/text_primary"
             tools:ignore="TextSizeCheck">
 
-            <!-- Biểu tượng menu 3 chấm để báo cáo/chặn -->
             <ImageView
                 android:id="@+id/btn_more_options_chat"
                 android:layout_width="wrap_content"
@@ -43,10 +43,9 @@
                 tools:ignore="HardcodedText" />
 
         </com.google.android.material.appbar.MaterialToolbar>
-
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- 2. Danh sách tin nhắn (RecyclerView) -->
+    <!-- Danh sách tin nhắn (RecyclerView) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_messages"
         android:layout_width="0dp"
@@ -59,6 +58,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         tools:listitem="@layout/item_chat_message_received"/>
 
+    <!-- Layout Chatbox -->
     <LinearLayout
         android:id="@+id/layout_chatbox"
         android:layout_width="0dp"
@@ -72,6 +72,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
+
         <ImageButton
             android:id="@+id/btn_attach_image"
             android:layout_width="48dp"
@@ -82,21 +83,32 @@
             app:tint="@color/text_secondary"
             tools:ignore="HardcodedText" />
 
-        <EditText
+        <ImageButton
+            android:id="@+id/btn_emoji"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_emoji"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Mở bàn phím emoji"
+            app:tint="@color/text_secondary"
+            tools:ignore="HardcodedText" />
+
+        <com.vanniktech.emoji.EmojiEditText
             android:id="@+id/edit_text_message"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginHorizontal="8dp"
             android:background="@drawable/bg_chat_input"
             android:hint="Nhập tin nhắn..."
-            android:inputType="textMultiLine"
+            android:inputType="textMultiLine|textCapSentences"
             android:maxLines="5"
             android:minHeight="48dp"
             android:paddingHorizontal="16dp"
             android:paddingVertical="10dp"
             android:scrollbars="vertical"
-            tools:ignore="Autofill,HardcodedText" />
+            app:emojiSize="24sp"
+            tools:ignore="Autofill,HardcodedText,VisualLintTextFieldSize" />
+
         <ImageButton
             android:id="@+id/btn_send"
             android:layout_width="48dp"

@@ -1,6 +1,7 @@
 package com.example.testapptradeup.adapters;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,6 +9,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,7 +26,6 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
     private final String currentUserId;
     private final OnReviewButtonClickListener listener;
 
-    // Interface để xử lý sự kiện click nút "Đánh giá"
     public interface OnReviewButtonClickListener {
         void onReviewClick(Transaction transaction);
     }
@@ -64,12 +65,13 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
 
         @SuppressLint("SetTextI18n")
         public void bind(final Transaction transaction, String currentUserId, final OnReviewButtonClickListener listener) {
+            Context context = itemView.getContext();
             listingTitle.setText(transaction.getListingTitle());
 
             NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
             transactionPrice.setText(currencyFormatter.format(transaction.getFinalPrice()));
 
-            Glide.with(itemView.getContext())
+            Glide.with(context)
                     .load(transaction.getListingImageUrl())
                     .placeholder(R.drawable.img_placeholder)
                     .error(R.drawable.img_placeholder)
@@ -78,12 +80,11 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
 
             if (currentUserId == null) return;
 
-            // Xác định vai trò của người dùng hiện tại và cập nhật UI
             boolean amIBuyer = currentUserId.equals(transaction.getBuyerId());
 
-            if (amIBuyer) { // Tôi là người mua
+            if (amIBuyer) {
                 partnerLabel.setText("Đã mua từ: " + transaction.getSellerName());
-                // Hiển thị nút đánh giá nếu tôi (người mua) chưa đánh giá
+                transactionPrice.setTextColor(ContextCompat.getColor(context, R.color.red_error));
                 if (!transaction.isBuyerReviewed()) {
                     btnReview.setVisibility(View.VISIBLE);
                     btnReview.setText("Đánh giá người bán");
@@ -91,9 +92,9 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
                 } else {
                     btnReview.setVisibility(View.GONE);
                 }
-            } else { // Tôi là người bán
+            } else {
                 partnerLabel.setText("Đã bán cho: " + transaction.getBuyerName());
-                // Hiển thị nút đánh giá nếu tôi (người bán) chưa đánh giá
+                transactionPrice.setTextColor(ContextCompat.getColor(context, R.color.success));
                 if (!transaction.isSellerReviewed()) {
                     btnReview.setVisibility(View.VISIBLE);
                     btnReview.setText("Đánh giá người mua");
@@ -113,7 +114,6 @@ public class TransactionHistoryAdapter extends ListAdapter<Transaction, Transact
 
         @Override
         public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
-            // Chỉ cần vẽ lại item nếu trạng thái đánh giá thay đổi
             return oldItem.isBuyerReviewed() == newItem.isBuyerReviewed() &&
                     oldItem.isSellerReviewed() == newItem.isSellerReviewed();
         }

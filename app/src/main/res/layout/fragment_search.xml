@@ -136,22 +136,38 @@
                 android:text="Danh mục"
                 tools:ignore="HardcodedText" />
 
-            <AutoCompleteTextView
-                android:id="@+id/category_filter"
-                style="@style/FilterAutoCompleteTextView"
-                android:hint="Chọn danh mục"
-                tools:ignore="HardcodedText,TextContrastCheck,VisualLintTextFieldSize" />
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <AutoCompleteTextView
+                    android:id="@+id/category_filter"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Chọn danh mục"
+                    android:inputType="none"
+                    tools:ignore="HardcodedText,TextContrastCheck,VisualLintTextFieldSize,SpeakableTextPresentCheck" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <TextView
                 style="@style/FilterSectionTitle"
                 android:text="Tình trạng"
                 tools:ignore="HardcodedText" />
 
-            <AutoCompleteTextView
-                android:id="@+id/condition_filter"
-                style="@style/FilterAutoCompleteTextView"
-                android:hint="Chọn tình trạng"
-                tools:ignore="HardcodedText,TextContrastCheck,VisualLintTextFieldSize" />
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <AutoCompleteTextView
+                    android:id="@+id/condition_filter"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Chọn tình trạng"
+                    android:inputType="none"
+                    tools:ignore="HardcodedText,TextContrastCheck,VisualLintTextFieldSize,SpeakableTextPresentCheck" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <TextView
                 style="@style/FilterSectionTitle"

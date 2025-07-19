@@ -49,9 +49,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import java.util.ArrayList;
 import java.util.Locale;
 
-public abstract class SearchFragment extends Fragment implements SearchResultsAdapter.OnProductClickListener, SearchResultsAdapter.OnFavoriteClickListener {
+public class SearchFragment extends Fragment implements SearchResultsAdapter.OnProductClickListener, SearchResultsAdapter.OnFavoriteClickListener {
 
-    private static final int DEBOUNCE_DELAY_MS = 300;
+    private static final int DEBOUNCE_DELAY_MS = 300; // Độ trễ 300ms
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable searchRunnable;
+
     private SearchViewModel viewModel;
 
     // UI Components
@@ -72,8 +75,6 @@ public abstract class SearchFragment extends Fragment implements SearchResultsAd
     private FusedLocationProviderClient fusedLocationClient;
     private Location currentLocation;
     private ActivityResultLauncher<String> locationPermissionLauncher;
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    private Runnable searchRunnable;
     private boolean isFiltersVisible = false;
 
     @Override
@@ -95,8 +96,7 @@ public abstract class SearchFragment extends Fragment implements SearchResultsAd
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_search, container, false);
         initViews(view);
-        setupAdapters();
-        setupListeners();
+        setupAdaptersAndListeners(); // Gộp 2 hàm
         observeViewModel();
         return view;
     }
@@ -125,63 +125,62 @@ public abstract class SearchFragment extends Fragment implements SearchResultsAd
         loadMoreButton = view.findViewById(R.id.load_more_button);
         loadMoreProgress = view.findViewById(R.id.load_more_progress);
         btnBackSearch = view.findViewById(R.id.btn_back_search);
-
     }
 
-    private void setupAdapters() {
+    private void setupAdaptersAndListeners() {
+        // Setup RecyclerView Adapter
         searchResultsAdapter = new SearchResultsAdapter(this, this);
         searchResultsRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         searchResultsRecyclerView.setAdapter(searchResultsAdapter);
 
-        // SỬA LỖI: Sử dụng string-array từ resources
-        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.category_options));
-        categoryFilter.setAdapter(categoryAdapter);
+        // Setup Adapters for AutoCompleteTextViews
+        if (getContext() != null) {
+            ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.category_options));
+            categoryFilter.setAdapter(categoryAdapter);
 
-        ArrayAdapter<String> conditionAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.condition_options));
-        conditionFilter.setAdapter(conditionAdapter);
+            ArrayAdapter<String> conditionAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.condition_options));
+            conditionFilter.setAdapter(conditionAdapter);
 
-        ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.sort_options));
-        sortFilter.setAdapter(sortAdapter);
-    }
+            ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.sort_options));
+            sortFilter.setAdapter(sortAdapter);
+        }
 
-    private void setupListeners() {
+        // Setup Listeners
         searchInput.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-            @Override
-            public void afterTextChanged(Editable s) {
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Hủy bỏ runnable cũ mỗi khi người dùng gõ thêm
                 if (searchRunnable != null) {
                     handler.removeCallbacks(searchRunnable);
                 }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // Tạo runnable mới để tìm kiếm sau một khoảng trễ
                 searchRunnable = () -> {
-                    if (isAdded() && getContext() != null) {
+                    if (isAdded()) { // Đảm bảo fragment vẫn đang attached
                         viewModel.startNewSearch(collectSearchParamsFromUi());
                     }
                 };
-                // SỬA LỖI: Sử dụng hằng số thay vì magic number
                 handler.postDelayed(searchRunnable, DEBOUNCE_DELAY_MS);
             }
         });
-        clearSearch.setOnClickListener(v -> {
-            searchInput.setText("");
-            viewModel.startNewSearch(new SearchParams());
-        });
 
+        clearSearch.setOnClickListener(v -> searchInput.setText(""));
         applyFiltersButton.setOnClickListener(v -> {
             viewModel.startNewSearch(collectSearchParamsFromUi());
             toggleFilterVisibility(false);
         });
-
+        sortFilter.setOnItemClickListener((parent, view, position, id) -> viewModel.startNewSearch(collectSearchParamsFromUi()));
         clearFiltersButton.setOnClickListener(v -> {
             clearFilterInputs();
             viewModel.startNewSearch(new SearchParams());
             toggleFilterVisibility(false);
         });
-
         filterToggle.setOnClickListener(v -> toggleFilterVisibility(!isFiltersVisible));
         useGpsButton.setOnClickListener(v -> checkLocationPermissionAndFetch());
         distanceSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -193,16 +192,13 @@ public abstract class SearchFragment extends Fragment implements SearchResultsAd
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-
-        sortFilter.setOnItemClickListener((parent, view, position, id) -> viewModel.startNewSearch(collectSearchParamsFromUi()));
-
         btnBackSearch.setOnClickListener(v -> Navigation.findNavController(v).popBackStack());
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // Rất quan trọng: Hủy callback để tránh crash và memory leak
+        // Rất quan trọng: Hủy bỏ runnable khi fragment bị hủy để tránh memory leak
         if (searchRunnable != null) {
             handler.removeCallbacks(searchRunnable);
         }
@@ -250,7 +246,6 @@ public abstract class SearchFragment extends Fragment implements SearchResultsAd
         params.setQuery(searchInput.getText().toString().trim());
 
         String category = categoryFilter.getText().toString();
-        // SỬA LỖI: So sánh với R.string
         if (!category.equals(getString(R.string.search_category_all))) {
             params.setCategory(category);
         }
@@ -274,13 +269,13 @@ public abstract class SearchFragment extends Fragment implements SearchResultsAd
 
         String[] sortOptions = getResources().getStringArray(R.array.sort_options);
         String selectedSort = sortFilter.getText().toString();
-        if (selectedSort.equals(sortOptions[1])) {
+        if (selectedSort.equals(sortOptions[1])) { // Mới nhất
             params.setSortBy("timePosted");
             params.setSortAscending(false);
-        } else if (selectedSort.equals(sortOptions[2])) {
+        } else if (selectedSort.equals(sortOptions[2])) { // Giá: Thấp đến cao
             params.setSortBy("price");
             params.setSortAscending(true);
-        } else if (selectedSort.equals(sortOptions[3])) {
+        } else if (selectedSort.equals(sortOptions[3])) { // Giá: Cao đến thấp
             params.setSortBy("price");
             params.setSortAscending(false);
         }
@@ -305,7 +300,6 @@ public abstract class SearchFragment extends Fragment implements SearchResultsAd
         distanceSeekbar.setProgress(50);
         currentLocation = null;
     }
-
     private void toggleFilterVisibility(boolean show) {
         isFiltersVisible = show;
         filtersContainer.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -328,7 +322,6 @@ public abstract class SearchFragment extends Fragment implements SearchResultsAd
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
         }
     }
-
     @SuppressLint("MissingPermission")
     private void fetchCurrentLocation() {
         fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
@@ -344,30 +337,32 @@ public abstract class SearchFragment extends Fragment implements SearchResultsAd
 
     @Override
     public void onProductClick(SearchResult result) {
-        Toast.makeText(requireContext(), "Xem: " + result.getTitle(), Toast.LENGTH_SHORT).show();
-        // TODO: Điều hướng đến màn hình chi tiết sản phẩm
+        if (result == null || result.getId() == null) {
+            Toast.makeText(getContext(), "Không thể mở sản phẩm này.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        SearchFragmentDirections.ActionSearchFragmentToProductDetailFragment action =
+                SearchFragmentDirections.actionSearchFragmentToProductDetailFragment(result.getId());
+        Navigation.findNavController(requireView()).navigate(action);
     }
+
 
     @Override
     public void onFavoriteClick(SearchResult result, int position) {
         if (FirebaseAuth.getInstance().getUid() == null) {
             Toast.makeText(requireContext(), "Vui lòng đăng nhập để yêu thích.", Toast.LENGTH_SHORT).show();
-
-            // SỬA LỖI: Logic đảo ngược trạng thái và thông báo cho adapter
-            // Không cần lấy lại list, chỉ cần đảo ngược trạng thái trong đối tượng và báo cho adapter vẽ lại item đó
             boolean isCurrentlyFavorite = result.isFavorite();
-            result.setFavorite(!isCurrentlyFavorite); // Đảo ngược lại trạng thái "lỡ" cập nhật trong adapter
-            searchResultsAdapter.notifyItemChanged(position); // Báo cho adapter vẽ lại item tại vị trí đó
+            result.setFavorite(!isCurrentlyFavorite);
+            searchResultsAdapter.notifyItemChanged(position);
             return;
         }
 
         boolean newFavoriteState = !result.isFavorite();
-        result.setFavorite(newFavoriteState); // Cập nhật trạng thái trong model để UI không bị "giật" lại
-        searchResultsAdapter.notifyItemChanged(position); // Vẽ lại UI ngay lập tức
+        result.setFavorite(newFavoriteState);
+        searchResultsAdapter.notifyItemChanged(position);
 
         viewModel.toggleFavorite(result.getId(), newFavoriteState);
     }
-
     private String mapConditionToValue(String conditionText) {
         String[] conditions = getResources().getStringArray(R.array.condition_options);
         if (conditionText.equals(conditions[1])) return "new";
@@ -381,11 +376,16 @@ public abstract class SearchFragment extends Fragment implements SearchResultsAd
         if (value == null) return getString(R.string.search_category_all);
         String[] conditions = getResources().getStringArray(R.array.condition_options);
         switch (value) {
-            case "new": return conditions[1];
-            case "like_new": return conditions[2];
-            case "good": return conditions[3];
-            case "used": return conditions[4];
-            default: return getString(R.string.search_category_all);
+            case "new":
+                return conditions[1];
+            case "like_new":
+                return conditions[2];
+            case "good":
+                return conditions[3];
+            case "used":
+                return conditions[4];
+            default:
+                return getString(R.string.search_category_all);
         }
     }
 }

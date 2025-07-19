@@ -65,7 +65,10 @@ public class ListingRepository {
         // và onFailureListener để set _errorMessage
         // Ví dụ:
         db.collection("listings")
-                .whereEqualTo("isFeatured", true).whereEqualTo("status", "available").limit(5)
+                .whereEqualTo("featured", true) // Query các sản phẩm có trường featured = true
+                .whereEqualTo("status", "available") // Chỉ lấy các sản phẩm đang bán
+                .orderBy("timePosted", Query.Direction.DESCENDING) // Sắp xếp theo mới nhất
+                .limit(5) // Giới hạn số lượng hiển thị
                 .get()
                 .addOnSuccessListener(result -> featuredListingsData.setValue(result.toObjects(Listing.class)))
                 .addOnFailureListener(e -> _errorMessage.setValue("Lỗi tải mục Nổi bật"))
@@ -74,7 +77,7 @@ public class ListingRepository {
         db.collection("listings")
                 .whereEqualTo("status", "available")
                 .orderBy("views", Query.Direction.DESCENDING) // Sắp xếp theo lượt xem giảm dần
-                .limit(4)
+                .limit(4) // Giới hạn 4 sản phẩm
                 .get()
                 .addOnSuccessListener(result -> recommendedListingsData.setValue(result.toObjects(Listing.class)))
                 .addOnFailureListener(e -> _errorMessage.setValue("Lỗi tải mục Đề xuất"))
@@ -85,9 +88,9 @@ public class ListingRepository {
                 .orderBy("timePosted", Query.Direction.DESCENDING)
                 .limit(10)
                 .addSnapshotListener((snapshots, error) -> { // <-- Lắng nghe thay đổi liên tục
-                    onTaskCompleted.run(); // Đảm bảo gọi onTaskCompleted dù thành công hay thất bại
                     if (error != null) {
-                        _errorMessage.setValue("Lỗi tải mục Rao gần đây: " + error.getMessage());
+                        _errorMessage.postValue("Lỗi tải tin đăng gần đây.");
+                        Log.e(TAG, "Listen failed.", error);
                         return;
                     }
 
@@ -98,8 +101,7 @@ public class ListingRepository {
                             listing.setId(doc.getId());
                             listings.add(listing);
                         }
-                        // Cập nhật LiveData mỗi khi có snapshot mới
-                        recentListingsData.setValue(listings);
+                        recentListingsData.postValue(listings);
                     }
                 });
     }
@@ -143,7 +145,7 @@ public class ListingRepository {
 
         // (Code query cũ giữ nguyên)
         if (params.getCategory() != null && !params.getCategory().isEmpty()) {
-            query = query.whereEqualTo("categoryId", params.getCategory());
+            query = query.whereEqualTo("category", params.getCategory());
         }
         if (params.getCondition() != null && !params.getCondition().isEmpty()) {
             query = query.whereEqualTo("condition", params.getCondition());
@@ -159,13 +161,17 @@ public class ListingRepository {
         }
 
         if (params.getSortBy() != null && !params.getSortBy().isEmpty()) {
+            // Firestore yêu cầu trường sắp xếp phải là trường đầu tiên trong các điều kiện bất đẳng thức (nếu có).
+            // Ở đây, chúng ta đang lọc theo khoảng giá (`>=` và `<=`) trên trường "price".
+            // Do đó, nếu sắp xếp theo trường khác "price", truy vấn sẽ thất bại.
             if (params.hasPriceFilter() && !params.getSortBy().equals("price")) {
-                Log.w("ListingRepository", "Không thể sắp xếp theo trường khác khi đang lọc theo khoảng giá. Bỏ qua sắp xếp.");
+                Log.w(TAG, "Không thể sắp xếp theo trường khác khi đang lọc theo khoảng giá. Bỏ qua sắp xếp.");
             } else {
                 Query.Direction direction = params.isSortAscending() ? Query.Direction.ASCENDING : Query.Direction.DESCENDING;
                 query = query.orderBy(params.getSortBy(), direction);
             }
         } else if (params.getQuery() == null || params.getQuery().isEmpty()) {
+            // Nếu không có từ khóa tìm kiếm và không có tùy chọn sắp xếp, mặc định sắp xếp theo mới nhất
             query = query.orderBy("timePosted", Query.Direction.DESCENDING);
         }
 
@@ -426,13 +432,29 @@ public class ListingRepository {
                 query = query.orderBy("timePosted", Query.Direction.DESCENDING).limit(20);
                 break;
             case "category":
-                if (categoryId != null) {
-                    query = query.whereEqualTo("categoryId", categoryId).orderBy("timePosted", Query.Direction.DESCENDING).limit(20);
+                if (categoryId != null && !categoryId.isEmpty()) {
+                    // Đây là query quan trọng cần kiểm tra
+                    query = query.whereEqualTo("categoryId", categoryId) // Đảm bảo trường trong model là "categoryId"
+                            .orderBy("timePosted", Query.Direction.DESCENDING)
+                            .limit(20);
+                } else {
+                    // Trường hợp categoryId là null, trả về danh sách rỗng
+                    data.setValue(Collections.emptyList());
+                    return data;
                 }
                 break;
         }
 
-        query.get().addOnSuccessListener(snapshots -> data.setValue(snapshots.toObjects(Listing.class))).addOnFailureListener(e -> data.setValue(Collections.emptyList()));
+        query.get().addOnSuccessListener(snapshots -> {
+            if (snapshots != null) {
+                data.setValue(snapshots.toObjects(Listing.class));
+            } else {
+                data.setValue(Collections.emptyList());
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Lỗi khi lọc tin đăng: ", e);
+            data.setValue(Collections.emptyList());
+        });
 
         return data;
     }
@@ -449,9 +471,7 @@ public class ListingRepository {
             return status;
         }
 
-        // Sử dụng set() với SetOptions.merge() để chỉ cập nhật các trường có trong
-        // đối tượng `listing`, các trường khác trên Firestore sẽ được giữ nguyên.
-        // Điều này an toàn hơn là dùng update() với một Map lớn.
+        // GIẢI PHÁP: Sử dụng set với merge=true để cập nhật an toàn
         db.collection("listings").document(listing.getId())
                 .set(listing, SetOptions.merge())
                 .addOnSuccessListener(aVoid -> {

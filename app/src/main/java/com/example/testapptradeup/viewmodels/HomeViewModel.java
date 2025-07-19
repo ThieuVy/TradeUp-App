@@ -168,4 +168,8 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
     public LiveData<String> getErrorMessage() {
         return errorMessage;
     }
+
+    public LiveData<Boolean> isLoading() {
+        return isLoading;
+    }
 }

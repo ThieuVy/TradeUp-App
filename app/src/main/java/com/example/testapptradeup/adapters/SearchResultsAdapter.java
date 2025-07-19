@@ -138,15 +138,17 @@ public class SearchResultsAdapter extends ListAdapter<SearchResult, SearchResult
     private static final DiffUtil.ItemCallback<SearchResult> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull SearchResult oldItem, @NonNull SearchResult newItem) {
-            return oldItem.getId().equals(newItem.getId());
+            // SỬA LỖI: Dùng Objects.equals() để so sánh an toàn
+            return java.util.Objects.equals(oldItem.getId(), newItem.getId());
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull SearchResult oldItem, @NonNull SearchResult newItem) {
-            return oldItem.getTitle().equals(newItem.getTitle()) &&
-                    oldItem.getPrice().equals(newItem.getPrice()) &&
+            // SỬA LỖI: Dùng Objects.equals() cho tất cả các trường có khả năng là null
+            return java.util.Objects.equals(oldItem.getTitle(), newItem.getTitle()) &&
+                    java.util.Objects.equals(oldItem.getPrice(), newItem.getPrice()) &&
                     oldItem.isFavorite() == newItem.isFavorite() &&
-                    Objects.equals(oldItem.getImageUrl(), newItem.getImageUrl());
+                    java.util.Objects.equals(oldItem.getImageUrl(), newItem.getImageUrl());
         }
     };
 }

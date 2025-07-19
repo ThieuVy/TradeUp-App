@@ -152,4 +152,25 @@ public class UserRepository {
                 .addOnSuccessListener(aVoid -> Log.d("UserRepository", "FCM token updated successfully for user: " + userId))
                 .addOnFailureListener(e -> Log.e("UserRepository", "Error updating FCM token", e));
     }
+
+    public LiveData<Result<String>> updateProfileImageUrl(String userId, String newUrl) {
+        MutableLiveData<Result<String>> result = new MutableLiveData<>();
+        if (userId == null || newUrl == null) {
+            result.setValue(Result.error(new IllegalArgumentException("User ID hoặc URL không hợp lệ.")));
+            return result;
+        }
+
+        db.collection("users").document(userId)
+                .update("profileImageUrl", newUrl)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("UserRepository", "Cập nhật URL ảnh đại diện thành công.");
+                    result.setValue(Result.success(newUrl)); // Trả về URL mới để ViewModel có thể sử dụng
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("UserRepository", "Lỗi cập nhật URL ảnh đại diện: ", e);
+                    result.setValue(Result.error(e));
+                });
+
+        return result;
+    }
 }

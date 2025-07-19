@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.testapptradeup"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.testapptradeup"
@@ -19,19 +19,21 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName("release") {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                file("proguard-rules.pro")
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    buildFeatures {
+
+    buildFeatures.apply {
         viewBinding = true
     }
 }
@@ -92,6 +94,8 @@ dependencies {
 
     implementation(libs.flexbox)
     implementation (libs.geofire.android.common)
+    implementation(libs.emoji.google)
+    implementation(libs.emoji.android)
 }
 configurations.all {
     exclude(group = "xpp3", module = "xpp3")

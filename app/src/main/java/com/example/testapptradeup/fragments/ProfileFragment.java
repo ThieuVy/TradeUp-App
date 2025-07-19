@@ -129,12 +129,13 @@ public class ProfileFragment extends Fragment {
         cardSavedItems.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_favoritesFragment));
         cardOffers.setOnClickListener(v -> navController.navigate(R.id.action_profile_to_myOffers));
         cardPurchases.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_historyFragment));
-        cardPayments.setOnClickListener(v -> Toast.makeText(getContext(), "Chức năng đang phát triển", Toast.LENGTH_SHORT).show());
+        cardPayments.setOnClickListener(v -> navController.navigate(R.id.action_profile_to_paymentHistory));
         menuPersonalInfo.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_personalInfoFragment));
         menuChangePassword.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_changePasswordFragment));
         menuNotificationSettings.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_notificationSettingsFragment));
         menuPaymentMethods.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_paymentSettingsFragment));
         menuReviews.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_reviewsFragment));
+
         btnLogout.setOnClickListener(v -> showLogoutConfirmationDialog());
         btnDeactivateAccount.setOnClickListener(v -> showDeactivateConfirmDialog());
         btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
@@ -158,12 +159,9 @@ public class ProfileFragment extends Fragment {
     private void observeViewModels() {
         mainViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
-                // Nếu có người dùng, cập nhật UI
-                updateUI(user);
-                profileViewModel.loadUserReviews(user.getId());
+                updateUI(user); // Có người dùng -> cập nhật UI
             } else {
-                // Nếu người dùng là null (đã đăng xuất), xóa UI
-                clearUI();
+                clearUI(); // Người dùng null (đã đăng xuất) -> xóa thông tin
             }
         });
 
@@ -226,11 +224,17 @@ public class ProfileFragment extends Fragment {
     }
 
     private void showLogoutConfirmationDialog() {
+        if (getContext() == null) return; // Đảm bảo fragment vẫn còn attached
+
         new AlertDialog.Builder(requireContext())
-                .setTitle("Đăng xuất")
-                .setMessage("Bạn có chắc chắn muốn đăng xuất?")
-                .setPositiveButton("Đăng xuất", (dialog, which) -> logout())
-                .setNegativeButton("Hủy", null)
+                .setTitle("Xác nhận Đăng xuất")
+                .setMessage("Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?")
+                .setPositiveButton("Đăng xuất", (dialog, which) -> {
+                    // Chỉ gọi hàm logout khi người dùng nhấn "Đăng xuất"
+                    logout();
+                })
+                .setNegativeButton("Hủy", null) // Nút "Hủy" không cần làm gì cả
+                .setIcon(R.drawable.ic_logout) // Thêm icon cho trực quan
                 .show();
     }
 

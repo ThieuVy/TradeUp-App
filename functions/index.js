@@ -9,11 +9,6 @@ admin.initializeApp();
 // ========================================================
 // HÀM HỖ TRỢ & BẢO MẬT
 // ========================================================
-
-/**
- * Xác minh xem người gọi hàm có phải là Admin không.
- * @param {functions.https.CallableContext} context Context của hàm.
- */
 const verifyAdmin = async (context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Yêu cầu cần được xác thực.");
@@ -25,26 +20,19 @@ const verifyAdmin = async (context) => {
     throw new functions.https.HttpsError("permission-denied", "Chỉ quản trị viên mới có thể thực hiện hành động này.");
 };
 
-/**
- * Lấy hoặc tạo Stripe Customer ID cho người dùng Firebase.
- */
 const getOrCreateCustomer = async (userId) => {
     const userDoc = await admin.firestore().collection("users").doc(userId).get();
     const userData = userDoc.data();
-
     if (userData && userData.stripeCustomerId) {
         return userData.stripeCustomerId;
     }
-
     const customer = await stripe.customers.create({
         email: userData.email,
         metadata: { firebaseUID: userId },
     });
-
     await admin.firestore().collection("users").doc(userId).update({
         stripeCustomerId: customer.id,
     });
-
     return customer.id;
 };
 
@@ -94,12 +82,10 @@ exports.setAdminClaim = functions.https.onCall(async (data, context) => {
  */
 exports.moderateReview = functions.https.onCall(async (data, context) => {
     await verifyAdmin(context);
-
     const { reviewId, newStatus } = data;
     if (!reviewId || !newStatus || !["approved", "rejected"].includes(newStatus)) {
         throw new functions.https.HttpsError("invalid-argument", "Vui lòng cung cấp reviewId và newStatus hợp lệ.");
     }
-
     try {
         await admin.firestore().collection("reviews").doc(reviewId).update({ moderationStatus: newStatus });
         return { success: true, message: `Đánh giá ${reviewId} đã được ${newStatus}.` };
@@ -115,27 +101,22 @@ exports.moderateReview = functions.https.onCall(async (data, context) => {
  */
 exports.resolveReport = functions.https.onCall(async (data, context) => {
     await verifyAdmin(context);
-
     const { reportId, reportedUserId, shouldSuspend } = data;
     if (!reportId) {
         throw new functions.https.HttpsError("invalid-argument", "Thiếu reportId.");
     }
-
     const db = admin.firestore();
     const batch = db.batch();
     const reportRef = db.collection("reports").doc(reportId);
-
     batch.update(reportRef, {
         status: "resolved",
         resolvedBy: context.auth.uid,
         resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-
     if (shouldSuspend && reportedUserId) {
         const userRef = db.collection("users").doc(reportedUserId);
         batch.update(userRef, { accountStatus: "suspended" });
     }
-
     try {
         await batch.commit();
         const message = `Báo cáo ${reportId} đã được giải quyết.${shouldSuspend ? ` Người dùng ${reportedUserId} đã bị treo.` : ""}`;
@@ -176,15 +157,12 @@ exports.updateUserStatus = functions.https.onCall(async (data, context) => {
  */
 exports.createSetupIntent = functions.https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Cần xác thực.");
-
     const userId = context.auth.uid;
     const customerId = await getOrCreateCustomer(userId);
-
     const setupIntent = await stripe.setupIntents.create({
         customer: customerId,
         payment_method_types: ["card"],
     });
-
     return { clientSecret: setupIntent.client_secret, customerId };
 });
 
@@ -193,21 +171,21 @@ exports.createSetupIntent = functions.https.onCall(async (data, context) => {
  */
 exports.createEphemeralKey = functions.https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Cần xác thực.");
-
     const userId = context.auth.uid;
     const apiVersion = data.apiVersion;
     const customerId = await getOrCreateCustomer(userId);
-
     const key = await stripe.ephemeralKeys.create({ customer: customerId }, { apiVersion });
     return { ephemeralKey: key.secret };
 });
 
 /**
- * Cloud Function: createPaymentIntentForEscrow
+ * Cloud Function: Tạo Payment Intent cho hệ thống ký quỹ (Escrow).
+ * Chỉ giữ tiền của khách hàng (authorize) chứ chưa thu (capture).
  */
 exports.createPaymentIntentForEscrow = functions.runWith({ enforceAppCheck: true }).https.onCall(async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Cần xác thực để thanh toán.");
-
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Cần xác thực để thanh toán.");
+    }
     const userId = context.auth.uid;
     const { amount, listingId, sellerId } = data;
 
@@ -218,11 +196,17 @@ exports.createPaymentIntentForEscrow = functions.runWith({ enforceAppCheck: true
     try {
         const customerId = await getOrCreateCustomer(userId);
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(amount), // Stripe yêu cầu amount là số nguyên (đơn vị nhỏ nhất, ví dụ: xu, hoặc đồng cho VND)
-            currency: "vnd", // Đơn vị tiền tệ Việt Nam
+            // Stripe yêu cầu amount là số nguyên (đơn vị nhỏ nhất)
+            // Đối với VND không có đơn vị nhỏ hơn, nên ta giữ nguyên.
+            amount: Math.round(amount),
+            currency: "vnd",
             customer: customerId,
             capture_method: "manual", // QUAN TRỌNG: Chỉ giữ tiền, chưa thu tiền ngay
-            metadata: { firebaseUID: userId, listingId: listingId },
+            metadata: {
+                firebaseUID: userId,
+                listingId: listingId,
+                flow: "escrow"
+            },
         });
 
         console.log(`Tạo PaymentIntent ${paymentIntent.id} cho user ${userId} thành công.`);
@@ -235,10 +219,19 @@ exports.createPaymentIntentForEscrow = functions.runWith({ enforceAppCheck: true
             amount,
             status: "pending_payment", // Trạng thái chờ thanh toán từ người mua
             paymentIntentId: paymentIntent.id,
-            created_at: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        return { clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id };
+        const ephemeralKey = await stripe.ephemeralKeys.create(
+            { customer: customerId },
+            { apiVersion: '2024-04-10' } // Sử dụng phiên bản API Stripe mới nhất
+        );
+
+        return {
+            clientSecret: paymentIntent.client_secret,
+            ephemeralKeySecret: ephemeralKey.secret,
+            customerId: customerId,
+        };
 
     } catch (error) {
         console.error("Lỗi nghiêm trọng khi tạo PaymentIntent:", error);
@@ -272,36 +265,39 @@ exports.captureEscrowPayment = functions.https.onCall(async (data, context) => {
  * Cloud Function: permanentlyDeleteUserAccount
  */
 exports.permanentlyDeleteUserAccount = functions.https.onCall(async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Cần xác thực.");
-
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Yêu cầu cần được xác thực.");
+    }
     const uid = context.auth.uid;
     const db = admin.firestore();
 
     try {
-        await admin.auth().deleteUser(uid);
-        await db.collection("users").doc(uid).delete();
-
+        // 1. Xóa tất cả tin đăng của người dùng
         const listingsQuery = db.collection("listings").where("sellerId", "==", uid);
         const listingsSnapshot = await listingsQuery.get();
-
         if (!listingsSnapshot.empty) {
             const batch = db.batch();
-            listingsSnapshot.forEach((doc) => batch.delete(doc.ref));
+            listingsSnapshot.forEach(doc => batch.delete(doc.ref));
             await batch.commit();
         }
 
-        return { success: true, message: "Tài khoản đã được xóa." };
+        // 2. Xóa document user trong Firestore
+        await db.collection("users").doc(uid).delete();
+
+        // 3. Xóa user khỏi Authentication (thực hiện cuối cùng)
+        await admin.auth().deleteUser(uid);
+
+        return { success: true, message: "Tài khoản và tất cả dữ liệu liên quan đã được xóa vĩnh viễn." };
     } catch (error) {
-        console.error("Lỗi khi xóa người dùng:", error);
+        console.error("Lỗi khi xóa vĩnh viễn người dùng:", uid, error);
         throw new functions.https.HttpsError("internal", "Xóa tài khoản thất bại.");
     }
 });
 
-/**
- * TRIGGER: Tự động tạo thông báo cho người nhận khi có tin nhắn mới.
- * Đồng thời gửi Push Notification qua FCM.
- * Kích hoạt mỗi khi có một document mới được tạo trong sub-collection 'messages'.
- */
+// ========================================================
+// TRIGGERS TỰ ĐỘNG
+// ========================================================
+
 exports.sendChatNotification = functions.firestore
     .document("chats/{chatId}/messages/{messageId}")
     .onCreate(async (snap, context) => {
@@ -309,78 +305,52 @@ exports.sendChatNotification = functions.firestore
         const chatId = context.params.chatId;
         const senderId = message.senderId;
 
-        // 1. Lấy thông tin cuộc trò chuyện để tìm người nhận
         const chatDoc = await admin.firestore().collection("chats").doc(chatId).get();
-        if (!chatDoc.exists) {
-            console.log("Không tìm thấy cuộc trò chuyện:", chatId);
-            return null;
-        }
+        if (!chatDoc.exists) return null;
 
-        // 2. Xác định ID của người nhận (không phải là người gửi)
         const recipientId = chatDoc.data().members.find((id) => id !== senderId);
-        if (!recipientId) {
-            console.log("Không tìm thấy người nhận trong cuộc trò chuyện:", chatId);
-            return null;
-        }
+        if (!recipientId) return null;
 
-        // 3. Lấy thông tin của người gửi và người nhận để cá nhân hóa thông báo
         const senderDoc = await admin.firestore().collection("users").doc(senderId).get();
         const recipientDoc = await admin.firestore().collection("users").doc(recipientId).get();
-
-        if (!senderDoc.exists || !recipientDoc.exists) {
-            console.log("Không tìm thấy thông tin người gửi hoặc người nhận.");
-            return null;
-        }
+        if (!senderDoc.exists || !recipientDoc.exists) return null;
 
         const senderData = senderDoc.data();
         const recipientData = recipientDoc.data();
 
-        // 4. Tạo payload cho document thông báo trong Firestore (để hiển thị trong app)
         const notificationPayload = {
-            userId: recipientId, // Gửi thông báo cho người nhận
+            userId: recipientId,
             title: `Tin nhắn mới từ ${senderData.name || "Một người dùng"}`,
             content: message.text || "Đã gửi một hình ảnh.",
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             type: "MESSAGE",
-            category: "Tin nhắn", // Phù hợp với các tab trong app
+            category: "Tin nhắn",
             isRead: false,
-            actionUrl: `chat/${chatId}` // Deep link để mở cuộc trò chuyện
+            actionUrl: `chat/${chatId}`
         };
-
-        // 5. Ghi thông báo vào collection 'notifications'
         await admin.firestore().collection("notifications").add(notificationPayload);
-        console.log("Đã tạo document thông báo trong Firestore cho:", recipientId);
 
-
-        // 6. (Tùy chọn) Gửi Push Notification (FCM) để thông báo real-time
         const fcmToken = recipientData.fcmToken;
         if (fcmToken) {
             const pushPayload = {
                 notification: {
                     title: `Tin nhắn mới từ ${senderData.name}`,
-                    body: message.text || "Đã gửi một hình ảnh", // Hiển thị nội dung thay thế nếu là ảnh
+                    body: message.text || "Đã gửi một hình ảnh",
                     icon: senderData.profileImageUrl || "default_icon_url",
                     click_action: "FLUTTER_NOTIFICATION_CLICK",
-                    tag: chatId, // Dùng chatId làm tag để nhóm các thông báo
+                    tag: chatId,
                 },
                 data: {
                     chatId: chatId,
                     senderId: senderId,
-                    senderName: senderData.name,
-                    senderAvatar: senderData.profileImageUrl || "",
-                    messageType: message.imageUrl ? "IMAGE" : "TEXT", // Xác định loại tin nhắn
-                    // Thêm các dữ liệu khác để client có thể xử lý khi nhấn vào thông báo
                 },
             };
-
             try {
                 await admin.messaging().sendToDevice(fcmToken, pushPayload);
-                console.log("Đã gửi push notification đến:", recipientId);
             } catch (error) {
                 console.error("Lỗi khi gửi push notification:", error);
             }
         }
-
         return null;
     });
 
@@ -392,17 +362,11 @@ exports.sendNewOfferNotification = functions.firestore
     .document("offers/{offerId}")
     .onCreate(async (snap, context) => {
         const offer = snap.data();
-        if (!offer) {
-            console.log("Không có dữ liệu offer.");
-            return null;
-        }
+        if (!offer) return null;
 
         const sellerId = offer.sellerId;
         const buyerName = offer.buyerName || "Một người dùng";
-        // Định dạng tiền tệ
         const offerPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(offer.offerPrice);
-
-        // Lấy thông tin tin đăng để hiển thị tên sản phẩm
         const listingDoc = await admin.firestore().collection("listings").doc(offer.listingId).get();
         const listingTitle = listingDoc.exists ? listingDoc.data().title : "sản phẩm của bạn";
 
@@ -416,6 +380,74 @@ exports.sendNewOfferNotification = functions.firestore
             isRead: false,
             actionUrl: `listing/${offer.listingId}`
         };
-
         return admin.firestore().collection("notifications").add(notificationPayload);
+    });
+
+/**
+ * Lấy lịch sử giao dịch Stripe cho người dùng đã xác thực.
+ */
+exports.getPaymentHistory = functions.https.onCall(async (data, context) => {
+    // 1. Xác thực người dùng
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Yêu cầu cần được xác thực.");
+    }
+    const userId = context.auth.uid;
+
+    try {
+        // 2. Lấy Stripe Customer ID từ Firestore
+        const customerId = await getOrCreateCustomer(userId);
+
+        // 3. Gọi Stripe API để lấy danh sách Payment Intents
+        const paymentIntents = await stripe.paymentIntents.list({
+            customer: customerId,
+            limit: 50, // Giới hạn 50 giao dịch gần nhất
+        });
+
+        // 4. Định dạng lại dữ liệu trả về cho client
+        const history = paymentIntents.data.map((pi) => ({
+            id: pi.id,
+            description: pi.description || "Thanh toán cho sản phẩm",
+            amount: pi.amount,
+            currency: pi.currency,
+            status: pi.status, // succeeded, requires_payment_method, canceled
+            created: pi.created, // Unix timestamp
+        }));
+
+        return { success: true, history: history };
+    } catch (error) {
+        console.error("Lỗi khi lấy lịch sử thanh toán Stripe:", error);
+        throw new functions.https.HttpsError("internal", "Không thể lấy lịch sử giao dịch.");
+    }
+});
+
+/**
+ * TRIGGER: Tự động tăng offersCount trên một listing khi có offer mới.
+ */
+exports.updateListingOnNewOffer = functions.firestore
+    .document("offers/{offerId}")
+    .onCreate(async (snap, context) => {
+        const offerData = snap.data();
+        const listingId = offerData.listingId;
+
+        if (!listingId) {
+            console.log("Offer không có listingId, bỏ qua.");
+            return null;
+        }
+
+        const listingRef = admin.firestore().collection("listings").doc(listingId);
+
+        try {
+            // Sử dụng FieldValue.increment để tăng giá trị một cách an toàn
+            await listingRef.update({
+                offersCount: admin.firestore.FieldValue.increment(1),
+            });
+            console.log(`Đã tăng offersCount cho listing ${listingId}`);
+            return { success: true };
+        } catch (error) {
+            console.error(
+                `Lỗi khi tăng offersCount cho listing ${listingId}:`,
+                error
+            );
+            return { success: false, error: error.message };
+        }
     });

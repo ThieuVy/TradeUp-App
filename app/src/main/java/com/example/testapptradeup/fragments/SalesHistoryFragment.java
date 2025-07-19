@@ -86,12 +86,13 @@ public class SalesHistoryFragment extends Fragment implements TransactionHistory
 
     @Override
     public void onReviewClick(Transaction transaction) {
-        // Khi bán hàng, người được đánh giá là người mua (buyer)
+        // Khi mua hàng, người được đánh giá là người bán (seller)
         HistoryFragmentDirections.ActionHistoryFragmentToAddReviewFragment action =
                 HistoryFragmentDirections.actionHistoryFragmentToAddReviewFragment(
                         transaction.getId(),
-                        transaction.getBuyerId() // Truyền ID của người mua
+                        transaction.getSellerId() // Truyền ID của người bán
                 );
-        navController.navigate(action);
+        // Dùng NavController của NavHostFragment chính để điều hướng
+        Navigation.findNavController(requireActivity(), R.id.nav_host_fragment).navigate(action);
     }
 }

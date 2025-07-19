@@ -35,16 +35,12 @@ public class OfferRepository {
 
     public LiveData<Boolean> createOffer(Offer offer) {
         MutableLiveData<Boolean> success = new MutableLiveData<>();
-        WriteBatch batch = db.batch();
-
         DocumentReference offerRef = offersCollection.document();
         offer.setId(offerRef.getId());
-        batch.set(offerRef, offer);
 
-        DocumentReference listingRef = listingsCollection.document(offer.getListingId());
-        batch.update(listingRef, "offersCount", FieldValue.increment(1));
-
-        batch.commit().addOnSuccessListener(aVoid -> success.setValue(true))
+        // CHỈ THỰC HIỆN MỘT HÀNH ĐỘNG DUY NHẤT
+        offerRef.set(offer)
+                .addOnSuccessListener(aVoid -> success.setValue(true))
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Lỗi khi tạo offer: ", e);
                     success.setValue(false);

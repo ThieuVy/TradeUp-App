@@ -110,6 +110,9 @@
         <action
             android:id="@+id/action_profile_to_myOffers"
             app:destination="@id/myOffersFragment" />
+        <action
+            android:id="@+id/action_profile_to_paymentHistory"
+            app:destination="@id/paymentHistoryFragment" />
 
     </fragment>
 
@@ -122,7 +125,16 @@
         android:id="@+id/searchFragment"
         android:name="com.example.testapptradeup.fragments.SearchFragment"
         android:label="Tìm Kiếm"
-        tools:layout="@layout/fragment_search" />
+        tools:layout="@layout/fragment_search">
+        <action
+            android:id="@+id/action_searchFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment">
+            <!-- Action này cũng cần định nghĩa argument 'listingId' mà nó sẽ truyền đi -->
+            <argument
+                android:name="listingId"
+                app:argType="string" />
+        </action>
+    </fragment>
     <fragment
         android:id="@+id/productListFragment"
         android:name="com.example.testapptradeup.fragments.ProductListFragment"
@@ -167,6 +179,14 @@
         <action
             android:id="@+id/action_productDetail_to_chatDetail"
             app:destination="@id/chatDetailFragment" />
+
+        <action
+            android:id="@+id/action_productDetailFragment_to_publicProfileFragment"
+            app:destination="@id/publicProfileFragment">
+            <argument
+                android:name="userId"
+                app:argType="string" />
+        </action>
     </fragment>
 
     <!-- ======================================================= -->
@@ -320,4 +340,11 @@
             android:name="listingIdToEdit"
             app:argType="string" />
     </fragment>
+
+    <fragment
+        android:id="@+id/paymentHistoryFragment"
+        android:name="com.example.testapptradeup.fragments.PaymentHistoryFragment"
+        android:label="Lịch sử thanh toán"
+        tools:layout="@layout/fragment_payment_history" />
+
 </navigation>

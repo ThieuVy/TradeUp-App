@@ -33,6 +33,7 @@ public class PaymentViewModel extends ViewModel {
         _errorMessage.setValue(null);
         paymentKeys = paymentRepository.createEscrowIntent(listingId, sellerId, amount);
 
+        // Quan sát kết quả để tắt loading hoặc báo lỗi
         paymentKeys.observeForever(keys -> {
             _isLoading.setValue(false);
             if (keys == null) {
@@ -42,14 +43,12 @@ public class PaymentViewModel extends ViewModel {
     }
 
     /**
-     * === HÀM MỚI ===
      * Hoàn tất giao dịch sau khi thanh toán thành công.
      * @param listingId ID của tin đăng đã bán.
      * @param offerId ID của đề nghị đã được thanh toán.
      * @return LiveData<Boolean> báo hiệu trạng thái của việc hoàn tất.
      */
     public LiveData<Boolean> finalizeTransaction(String listingId, String offerId) {
-        // ViewModel chỉ đơn giản là gọi phương thức tương ứng trong repository
         return offerRepository.completeTransaction(listingId, offerId);
     }
 }

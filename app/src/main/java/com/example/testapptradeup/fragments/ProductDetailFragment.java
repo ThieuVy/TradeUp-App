@@ -2,6 +2,7 @@ package com.example.testapptradeup.fragments;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +14,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-// <<< THÊM MỚI: Import lớp AppCompatActivity để thiết lập Toolbar >>>
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -38,19 +38,15 @@ public class ProductDetailFragment extends Fragment {
     private NavController navController;
     private String listingId;
 
-    // --- Khai báo UI Views ---
+    // UI Views
     private ImageView productImage, btnMoreOptions;
     private TextView productTitle, productPrice, productDescription;
     private CollapsingToolbarLayout collapsingToolbar;
     private MaterialToolbar toolbar;
-    private Button btnMakeOffer;
-    // <<< THÊM MỚI: Tham chiếu đến nút Chat và thanh action dưới cùng >>>
-    private Button btnChat;
-    private View bottomActionBar; // Dùng View hoặc LinearLayout
-
+    private Button btnMakeOffer, btnChat;
+    private View bottomActionBar;
     private Listing currentListing;
     private String currentUserId;
-
     private LinearLayout sellerInfoLayout;
     private ImageView sellerAvatar;
     private TextView sellerName;
@@ -59,9 +55,10 @@ public class ProductDetailFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(this).get(ProductDetailViewModel.class);
+        currentUserId = FirebaseAuth.getInstance().getUid(); // Lấy ID người dùng hiện tại một lần
+
         if (getArguments() != null) {
             listingId = ProductDetailFragmentArgs.fromBundle(getArguments()).getListingId();
-            // Lấy cả listing preview nếu có
             currentListing = ProductDetailFragmentArgs.fromBundle(getArguments()).getListingPreview();
         }
     }
@@ -76,30 +73,25 @@ public class ProductDetailFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         navController = Navigation.findNavController(view);
 
-        // <<< TỐI ƯU: Gọi các hàm thiết lập một lần >>>
         initViews(view);
-        setupToolbar(); // Thiết lập toolbar trước
+        setupToolbar();
         setupListeners();
 
-        // Xử lý logic hiển thị dựa trên arguments
-        if (currentListing != null) {
-            // Chế độ xem trước: Dữ liệu đã có sẵn
+        if (currentListing != null) { // Chế độ xem trước
             populateUI(currentListing);
-            btnMakeOffer.setVisibility(View.GONE);
-            btnChat.setVisibility(View.GONE);
-            btnMoreOptions.setVisibility(View.GONE); // Ẩn nút "..." khi xem trước
-        } else if (listingId != null) {
-            // Chế độ xem tin đã đăng: Tải dữ liệu
+            bottomActionBar.setVisibility(View.GONE);
+            if (btnMoreOptions != null) {
+                btnMoreOptions.setVisibility(View.GONE);
+            }
+        } else if (listingId != null) { // Chế độ xem chi tiết thực
             viewModel.loadListingDetail(listingId);
             observeViewModel();
         } else {
-            // Trường hợp lỗi: không có dữ liệu để hiển thị
             Toast.makeText(getContext(), "Lỗi: Không có dữ liệu sản phẩm.", Toast.LENGTH_LONG).show();
             navController.popBackStack();
         }
     }
 
-    // <<< TỐI ƯU: Ánh xạ view tập trung tại một nơi >>>
     private void initViews(View view) {
         productImage = view.findViewById(R.id.product_image);
         productTitle = view.findViewById(R.id.product_title);
@@ -108,33 +100,34 @@ public class ProductDetailFragment extends Fragment {
         collapsingToolbar = view.findViewById(R.id.collapsing_toolbar);
         toolbar = view.findViewById(R.id.toolbar);
         btnMakeOffer = view.findViewById(R.id.btn_make_offer);
-        btnChat = view.findViewById(R.id.btn_chat); // Ánh xạ nút chat mới
+        btnChat = view.findViewById(R.id.btn_chat);
         bottomActionBar = view.findViewById(R.id.bottom_action_bar);
-        btnMoreOptions = view.findViewById(R.id.btn_more_options);
-
         sellerInfoLayout = view.findViewById(R.id.seller_info_layout);
         sellerAvatar = view.findViewById(R.id.seller_avatar);
         sellerName = view.findViewById(R.id.seller_name);
+        btnMoreOptions = view.findViewById(R.id.btn_more_options);
     }
 
-    // <<< SỬA LỖI QUAN TRỌNG: Thiết lập Toolbar đúng cách >>>
     private void setupToolbar() {
         if (getActivity() instanceof AppCompatActivity) {
             ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
             Objects.requireNonNull(((AppCompatActivity) getActivity()).getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
-            ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayShowTitleEnabled(false); // Ẩn tiêu đề mặc định của Toolbar
+            ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
     }
 
-    // <<< TỐI ƯU: Gom tất cả các listener vào một chỗ >>>
     private void setupListeners() {
         toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
 
-        btnMoreOptions.setOnClickListener(v -> {
-            if (currentListing != null && listingId != null) {
-                showListingOptionsDialog();
-            }
-        });
+        if (btnMoreOptions != null) {
+            btnMoreOptions.setOnClickListener(v -> {
+                if (currentListing != null && listingId != null) {
+                    showListingOptionsDialog();
+                }
+            });
+        } else if (listingId != null) {
+            Log.e("ProductDetailFragment", "Lỗi: btnMoreOptions không được tìm thấy trong layout!");
+        }
 
         btnMakeOffer.setOnClickListener(v -> {
             if (currentListing != null) {
@@ -145,7 +138,6 @@ public class ProductDetailFragment extends Fragment {
         });
 
         btnChat.setOnClickListener(v -> {
-            // <<< TỐI ƯU: Đã có sẵn currentUserId >>>
             if (currentListing == null) {
                 Toast.makeText(getContext(), "Dữ liệu sản phẩm chưa sẵn sàng.", Toast.LENGTH_SHORT).show();
                 return;
@@ -159,7 +151,6 @@ public class ProductDetailFragment extends Fragment {
                 return;
             }
 
-            // ... (code gọi viewModel và điều hướng giữ nguyên)
             viewModel.findOrCreateChat(currentListing.getSellerId()).observe(getViewLifecycleOwner(), chatId -> {
                 if (chatId != null && !chatId.isEmpty()) {
                     ProductDetailFragmentDirections.ActionProductDetailToChatDetail action =
@@ -193,10 +184,11 @@ public class ProductDetailFragment extends Fragment {
                         .circleCrop()
                         .into(sellerAvatar);
 
-                // Bắt sự kiện click để xem trang cá nhân của người bán
                 sellerInfoLayout.setOnClickListener(v -> {
-                    // TODO: Điều hướng đến PublicProfileFragment với seller.getId()
-                    Toast.makeText(getContext(), "Xem trang cá nhân của " + seller.getName(), Toast.LENGTH_SHORT).show();
+                    // Sử dụng action đã được sửa lỗi trong mobile_navigation.xml
+                    ProductDetailFragmentDirections.ActionProductDetailFragmentToPublicProfileFragment action =
+                            ProductDetailFragmentDirections.actionProductDetailFragmentToPublicProfileFragment(seller.getId());
+                    navController.navigate(action);
                 });
             }
         });
@@ -215,8 +207,6 @@ public class ProductDetailFragment extends Fragment {
                 .placeholder(R.drawable.img_placeholder)
                 .into(productImage);
 
-        // <<< SỬA LỖI 3: Dùng biến thành viên đã được khởi tạo >>>
-        // Thay vì gọi FirebaseAuth.getInstance().getUid() một lần nữa.
         if (currentUserId != null && currentUserId.equals(listing.getSellerId())) {
             bottomActionBar.setVisibility(View.GONE);
         } else {
@@ -228,16 +218,16 @@ public class ProductDetailFragment extends Fragment {
         if (getContext() == null) return;
         final CharSequence[] options = {"Báo cáo tin đăng", "Hủy"};
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setTitle("Tùy chọn");
-        builder.setItems(options, (dialog, item) -> {
-            if (options[item].equals("Báo cáo tin đăng")) {
-                showReportReasonDialog();
-            } else if (options[item].equals("Hủy")) {
-                dialog.dismiss();
-            }
-        });
-        builder.show();
+        new AlertDialog.Builder(getContext())
+                .setTitle("Tùy chọn")
+                .setItems(options, (dialog, item) -> {
+                    if (options[item].equals("Báo cáo tin đăng")) {
+                        showReportReasonDialog();
+                    } else {
+                        dialog.dismiss();
+                    }
+                })
+                .show();
     }
 
     private void showReportReasonDialog() {
@@ -246,37 +236,30 @@ public class ProductDetailFragment extends Fragment {
 
         new AlertDialog.Builder(getContext())
                 .setTitle("Báo cáo tin đăng")
-                .setItems(reportReasons, (dialog, which) -> {
-                    String reason = reportReasons[which];
-                    sendListingReport(reason);
-                })
+                .setItems(reportReasons, (dialog, which) -> sendListingReport(reportReasons[which]))
                 .setNegativeButton("Hủy", null)
                 .show();
     }
 
     private void sendListingReport(String reason) {
-        String currentUserId = FirebaseAuth.getInstance().getUid();
         if (currentUserId == null) {
             Toast.makeText(getContext(), "Bạn cần đăng nhập để thực hiện hành động này.", Toast.LENGTH_SHORT).show();
             return;
         }
-
         if (currentListing == null || currentListing.getId() == null) {
             Toast.makeText(getContext(), "Lỗi: Không tìm thấy thông tin bài đăng.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Tạo một đối tượng báo cáo
         Map<String, Object> report = new HashMap<>();
         report.put("reporterId", currentUserId);
         report.put("reportedListingId", currentListing.getId());
-        report.put("reportedSellerId", currentListing.getSellerId()); // Lưu cả ID người bán để dễ truy vấn
+        report.put("reportedSellerId", currentListing.getSellerId());
         report.put("reason", reason);
         report.put("timestamp", FieldValue.serverTimestamp());
-        report.put("type", "listing"); // QUAN TRỌNG: Đánh dấu đây là báo cáo bài đăng
-        report.put("status", "pending"); // Trạng thái ban đầu của báo cáo
+        report.put("type", "listing");
+        report.put("status", "pending");
 
-        // Gửi báo cáo lên Firestore
         FirebaseFirestore.getInstance().collection("reports").add(report)
                 .addOnSuccessListener(documentReference ->
                         Toast.makeText(getContext(), "Cảm ơn bạn đã gửi báo cáo. Chúng tôi sẽ xem xét.", Toast.LENGTH_LONG).show()

@@ -44,7 +44,6 @@ public class PaymentFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(PaymentViewModel.class);
         paymentSheet = new PaymentSheet(this, this::onPaymentSheetResult);
 
-        // Lấy arguments một cách an toàn
         if (getArguments() != null) {
             PaymentFragmentArgs args = PaymentFragmentArgs.fromBundle(getArguments());
             listingId = args.getListingId();
@@ -72,11 +71,10 @@ public class PaymentFragment extends Fragment {
 
         observeViewModel();
 
-        // Bắt đầu quá trình thanh toán ngay khi màn hình được tạo
         if (listingId != null && sellerId != null && offerId != null) {
             viewModel.startEscrowPayment(listingId, sellerId, offerPrice);
         } else {
-            Toast.makeText(getContext(), "Lỗi: Thiếu thông tin thanh toán quan trọng.", Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), "Lỗi: Thiếu thông tin thanh toán.", Toast.LENGTH_LONG).show();
             navController.popBackStack();
         }
     }
@@ -91,16 +89,13 @@ public class PaymentFragment extends Fragment {
             if (error != null) {
                 statusText.setText(error);
                 Toast.makeText(getContext(), "Lỗi: " + error, Toast.LENGTH_LONG).show();
-                // Cho phép người dùng quay lại sau khi có lỗi
                 new Handler(Looper.getMainLooper()).postDelayed(() -> navController.popBackStack(), 3000);
             }
         });
 
-        // Lắng nghe khi các khóa từ Stripe đã sẵn sàng
         viewModel.getPaymentKeys().observe(getViewLifecycleOwner(), keys -> {
             if (keys != null && getContext() != null) {
-                // QUAN TRỌNG: Thay thế bằng Publishable Key của bạn từ Stripe Dashboard
-                String stripePublishableKey = "pk_test_51RhD48PPXaf7jnxkz9AGkIEOJFaO3lymdKq9kFR82MpO0F8WIWjsmGS9DCW7ixsMjnHMiypKb9Jm5ePclVm53PtU00t0ZU99U3";
+                String stripePublishableKey = "YOUR_STRIPE_PUBLISHABLE_KEY"; // THAY BẰNG KHÓA CỦA BẠN
                 PaymentConfiguration.init(requireContext(), stripePublishableKey);
 
                 String customerId = keys.get("customerId");
@@ -131,12 +126,10 @@ public class PaymentFragment extends Fragment {
             statusText.setText("Thanh toán thành công! Đang hoàn tất giao dịch...");
             progressBar.setVisibility(View.VISIBLE);
 
-            // BẮT ĐẦU GỌI HÀM HOÀN TẤT GIAO DỊCH
             viewModel.finalizeTransaction(listingId, offerId).observe(getViewLifecycleOwner(), success -> {
                 progressBar.setVisibility(View.GONE);
                 if (Boolean.TRUE.equals(success)) {
                     Toast.makeText(getContext(), "Giao dịch đã được hoàn tất!", Toast.LENGTH_LONG).show();
-                    // Điều hướng về màn hình chính, xóa các màn hình trung gian
                     navController.popBackStack(R.id.navigation_home, false);
                 } else {
                     Toast.makeText(getContext(), "Lỗi khi cập nhật trạng thái giao dịch. Vui lòng liên hệ hỗ trợ.", Toast.LENGTH_LONG).show();

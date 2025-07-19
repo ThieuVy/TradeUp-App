@@ -72,28 +72,24 @@ public class PostFragment extends Fragment {
 
     protected PostViewModel viewModel;
     protected NavController navController;
-    protected TextInputEditText etProductTitle, etDescription, etPrice, etLocation;
+    protected TextInputEditText etProductTitle, etDescription, etPrice, etLocation, etAdditionalTags;
     protected AutoCompleteTextView spinnerCategory;
-    protected TextView tvPhotoCountHeader;
-    protected ChipGroup chipGroupCondition;
+    protected TextView tvPhotoCountHeader, tvUseCurrentLocation;
+    protected ChipGroup chipGroupCondition, chipGroupTags;
     protected Button btnPostListing, btnSaveDraft, btnPreview;
-    protected TextView tvUseCurrentLocation;
     protected RecyclerView recyclerPhotoThumbnails;
     protected PhotoAdapter photoAdapter;
     protected ProgressBar postProgressBar;
     protected SharedPrefsHelper prefsHelper;
     protected double listingLatitude = 0.0;
     protected double listingLongitude = 0.0;
+
     private FusedLocationProviderClient fusedLocationClient;
     private final ExecutorService geocodingExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private ActivityResultLauncher<String> locationPermissionLauncher;
     private MainViewModel mainViewModel;
-
-    protected TextInputEditText etAdditionalTags;
-    protected ChipGroup chipGroupTags;
-
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -120,7 +116,7 @@ public class PostFragment extends Fragment {
         observeViewModel();
     }
 
-    private void initViews(View view) {
+    protected void initViews(View view) {
         etProductTitle = view.findViewById(R.id.et_product_title);
         etDescription = view.findViewById(R.id.et_description);
         etPrice = view.findViewById(R.id.et_price);
@@ -134,15 +130,15 @@ public class PostFragment extends Fragment {
         btnPreview = view.findViewById(R.id.btn_preview);
         btnSaveDraft = view.findViewById(R.id.btn_save_draft);
         tvUseCurrentLocation = view.findViewById(R.id.tv_use_current_location);
-
         etAdditionalTags = view.findViewById(R.id.et_additional_tags);
         chipGroupTags = view.findViewById(R.id.chip_group_tags);
+
         String[] categories = {"Điện thoại", "Laptop", "Thời trang", "Đồ gia dụng", "Xe cộ", "Khác"};
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, categories);
         spinnerCategory.setAdapter(categoryAdapter);
     }
 
-    private void setupRecyclerView() {
+    protected void setupRecyclerView() {
         photoAdapter = new PhotoAdapter(
                 () -> {
                     if (viewModel.getSelectedImageUris().getValue() != null && viewModel.getSelectedImageUris().getValue().size() < MAX_IMAGES) {
@@ -290,7 +286,7 @@ public class PostFragment extends Fragment {
         navController.navigate(action);
     }
 
-    private void addTagToGroup(String tagText) {
+    protected void addTagToGroup(String tagText) {
         if (chipGroupTags.getChildCount() >= 5) {
             Toast.makeText(getContext(), "Chỉ có thể thêm tối đa 5 thẻ", Toast.LENGTH_SHORT).show();
             return;
@@ -316,7 +312,7 @@ public class PostFragment extends Fragment {
         return "";
     }
 
-    private void requestLocationPermission() {
+    protected void requestLocationPermission() {
         if (getContext() == null) return;
 
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -375,16 +371,22 @@ public class PostFragment extends Fragment {
             if (location != null) {
                 this.listingLatitude = location.getLatitude();
                 this.listingLongitude = location.getLongitude();
-                try {
-                    Geocoder geocoder = new Geocoder(requireContext(), Locale.getDefault());
-                    List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-                    if (addresses != null && !addresses.isEmpty()) {
-                        etLocation.setText(addresses.get(0).getAddressLine(0));
-                        Toast.makeText(getContext(), "Đã cập nhật vị trí", Toast.LENGTH_SHORT).show();
+
+                geocodingExecutor.execute(() -> {
+                    try {
+                        Geocoder geocoder = new Geocoder(requireContext(), new Locale("vi", "VN"));
+                        List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+                        if (addresses != null && !addresses.isEmpty()) {
+                            String addressLine = addresses.get(0).getAddressLine(0);
+                            mainThreadHandler.post(() -> {
+                                etLocation.setText(addressLine);
+                                Toast.makeText(getContext(), "Đã cập nhật vị trí", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    } catch (IOException e) {
+                        mainThreadHandler.post(() -> Toast.makeText(getContext(), "Lỗi lấy địa chỉ", Toast.LENGTH_SHORT).show());
                     }
-                } catch (IOException e) {
-                    Toast.makeText(getContext(), "Lỗi lấy địa chỉ", Toast.LENGTH_SHORT).show();
-                }
+                });
             } else {
                 Toast.makeText(getContext(), "Không thể lấy vị trí. Vui lòng bật GPS.", Toast.LENGTH_SHORT).show();
             }

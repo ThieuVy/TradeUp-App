@@ -1,12 +1,14 @@
 package com.example.testapptradeup.fragments;
 
 import android.annotation.SuppressLint;
+import android.net.Uri;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.TextView;
+import android.view.inputmethod.EditorInfo;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -16,7 +18,13 @@ import androidx.navigation.Navigation;
 
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Listing;
+import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.viewmodels.EditPostViewModel;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.firebase.auth.FirebaseAuth;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class EditPostFragment extends PostFragment { // Kế thừa từ PostFragment
 
@@ -27,7 +35,6 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         editViewModel = new ViewModelProvider(this).get(EditPostViewModel.class);
-
         if (getArguments() != null) {
             listingIdToEdit = EditPostFragmentArgs.fromBundle(getArguments()).getListingIdToEdit();
         }
@@ -35,36 +42,55 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        // Vẫn sử dụng layout của lớp cha
         return super.onCreateView(inflater, container, savedInstanceState);
     }
 
     @SuppressLint("SetTextI18n")
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
-        // Giờ đây navController có thể truy cập được do là 'protected'
+        // Không gọi super.onViewCreated() để tùy chỉnh hoàn toàn
         navController = Navigation.findNavController(view);
+        initViews(view);
+        setupRecyclerView();
 
-        TextView header = view.findViewById(R.id.header_title);
-        Button mainButton = view.findViewById(R.id.btn_post_listing);
-        Button previewButton = view.findViewById(R.id.btn_preview);
+        MaterialToolbar toolbar = view.findViewById(R.id.toolbar_post);
+        LinearLayout headerLayout = view.findViewById(R.id.header_layout);
 
-        header.setText("Chỉnh sửa tin đăng");
-        mainButton.setText("Lưu thay đổi");
-        previewButton.setVisibility(View.GONE);
+        toolbar.setVisibility(View.VISIBLE); // Hiển thị Toolbar
+        headerLayout.setVisibility(View.GONE); // Ẩn header mặc định
+        toolbar.setTitle("Chỉnh sửa tin đăng");
+        toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
 
-        mainButton.setOnClickListener(v -> saveChanges());
-
-        // Ghi đè phương thức observeViewModel của cha
+        btnPostListing.setText("Lưu thay đổi");
+        setupListenersForEdit(); // Hàm listener riêng cho màn hình edit
         observeViewModel();
 
         if (listingIdToEdit != null) {
             editViewModel.loadListingData(listingIdToEdit);
         } else {
-            Toast.makeText(getContext(), "Lỗi: Không tìm thấy tin đăng để sửa.", Toast.LENGTH_LONG).show();
-            navController.popBackStack(); // Dùng biến đã được khởi tạo
+            Toast.makeText(getContext(), "Lỗi: Không tìm thấy tin đăng.", Toast.LENGTH_LONG).show();
+            navController.popBackStack();
         }
+    }
+
+    // Tạo một hàm listener riêng cho màn hình edit để tránh xung đột
+    private void setupListenersForEdit() {
+        btnPostListing.setOnClickListener(v -> saveChanges());
+        btnSaveDraft.setOnClickListener(v -> Toast.makeText(getContext(), "Chức năng đang phát triển", Toast.LENGTH_SHORT).show());
+        tvUseCurrentLocation.setOnClickListener(v -> requestLocationPermission());
+
+        etAdditionalTags.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                String tag = v.getText().toString().trim();
+                if (!tag.isEmpty()) {
+                    addTagToGroup(tag);
+                    v.setText("");
+                }
+                return true;
+            }
+            return false;
+        });
     }
 
     // Ghi đè hàm observeViewModel
@@ -73,7 +99,6 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
         editViewModel.isLoading().observe(getViewLifecycleOwner(), this::showLoading);
 
         editViewModel.getListingData().observe(getViewLifecycleOwner(), listing -> {
-            // Tắt loading khi có dữ liệu (kể cả null)
             showLoading(false);
             if (listing != null) {
                 populateForm(listing);
@@ -94,7 +119,6 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
     }
 
     private void populateForm(Listing listing) {
-        // Các biến UI giờ đã có thể truy cập do là 'protected'
         etProductTitle.setText(listing.getTitle());
         etPrice.setText(String.valueOf(listing.getPrice()));
         spinnerCategory.setText(listing.getCategoryId(), false);
@@ -108,17 +132,36 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
                 case "used": chipGroupCondition.check(R.id.chip_condition_used); break;
             }
         }
-        // TODO: Xử lý hiển thị ảnh và tags đã có
+
+        // Hiển thị ảnh
+        if (listing.getImageUrls() != null && !listing.getImageUrls().isEmpty()) {
+            // Chuyển đổi List<String> thành List<Uri>
+            List<Uri> imageUris = listing.getImageUrls().stream().map(Uri::parse).collect(Collectors.toList());
+            viewModel.setSelectedImageUris(imageUris); // Cập nhật ViewModel của lớp cha
+        }
+
+        // Hiển thị tags
+        chipGroupTags.removeAllViews(); // Xóa các tag cũ trước khi thêm
+        if (listing.getTags() != null) {
+            for (String tag : listing.getTags()) {
+                addTagToGroup(tag);
+            }
+        }
     }
 
     private void saveChanges() {
-        // Hàm validateAllFields() giờ đã truy cập được
         if (validateAllFields()) {
             return;
         }
 
-        // Hàm buildListingFromUI() giờ đã truy cập được
-        Listing updatedListing = buildListingFromUI(null, null);
+        User currentUser = prefsHelper.getCurrentUser();
+        String currentUserId = (FirebaseAuth.getInstance().getCurrentUser() != null) ? FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
+        if (currentUser == null || currentUserId == null) {
+            Toast.makeText(getContext(), "Lỗi phiên đăng nhập.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Listing updatedListing = buildListingFromUI(currentUser, currentUserId);
         updatedListing.setId(listingIdToEdit);
 
         editViewModel.saveChanges(updatedListing);

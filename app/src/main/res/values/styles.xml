@@ -265,4 +265,81 @@
         <item name="android:paddingBottom">8dp</item>
         <item name="android:background">@drawable/bottom_border</item>
     </style>
+
+    <!-- Style cho các icon thống kê (lượt xem, đề nghị, thời gian) -->
+    <style name="PostManagementIcon">
+        <item name="android:layout_width">12dp</item>
+        <item name="android:layout_height">12dp</item>
+        <item name="android:layout_gravity">center_vertical</item>
+        <!-- Dùng màu phụ để không quá nổi bật -->
+        <item name="android:tint">@color/text_secondary</item>
+    </style>
+
+    <!-- Style cho các đoạn text thống kê đi kèm icon -->
+    <style name="PostManagementStat">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <!-- Tạo khoảng cách nhỏ với icon bên trái -->
+        <item name="android:layout_marginStart">4dp</item>
+        <item name="android:layout_gravity">center_vertical</item>
+        <!-- Dùng màu và kích thước chữ nhỏ, đồng bộ với icon -->
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <!-- Style cho các icon nhỏ (vị trí, thời gian) trong danh sách -->
+    <style name="ListingInfoIcon">
+        <item name="android:layout_width">14dp</item>
+        <item name="android:layout_height">14dp</item>
+        <!-- Tint color để làm cho icon có màu xám phụ, không quá nổi bật -->
+        <item name="android:tint">@color/text_secondary</item>
+    </style>
+
+    <!-- Style cho các text nhỏ (vị trí, thời gian) đi kèm icon -->
+    <style name="ListingInfoText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <!-- Tạo khoảng cách nhỏ so với icon bên trái -->
+        <item name="android:layout_marginStart">4dp</item>
+        <!-- Kích thước chữ nhỏ cho thông tin phụ -->
+        <item name="android:textSize">12sp</item>
+        <!-- Màu chữ đồng bộ với màu của icon -->
+        <item name="android:textColor">@color/text_secondary</item>
+    </style>
+
+    <style name="HomeSectionHeader">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">24dp</item>
+        <item name="android:layout_marginBottom">12dp</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+
+    <style name="HomeSectionTitleNoMargin" parent="HomeSectionTitle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_margin">0dp</item>
+    </style>
+
+    <style name="HomeSeeAllText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:padding">4dp</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="HomeEmptyStateText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_gravity">center</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:padding">16dp</item>
+        <item name="android:visibility">gone</item>
+    </style>
 </resources>

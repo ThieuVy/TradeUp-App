@@ -170,6 +170,7 @@ public class MyListingsViewModel extends ViewModel {
             @Override
             public void onChanged(Boolean success) {
                 if (Boolean.TRUE.equals(success)) {
+                    // Cập nhật lại danh sách trên UI sau khi xóa thành công
                     List<Listing> currentList = allMyListings.getValue();
                     if (currentList != null) {
                         List<Listing> updatedList = new ArrayList<>(currentList);

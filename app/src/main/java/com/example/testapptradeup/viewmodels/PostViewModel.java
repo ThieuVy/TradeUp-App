@@ -63,6 +63,11 @@ public class PostViewModel extends AndroidViewModel {
     public LiveData<List<Uri>> getSelectedImageUris() { return selectedImageUris; }
     public LiveData<PostStatus> getPostStatus() { return postStatus; }
 
+
+    public void setSelectedImageUris(List<Uri> uris) {
+        selectedImageUris.setValue(uris);
+    }
+
     // Logic quản lý ảnh
     public void addImage(Uri uri) {
         List<Uri> currentUris = new ArrayList<>(Objects.requireNonNull(selectedImageUris.getValue()));

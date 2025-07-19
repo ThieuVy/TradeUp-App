@@ -17,7 +17,7 @@
         android:padding="16dp"
         android:gravity="center_vertical">
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="60dp"
             android:layout_height="60dp"
             app:cardCornerRadius="8dp"
@@ -27,11 +27,11 @@
                 android:id="@+id/img_post"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/img"
                 android:contentDescription="@string/product_image"
-                tools:src="@drawable/img" />
-        </androidx.cardview.widget.CardView>
+                android:scaleType="centerCrop"
+                tools:ignore="ImageContrastCheck"
+                tools:src="@drawable/img_placeholder" />
+        </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -45,7 +45,6 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
-
                 <TextView
                     android:id="@+id/txt_title"
                     android:layout_width="0dp"
@@ -53,10 +52,10 @@
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:textColor="#333333"
+                    android:textColor="@color/text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    tools:text="Balo da cổ điển" />
+                    tools:text="Balo da cổ điển cao cấp" />
 
                 <TextView
                     android:id="@+id/txt_status"
@@ -66,7 +65,7 @@
                     android:background="@drawable/status_badge_background"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="4dp"
-                    android:textColor="#34C759"
+                    android:textColor="@color/success"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     tools:ignore="TextContrastCheck"
@@ -78,143 +77,94 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:textColor="#333333"
+                android:textColor="@color/text_primary"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 tools:text="2.500.000 đ" />
 
-            <!-- SỬA LỖI: Chuyển layout này thành ngang và thêm các icon -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
-
-                <!-- Views -->
                 <ImageView
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
+                    style="@style/PostManagementIcon"
                     android:src="@drawable/ic_visibility"
-                    app:tint="#8E8E93"
-                    tools:ignore="ContentDescription" />
-
+                    android:contentDescription="Lượt xem"
+                    tools:ignore="HardcodedText" />
                 <TextView
                     android:id="@+id/txt_views"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textColor="#8E8E93"
-                    android:textSize="12sp"
-                    tools:ignore="TextContrastCheck"
+                    style="@style/PostManagementStat"
                     tools:text="245" />
-
-                <!-- Offers -->
                 <ImageView
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
+                    style="@style/PostManagementIcon"
                     android:layout_marginStart="16dp"
-                    android:src="@drawable/ic_message"
-                    app:tint="#8E8E93"
-                    tools:ignore="ContentDescription" />
-
+                    android:src="@drawable/ic_tag_outline"
+                    android:contentDescription="Đề nghị"
+                    tools:ignore="HardcodedText" />
                 <TextView
                     android:id="@+id/txt_offers"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textColor="#8E8E93"
-                    android:textSize="12sp"
-                    tools:ignore="TextContrastCheck"
+                    style="@style/PostManagementStat"
                     tools:text="3 đề nghị" />
-
                 <View
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1" />
-
-                <!-- Time -->
                 <ImageView
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
-                    android:contentDescription="Thời gian"
+                    style="@style/PostManagementIcon"
                     android:src="@drawable/ic_time"
-                    app:tint="#8E8E93"
+                    android:contentDescription="Thời gian"
                     tools:ignore="HardcodedText" />
-
                 <TextView
                     android:id="@+id/txt_posted_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textColor="#8E8E93"
-                    android:textSize="12sp"
-                    tools:ignore="HardcodedText,TextContrastCheck"
+                    style="@style/PostManagementStat"
                     tools:text="2 ngày trước" />
             </LinearLayout>
         </LinearLayout>
-
-        <ImageView
-            android:id="@+id/btn_more_options"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="8dp"
-            android:src="@drawable/ic_more_vert"
-            android:contentDescription="Tùy chọn khác"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:padding="4dp"
-            app:tint="#8E8E93"
-            tools:ignore="HardcodedText" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="16dp"
         android:gravity="center">
 
-        <!-- Nút Sửa -->
         <Button
             android:id="@+id/btn_edit"
+            style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="0dp"
             android:layout_height="40dp"
             android:layout_weight="1"
-            android:background="@drawable/btn_edit_background"
-            android:text="Sửa"
-            android:textColor="@android:color/white"
+            android:text="@string/edit"
             android:textSize="14sp"
-            android:textStyle="bold"
-            tools:ignore="ButtonStyle,HardcodedText,TouchTargetSizeCheck,VisualLintButtonSize" />
+            tools:ignore="TouchTargetSizeCheck" />
 
-        <!-- Nút Xem Đề Nghị (MỚI) -->
         <Button
             android:id="@+id/btn_view_offers"
+            style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="40dp"
-            android:layout_weight="1"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            android:background="@drawable/btn_secondary_background"
-            android:text="Đề nghị"
-            android:textColor="@color/primary_color"
+            android:layout_weight="1"
+            android:text="@string/profile_menu_offers"
             android:textSize="14sp"
-            android:textStyle="bold"
-            tools:ignore="ButtonStyle,HardcodedText,TouchTargetSizeCheck,VisualLintButtonSize" />
+            tools:ignore="TouchTargetSizeCheck" />
 
-        <!-- Nút Xóa -->
         <Button
             android:id="@+id/btn_delete"
+            style="@style/Widget.Material3.Button"
             android:layout_width="0dp"
             android:layout_height="40dp"
             android:layout_weight="1"
-            android:background="@drawable/btn_delete_background"
-            android:text="Xóa"
-            android:textColor="@android:color/white"
+            android:text="@string/delete"
             android:textSize="14sp"
-            android:textStyle="bold"
-            tools:ignore="ButtonStyle,HardcodedText,TouchTargetSizeCheck,VisualLintButtonSize" />
+            app:backgroundTint="@color/red_error"
+            tools:ignore="TextContrastCheck,TouchTargetSizeCheck" />
     </LinearLayout>
 
     <View

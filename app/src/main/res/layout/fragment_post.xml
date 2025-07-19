@@ -13,12 +13,23 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar_post"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:titleTextColor="@color/text_primary"
+            app:title="Đăng tin mới"
+            android:visibility="gone"/>
+
         <!-- Header -->
         <LinearLayout
+            android:id="@+id/header_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="24dp"
+            android:padding="16dp">
 
             <TextView
                 android:id="@+id/header_title"

@@ -2,6 +2,8 @@
 agp = "8.11.1"
 circleimageview = "3.1.0"
 cloudinaryAndroidVersion = "3.0.2"
+emojiAndroid = "0.16.0"
+emojiGoogle = "0.15.0"
 firebaseAnalytics = "22.4.0"
 firebaseAuthKtx = "23.2.1"
 firebaseBom = "33.16.0"
@@ -45,6 +47,8 @@ navigation = "2.7.7"
 circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circleimageview" }
 cloudinary-android-v302 = { module = "com.cloudinary:cloudinary-android", version.ref = "cloudinaryAndroidVersion" }
 compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
+emoji-android = { module = "com.vanniktech:emoji-android", version.ref = "emojiAndroid" }
+emoji-google = { module = "com.vanniktech:emoji-google", version.ref = "emojiGoogle" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
 firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "firebaseAuthKtx" }

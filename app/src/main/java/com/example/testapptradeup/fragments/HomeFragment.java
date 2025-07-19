@@ -119,26 +119,59 @@ public class HomeFragment extends Fragment {
     }
 
     private void observeViewModel() {
-        viewModel.getFeaturedItems().observe(getViewLifecycleOwner(), listings -> featuredAdapter.submitList(listings));
-
-        viewModel.getRecommendations().observe(getViewLifecycleOwner(), listings -> recommendationsAdapter.submitList(listings));
-
-        viewModel.getListings().observe(getViewLifecycleOwner(), listings -> recentListingsAdapter.submitList(listings));
 
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
-            // Handle loading state
+            // Đây là trạng thái loading chung cho lần tải đầu tiên
+            if (isLoading) {
+                binding.featuredProgress.setVisibility(View.VISIBLE);
+                binding.recommendationsProgress.setVisibility(View.VISIBLE);
+                binding.listingsProgress.setVisibility(View.VISIBLE);
+            }
         });
 
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
-            if (error != null) {
+            if (error != null && !error.isEmpty()) {
                 Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
             }
         });
-        viewModel.getPrioritizedRecentListings().observe(getViewLifecycleOwner(), listings -> recentListingsAdapter.submitList(listings));
+
+        // Observer cho mục "Nổi bật"
+        viewModel.getFeaturedItems().observe(getViewLifecycleOwner(), listings -> {
+            binding.featuredProgress.setVisibility(View.GONE);
+            boolean isEmpty = listings == null || listings.isEmpty();
+            binding.featuredRecycler.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+            binding.featuredEmptyText.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+            if (!isEmpty) {
+                featuredAdapter.submitList(listings);
+            }
+        });
+
+        // Observer cho mục "Đề xuất"
+        viewModel.getRecommendations().observe(getViewLifecycleOwner(), listings -> {
+            binding.recommendationsProgress.setVisibility(View.GONE);
+            boolean isEmpty = listings == null || listings.isEmpty();
+            binding.recommendationsRecycler.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+            binding.recommendationsEmptyText.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+            if (!isEmpty) {
+                recommendationsAdapter.submitList(listings);
+            }
+        });
+
+        // Observer cho mục "Tin rao gần đây"
+        viewModel.getPrioritizedRecentListings().observe(getViewLifecycleOwner(), listings -> {
+            binding.listingsProgress.setVisibility(View.GONE);
+            boolean isEmpty = listings == null || listings.isEmpty();
+            binding.listingsRecycler.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+            binding.listingsEmptyText.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+            if (!isEmpty) {
+                recentListingsAdapter.submitList(listings);
+            }
+        });
     }
 
     private void navigateToCategory(String categoryId) {
         if (navController != null) {
+            // Truyền cả filterType="category" và categoryId
             HomeFragmentDirections.ActionHomeToProductList action =
                     HomeFragmentDirections.actionHomeToProductList("category");
             action.setCategoryId(categoryId);
@@ -147,7 +180,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void navigateToProductDetail(Listing listing) {
-        // KIỂM TRA NULL ĐỂ TRÁNH CRASH
+        // KIỂM TRA NULL NGHIÊM NGẶT ĐỂ TRÁNH CRASH
         if (navController != null && listing != null && listing.getId() != null) {
             HomeFragmentDirections.ActionHomeToProductDetail action =
                     HomeFragmentDirections.actionHomeToProductDetail(listing.getId());
@@ -179,7 +212,6 @@ public class HomeFragment extends Fragment {
         Toast.makeText(getContext(), message + ": " + listing.getTitle(), Toast.LENGTH_SHORT).show();
     }
 
-    // <<< THÊM MỚI: Hàm helper để cập nhật giao diện cho icon >>>
     private void updateFavoriteIconUI(ImageView favoriteIcon, boolean isFavorite) {
         if (isFavorite) {
             favoriteIcon.setImageResource(R.drawable.ic_favorite_filled); // Icon trái tim đầy

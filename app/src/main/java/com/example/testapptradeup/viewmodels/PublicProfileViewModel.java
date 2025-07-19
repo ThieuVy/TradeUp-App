@@ -31,19 +31,21 @@ public class PublicProfileViewModel extends ViewModel {
         userRepository = new UserRepository();
         listingRepository = new ListingRepository();
 
+        // Sử dụng switchMap để tự động tải lại dữ liệu khi userIdTrigger thay đổi
         LiveData<Result<User>> userProfileResult = Transformations.switchMap(userIdTrigger, id -> {
             if (id == null || id.isEmpty()) {
                 MutableLiveData<Result<User>> errorResult = new MutableLiveData<>();
-                errorResult.setValue(Result.error(new IllegalArgumentException("User ID is invalid.")));
+                errorResult.setValue(Result.error(new IllegalArgumentException("User ID không hợp lệ.")));
                 return errorResult;
             }
             return userRepository.getUserProfile(id);
         });
 
+        // Xử lý kết quả trả về từ repository một cách an toàn
         userProfile = Transformations.map(userProfileResult, result -> {
-            _isLoading.setValue(false);
+            _isLoading.setValue(false); // Tắt loading khi có kết quả
             if (result.isSuccess()) {
-                _errorMessage.setValue(null);
+                _errorMessage.setValue(null); // Xóa lỗi cũ
                 return result.getData();
             } else {
                 _errorMessage.setValue(result.getError() != null ? result.getError().getMessage() : "Lỗi không xác định");
@@ -51,9 +53,10 @@ public class PublicProfileViewModel extends ViewModel {
             }
         });
 
+        // Tương tự cho listings và reviews
         userListings = Transformations.switchMap(userIdTrigger, id -> {
             if (id == null || id.isEmpty()) return new MutableLiveData<>(Collections.emptyList());
-            return listingRepository.getActiveListingsByUser(id, 10);
+            return listingRepository.getActiveListingsByUser(id, 10); // Lấy 10 tin đăng gần nhất
         });
 
         userReviews = Transformations.switchMap(userIdTrigger, id -> {
@@ -70,6 +73,7 @@ public class PublicProfileViewModel extends ViewModel {
         }
     }
 
+    // Getters cho Fragment
     public LiveData<User> getUserProfile() { return userProfile; }
     public LiveData<List<Listing>> getUserListings() { return userListings; }
     public LiveData<List<Review>> getUserReviews() { return userReviews; }

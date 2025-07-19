@@ -27,7 +27,6 @@ public class ProfileViewModel extends ViewModel {
         this.userRepository = new UserRepository();
         this.userId = FirebaseAuth.getInstance().getUid();
 
-        // Sử dụng switchMap để tự động tải lại review khi userIdTriggerForReviews thay đổi
         userReviewsData = Transformations.switchMap(userIdTriggerForReviews, id -> {
             if (id == null || id.isEmpty()) {
                 return new MutableLiveData<>(new ArrayList<>());
@@ -36,12 +35,7 @@ public class ProfileViewModel extends ViewModel {
         });
     }
 
-    /**
-     * Kích hoạt việc tải danh sách đánh giá cho một người dùng cụ thể.
-     * @param userId ID của người dùng cần tải đánh giá.
-     */
     public void loadUserReviews(String userId) {
-        // Chỉ kích hoạt nếu userId mới khác với userId hiện tại để tránh tải lại không cần thiết
         if (userId != null && !userId.equals(userIdTriggerForReviews.getValue())) {
             userIdTriggerForReviews.setValue(userId);
         }
@@ -56,6 +50,7 @@ public class ProfileViewModel extends ViewModel {
     }
 
     public LiveData<Boolean> deactivateAccount() {
+        // Trạng thái "paused" sẽ được dùng để tạm dừng tài khoản
         return userRepository.updateAccountStatus(userId, "paused");
     }
 
@@ -66,6 +61,7 @@ public class ProfileViewModel extends ViewModel {
             return deleteStatus;
         }
 
+        // Gọi Cloud Function 'permanentlyDeleteUserAccount' đã được định nghĩa trong index.js
         functions.getHttpsCallable("permanentlyDeleteUserAccount")
                 .call()
                 .addOnCompleteListener(task -> {

@@ -21,8 +21,7 @@ public class FavoritesViewModel extends ViewModel {
 
         // Chain LiveData: Lấy IDs -> Dùng IDs để lấy List<Listing>
         LiveData<List<String>> favoriteIdsData = userRepository.getFavoriteIds(userId);
-        favoriteListingsData = Transformations.switchMap(favoriteIdsData, listingRepository::getListingsByIds
-        );
+        favoriteListingsData = Transformations.switchMap(favoriteIdsData, listingRepository::getListingsByIds);
     }
 
     public LiveData<List<Listing>> getFavoriteListings() {

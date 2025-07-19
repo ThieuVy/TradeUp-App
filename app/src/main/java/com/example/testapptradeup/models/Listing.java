@@ -26,7 +26,7 @@ public class Listing implements Parcelable {
     @ServerTimestamp
     private Date timePosted; // Firestore sẽ tự động điền timestamp của server
 
-    private String categoryId;
+    private String category;
     private float rating;
     private int reviewCount;
     private String sellerId;
@@ -41,6 +41,7 @@ public class Listing implements Parcelable {
     private double latitude;
     private double longitude;
     private String geohash;
+    private boolean featured = false;
 
     public Listing() {
         // Constructor rỗng cho Firebase Firestore
@@ -53,7 +54,7 @@ public class Listing implements Parcelable {
         this.price = price;
         this.imageUrls = imageUrls;
         this.location = location;
-        this.categoryId = categoryId;
+        this.category = categoryId;
         this.sellerId = sellerId;
         this.sellerName = sellerName;
         this.condition = condition;
@@ -64,6 +65,11 @@ public class Listing implements Parcelable {
         this.rating = 0.0f;
         this.reviewCount = 0;
         this.isSold = false;
+        this.tags = null;
+        this.latitude = 0.0;
+        this.longitude = 0.0;
+        this.geohash = null;
+        this.featured = false;
     }
 
 
@@ -75,7 +81,7 @@ public class Listing implements Parcelable {
     public List<String> getImageUrls() { return imageUrls; }
     public String getLocation() { return location; }
     public Date getTimePosted() { return timePosted; }
-    public String getCategoryId() { return categoryId; }
+    public String getCategoryId() { return category; }
     public float getRating() { return rating; }
     public int getReviewCount() { return reviewCount; }
     public String getSellerId() { return sellerId; }
@@ -89,6 +95,7 @@ public class Listing implements Parcelable {
     public double getLatitude() { return latitude; }
     public double getLongitude() { return longitude; }
     public String getGeohash() { return geohash; }
+    public boolean isFeatured() { return featured; }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -98,7 +105,7 @@ public class Listing implements Parcelable {
     public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
     public void setLocation(String location) { this.location = location; }
     public void setTimePosted(Date timePosted) { this.timePosted = timePosted; }
-    public void setCategoryId(String categoryId) { this.categoryId = categoryId; }
+    public void setCategoryId(String categoryId) { this.category = categoryId; }
     public void setRating(float rating) { this.rating = rating; }
     public void setReviewCount(int reviewCount) { this.reviewCount = reviewCount; }
     public void setSellerId(String sellerId) { this.sellerId = sellerId; }
@@ -112,6 +119,7 @@ public class Listing implements Parcelable {
     public void setLatitude(double latitude) { this.latitude = latitude; }
     public void setLongitude(double longitude) { this.longitude = longitude; }
     public void setGeohash(String geohash) { this.geohash = geohash; }
+    public void setFeatured(boolean featured) { this.featured = featured; }
 
     public List<String> getTags() {
         return tags;
@@ -187,7 +195,7 @@ public class Listing implements Parcelable {
         location = in.readString();
         long tmpTimePosted = in.readLong();
         timePosted = tmpTimePosted == -1 ? null : new java.util.Date(tmpTimePosted);
-        categoryId = in.readString();
+        category = in.readString();
         rating = in.readFloat();
         reviewCount = in.readInt();
         sellerId = in.readString();
@@ -202,6 +210,7 @@ public class Listing implements Parcelable {
         latitude = in.readDouble();
         longitude = in.readDouble();
         geohash = in.readString();
+        featured = in.readByte() != 0;
     }
 
     @Override
@@ -213,7 +222,7 @@ public class Listing implements Parcelable {
         dest.writeStringList(imageUrls);
         dest.writeString(location != null ? location : "");
         dest.writeLong(timePosted != null ? timePosted.getTime() : -1);
-        dest.writeString(categoryId != null ? categoryId : "");
+        dest.writeString(category != null ? category : "");
         dest.writeFloat(rating);
         dest.writeInt(reviewCount);
         dest.writeString(sellerId != null ? sellerId : "");
@@ -228,13 +237,14 @@ public class Listing implements Parcelable {
         dest.writeDouble(latitude);
         dest.writeDouble(longitude);
         dest.writeString(geohash != null ? geohash : "");
+        dest.writeByte((byte) (featured ? 1 : 0));
     }
 
     public int describeContents() {
         return 0;
     }
 
-    public static final Parcelable.Creator<Listing> CREATOR = new Parcelable.Creator<Listing>() {
+    public static final Creator<Listing> CREATOR = new Creator<>() {
         @Override
         public Listing createFromParcel(Parcel in) {
             return new Listing(in);

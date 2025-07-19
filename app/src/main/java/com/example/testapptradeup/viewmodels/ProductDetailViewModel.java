@@ -40,7 +40,7 @@ public class ProductDetailViewModel extends ViewModel {
             // Mỗi khi một ID mới được thiết lập, logic này sẽ chạy
             // === BẮT ĐẦU SỬA LỖI ===
             // 1. Gọi hàm tăng view thông qua repository
-            listingRepository.incrementViewCount(id);
+//            listingRepository.incrementViewCount(id);
             // 2. Trả về LiveData từ repository
             return listingRepository.getListingById(id);
             // === KẾT THÚC SỬA LỖI ===
