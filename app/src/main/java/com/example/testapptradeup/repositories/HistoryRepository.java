@@ -1,5 +1,6 @@
 package com.example.testapptradeup.repositories;
 
+import android.util.Log; // Thêm import này
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import com.example.testapptradeup.models.Transaction;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HistoryRepository {
+    private static final String TAG = "HistoryRepository"; // Thêm TAG để log lỗi
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final String currentUserId = FirebaseAuth.getInstance().getUid();
 
@@ -20,18 +22,24 @@ public class HistoryRepository {
             data.setValue(new ArrayList<>());
             return data;
         }
+
+        // === SỬA LỖI TỪ .get() SANG .addSnapshotListener() ===
         db.collection("transactions")
                 .whereEqualTo("buyerId", currentUserId)
                 .orderBy("transactionDate", Query.Direction.DESCENDING)
-                .get()
-                .addOnSuccessListener(snapshots -> {
+                .addSnapshotListener((snapshots, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Lỗi khi lắng nghe lịch sử mua: ", error);
+                        data.setValue(new ArrayList<>()); // Trả về list rỗng nếu có lỗi
+                        return;
+                    }
+
                     if (snapshots != null) {
                         data.setValue(snapshots.toObjects(Transaction.class));
                     } else {
                         data.setValue(new ArrayList<>());
                     }
-                })
-                .addOnFailureListener(e -> data.setValue(new ArrayList<>()));
+                });
         return data;
     }
 
@@ -42,18 +50,24 @@ public class HistoryRepository {
             data.setValue(new ArrayList<>());
             return data;
         }
+
+        // === SỬA LỖI TỪ .get() SANG .addSnapshotListener() ===
         db.collection("transactions")
                 .whereEqualTo("sellerId", currentUserId)
                 .orderBy("transactionDate", Query.Direction.DESCENDING)
-                .get()
-                .addOnSuccessListener(snapshots -> {
+                .addSnapshotListener((snapshots, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Lỗi khi lắng nghe lịch sử bán: ", error);
+                        data.setValue(new ArrayList<>());
+                        return;
+                    }
+
                     if (snapshots != null) {
                         data.setValue(snapshots.toObjects(Transaction.class));
                     } else {
                         data.setValue(new ArrayList<>());
                     }
-                })
-                .addOnFailureListener(e -> data.setValue(new ArrayList<>()));
+                });
         return data;
     }
 }

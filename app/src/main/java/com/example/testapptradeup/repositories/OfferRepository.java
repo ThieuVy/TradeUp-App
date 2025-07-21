@@ -20,9 +20,12 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.functions.FirebaseFunctions;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -32,6 +35,7 @@ public class OfferRepository {
     private final CollectionReference offersCollection = db.collection("offers");
     private final CollectionReference listingsCollection = db.collection("listings");
     private final CollectionReference transactionsCollection = db.collection("transactions");
+    private final FirebaseFunctions functions = FirebaseFunctions.getInstance();
 
     public LiveData<Boolean> createOffer(Offer offer) {
         MutableLiveData<Boolean> success = new MutableLiveData<>();
@@ -262,50 +266,26 @@ public class OfferRepository {
      * @return LiveData báo hiệu thành công/thất bại.
      */
     public LiveData<Boolean> completeTransactionForBuyNow(String listingId) {
-        MutableLiveData<Boolean> success = new MutableLiveData<>();
-        String buyerId = FirebaseAuth.getInstance().getUid();
-        // Giả sử chúng ta cần lấy thông tin người mua từ DB để có tên
-        // Tạm thời, chúng ta có thể để trống hoặc dùng tên mặc định
+        MutableLiveData<Boolean> successLiveData = new MutableLiveData<>();
+        Map<String, Object> data = new HashMap<>();
+        data.put("listingId", listingId);
 
-        DocumentReference listingRef = listingsCollection.document(listingId);
-
-        listingRef.get().addOnSuccessListener(listingSnapshot -> {
-            if (!listingSnapshot.exists()) {
-                Log.e(TAG, "Không tìm thấy tin đăng để hoàn tất giao dịch Mua ngay.");
-                success.setValue(false);
-                return;
-            }
-
-            Listing listing = listingSnapshot.toObject(Listing.class);
-            Objects.requireNonNull(listing).setId(listingSnapshot.getId());
-
-            WriteBatch batch = db.batch();
-
-            // 1. Cập nhật tin đăng thành "sold"
-            batch.update(listingRef, "status", "sold");
-
-            // 2. Tạo một document giao dịch mới
-            DocumentReference transactionRef = transactionsCollection.document();
-            Transaction newTransaction = new Transaction();
-            newTransaction.setId(transactionRef.getId());
-            newTransaction.setListingId(listing.getId());
-            newTransaction.setListingTitle(listing.getTitle());
-            newTransaction.setListingImageUrl(listing.getPrimaryImageUrl());
-            newTransaction.setSellerId(listing.getSellerId());
-            newTransaction.setSellerName(listing.getSellerName());
-            newTransaction.setBuyerId(buyerId);
-            newTransaction.setBuyerName("Người mua"); // Cần lấy tên thật từ DB
-            newTransaction.setFinalPrice(listing.getPrice()); // Giá gốc
-            newTransaction.setSellerReviewed(false);
-            newTransaction.setBuyerReviewed(false);
-
-            batch.set(transactionRef, newTransaction);
-
-            batch.commit()
-                    .addOnSuccessListener(aVoid -> success.setValue(true))
-                    .addOnFailureListener(e -> success.setValue(false));
-        }).addOnFailureListener(e -> success.setValue(false));
-
-        return success;
+        functions.getHttpsCallable("processCashOnDeliveryOrder")
+                .call(data)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        // Lấy kết quả từ function
+                        Map<String, Object> result = (Map<String, Object>) task.getResult().getData();
+                        if (result != null && Boolean.TRUE.equals(result.get("success"))) {
+                            successLiveData.postValue(true);
+                        } else {
+                            successLiveData.postValue(false);
+                        }
+                    } else {
+                        Log.e(TAG, "Lỗi khi gọi processCashOnDeliveryOrder: ", task.getException());
+                        successLiveData.postValue(false);
+                    }
+                });
+        return successLiveData;
     }
 }

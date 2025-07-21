@@ -107,19 +107,18 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
         tabLayoutNotifications.removeAllTabs();
         tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tất cả"));
         tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tin nhắn"));
-        tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Ưu đãi"));
-        tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tin đăng"));
-        tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Khuyến mãi"));
+        tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Ưu đãi")); // Gộp chung Offer và Promotion
+        tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tin đăng")); // Cho các thông báo về listing
 
         tabLayoutNotifications.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 String categoryFilter = Objects.requireNonNull(tab.getText()).toString();
                 String internalCategory;
+                // Ánh xạ tên tab với Enum trong code
                 switch(categoryFilter) {
                     case "Tin nhắn": internalCategory = "MESSAGE"; break;
-                    case "Ưu đãi": internalCategory = "OFFER"; break; // Đổi thành OFFER cho đúng với Enum
-                    case "Khuyến mãi": internalCategory = "PROMOTION"; break;
+                    case "Ưu đãi": internalCategory = "OFFER"; break; // Có thể mở rộng để lọc cả PROMOTION nếu cần
                     case "Tin đăng": internalCategory = "LISTING"; break;
                     default: internalCategory = "Tất cả"; break;
                 }
@@ -215,34 +214,33 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
     private void handleNotificationAction(Notification notification) {
         if (notification.getType() == null || notification.getRelatedId() == null || notification.getRelatedId().isEmpty()) {
             Log.w(TAG, "Không thể điều hướng: Loại thông báo hoặc ID liên quan là null/rỗng.");
-            showToast("Không có hành động cho thông báo này.");
+            Toast.makeText(getContext(), "Không có hành động cho thông báo này.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         try {
             switch (notification.getType()) {
-                // Xóa "case PROMOTION:" khỏi nhóm này
-                case LISTING:
-                case OFFER:
-                    NotificationsFragmentDirections.ActionNotificationsFragmentToProductDetailFragment detailAction =
-                            NotificationsFragmentDirections.actionNotificationsFragmentToProductDetailFragment(notification.getRelatedId());
-                    navController.navigate(detailAction);
-                    break;
-
                 case MESSAGE:
-                    // Cần lấy tên của người gửi từ notification.title hoặc một trường dữ liệu khác
+                    // Thông báo tin nhắn -> Mở màn hình chat chi tiết
+                    // Cần lấy tên người gửi từ tiêu đề thông báo để truyền đi
                     String otherUserName = notification.getTitle().replace("Tin nhắn mới từ ", "");
-
                     NotificationsFragmentDirections.ActionNotificationsFragmentToChatDetailFragment chatAction =
                             NotificationsFragmentDirections.actionNotificationsFragmentToChatDetailFragment(notification.getRelatedId(), otherUserName);
                     navController.navigate(chatAction);
                     break;
 
-                // Logic cho PROMOTION và SYSTEM bây giờ đã đúng
+                case OFFER:
+                case LISTING:
+                    // Thông báo về Đề nghị hoặc Tin đăng -> Mở màn hình chi tiết sản phẩm
+                    NotificationsFragmentDirections.ActionNotificationsFragmentToProductDetailFragment detailAction =
+                            NotificationsFragmentDirections.actionNotificationsFragmentToProductDetailFragment(notification.getRelatedId());
+                    navController.navigate(detailAction);
+                    break;
+
                 case PROMOTION:
                 case SYSTEM:
                 default:
-                    // Đối với các loại khác, hiển thị dialog là hợp lý
+                    // Với các thông báo hệ thống hoặc khuyến mãi chung, chỉ cần hiển thị dialog
                     new AlertDialog.Builder(requireContext())
                             .setTitle(notification.getTitle())
                             .setMessage(notification.getContent())
@@ -251,13 +249,10 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
                     break;
             }
         } catch (Exception e) {
-            // Bắt các lỗi có thể xảy ra khi điều hướng (ví dụ: action không tồn tại)
-            Log.e(TAG, "Lỗi điều hướng: " + e.getMessage());
-            showError("Đã xảy ra lỗi khi mở thông báo.");
+            Log.e(TAG, "Lỗi điều hướng từ thông báo: " + e.getMessage());
+            Toast.makeText(getContext(), "Đã xảy ra lỗi khi mở thông báo.", Toast.LENGTH_SHORT).show();
         }
     }
-
-    // --- CÁC HÀM HELPER ĐƯỢC VIẾT ĐẦY ĐỦ ---
 
     private void showNotificationsList() {
         recyclerNotifications.setVisibility(View.VISIBLE);
@@ -270,9 +265,12 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
     }
 
     private void togglePopupMenu() {
+        // Nếu menu đang hiện (VISIBLE)
         if (popupMenuCard.getVisibility() == View.VISIBLE) {
+            // Thì ẩn nó đi (GONE)
             popupMenuCard.setVisibility(View.GONE);
         } else {
+            // Ngược lại, nếu đang ẩn, thì cho nó hiện ra (VISIBLE)
             popupMenuCard.setVisibility(View.VISIBLE);
         }
     }

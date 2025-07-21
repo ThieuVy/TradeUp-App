@@ -148,4 +148,12 @@ public class HomeViewModel extends AndroidViewModel {
     public LiveData<String> getErrorMessage() {
         return listingRepository.getErrorMessage();
     }
+    public LiveData<List<String>> getFavoriteIds() {
+        if (currentUserId == null) {
+            MutableLiveData<List<String>> emptyList = new MutableLiveData<>();
+            emptyList.setValue(new ArrayList<>());
+            return emptyList;
+        }
+        return userRepository.getFavoriteIds(currentUserId);
+    }
 }

@@ -98,6 +98,8 @@ dependencies {
     implementation(libs.emoji.android)
     implementation(libs.firebase.database.v2031)
     implementation(libs.circleindicator)
+
+    debugImplementation(libs.firebase.appcheck.debug)
 }
 configurations.all {
     exclude(group = "xpp3", module = "xpp3")

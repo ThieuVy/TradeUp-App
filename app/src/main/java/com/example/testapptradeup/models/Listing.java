@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.os.Parcel;
 import android.os.Parcelable;
 import com.google.firebase.firestore.DocumentId;
+import com.google.firebase.firestore.Exclude;
 import com.google.firebase.firestore.PropertyName;
 import com.google.firebase.firestore.ServerTimestamp;
 import java.text.NumberFormat;
@@ -41,6 +42,9 @@ public class Listing implements Parcelable {
     // Đổi tên biến private để tuân thủ quy ước Java Beans
     private boolean negotiable;
     private boolean sold;
+    private int chatCount;
+    @Exclude
+    private boolean isFavorite = false;
 
     public Listing() {
         // Constructor rỗng cho Firebase
@@ -68,12 +72,17 @@ public class Listing implements Parcelable {
     public String getGeohash() { return geohash; }
     public boolean isFeatured() { return featured; }
     public List<String> getTags() { return tags; }
-
+    public int getChatCount() { return chatCount; }
     @PropertyName("isNegotiable")
     public boolean isNegotiable() { return negotiable; }
 
     @PropertyName("isSold")
     public boolean isSold() { return sold; }
+
+    @Exclude
+    public boolean isFavorite() {
+        return isFavorite;
+    }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -99,6 +108,11 @@ public class Listing implements Parcelable {
     public void setTags(List<String> tags) { this.tags = tags; }
     public void setNegotiable(boolean negotiable) { this.negotiable = negotiable; }
     public void setSold(boolean sold) { this.sold = sold; }
+    public void setChatCount(int chatCount) { this.chatCount = chatCount; }
+    @Exclude
+    public void setFavorite(boolean favorite) {
+        isFavorite = favorite;
+    }
 
     // Các hàm helper
     public String getPrimaryImageUrl() {
@@ -143,12 +157,32 @@ public class Listing implements Parcelable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Listing listing = (Listing) o;
-        return Objects.equals(id, listing.id);
+        return Double.compare(listing.price, price) == 0 &&
+                Float.compare(listing.rating, rating) == 0 &&
+                reviewCount == listing.reviewCount &&
+                views == listing.views &&
+                offersCount == listing.offersCount &&
+                chatCount == listing.chatCount &&
+                negotiable == listing.negotiable &&
+                sold == listing.sold &&
+                Objects.equals(id, listing.id) &&
+                Objects.equals(title, listing.title) &&
+                Objects.equals(description, listing.description) &&
+                Objects.equals(imageUrls, listing.imageUrls) && // Quan trọng nhất
+                Objects.equals(location, listing.location) &&
+                Objects.equals(timePosted, listing.timePosted) &&
+                Objects.equals(category, listing.category) &&
+                Objects.equals(sellerId, listing.sellerId) &&
+                Objects.equals(sellerName, listing.sellerName) &&
+                Objects.equals(condition, listing.condition) &&
+                Objects.equals(status, listing.status);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(id, title, description, price, imageUrls, location, timePosted,
+                category, rating, reviewCount, sellerId, sellerName, condition, status,
+                views, offersCount, chatCount, negotiable, sold);
     }
 
     // Parcelable Implementation
@@ -177,6 +211,7 @@ public class Listing implements Parcelable {
         featured = in.readByte() != 0;
         negotiable = in.readByte() != 0;
         sold = in.readByte() != 0;
+        chatCount = in.readInt();
     }
 
     @Override
@@ -204,6 +239,7 @@ public class Listing implements Parcelable {
         dest.writeByte((byte) (featured ? 1 : 0));
         dest.writeByte((byte) (negotiable ? 1 : 0));
         dest.writeByte((byte) (sold ? 1 : 0));
+        dest.writeInt(chatCount);
     }
 
     @Override

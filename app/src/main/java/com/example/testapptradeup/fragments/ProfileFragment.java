@@ -1,17 +1,24 @@
 package com.example.testapptradeup.fragments;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -32,6 +39,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class ProfileFragment extends Fragment {
 
@@ -53,11 +61,27 @@ public class ProfileFragment extends Fragment {
     private LinearLayout menuReviews;
     private ReviewAdapter reviewAdapter;
 
+    private ActivityResultLauncher<Intent> imagePickerLauncher;
+    private FrameLayout frameProfileImage;
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         profileViewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
+
+        imagePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        Uri selectedImageUri = result.getData().getData();
+                        if (selectedImageUri != null) {
+                            // Gọi ViewModel để xử lý việc tải ảnh
+                            profileViewModel.changeProfilePicture(selectedImageUri, mainViewModel);
+                        }
+                    }
+                }
+        );
     }
 
     @Override
@@ -106,6 +130,7 @@ public class ProfileFragment extends Fragment {
         menuReviews = view.findViewById(R.id.menu_reviews_section);
         recyclerViewReviews = view.findViewById(R.id.recycler_view_reviews);
         emptyReviewsText = view.findViewById(R.id.empty_reviews_text);
+        frameProfileImage = view.findViewById(R.id.frame_profile_image);
     }
 
     private void setupRecyclerView() {
@@ -137,6 +162,11 @@ public class ProfileFragment extends Fragment {
         btnLogout.setOnClickListener(v -> showLogoutConfirmationDialog());
         btnDeactivateAccount.setOnClickListener(v -> showDeactivateConfirmDialog());
         btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmDialog());
+
+        frameProfileImage.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            imagePickerLauncher.launch(intent);
+        });
     }
 
     @SuppressLint("SetTextI18n")
@@ -157,10 +187,8 @@ public class ProfileFragment extends Fragment {
     private void observeViewModels() {
         mainViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
-                // Chỉ cập nhật UI khi có dữ liệu người dùng hợp lệ
                 updateUI(user);
             } else {
-                // Nếu người dùng là null (ví dụ: đang đăng xuất), xóa thông tin trên UI
                 clearUI();
             }
         });
@@ -176,6 +204,24 @@ public class ProfileFragment extends Fragment {
         profileViewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
             if (error != null && !error.isEmpty()) {
                 Toast.makeText(getContext(), "Lỗi: " + error, Toast.LENGTH_LONG).show();
+            }
+        });
+        profileViewModel.isLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            profileImage.setAlpha(isLoading ? 0.5f : 1.0f);
+        });
+        profileViewModel.getUpdateImageResult().observe(getViewLifecycleOwner(), result -> {
+            if (result == null) return;
+
+            if (result.isSuccess()) {
+                Toast.makeText(getContext(), "Cập nhật ảnh đại diện thành công!", Toast.LENGTH_SHORT).show();
+                // Không cần làm gì thêm ở đây. Observer của `mainViewModel.getCurrentUser()`
+                // sẽ tự động được kích hoạt và hàm `updateUI()` sẽ được gọi để tải lại ảnh.
+            } else {
+                Toast.makeText(getContext(), "Lỗi cập nhật ảnh: " + Objects.requireNonNull(result.getError()).getMessage(), Toast.LENGTH_LONG).show();
+                // Tải lại ảnh cũ nếu có lỗi để giao diện không bị treo ở ảnh mới chọn
+                if (mainViewModel.getCurrentUser().getValue() != null) {
+                    updateUI(mainViewModel.getCurrentUser().getValue());
+                }
             }
         });
     }

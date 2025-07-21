@@ -176,4 +176,37 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
+    const recalculateButton = document.getElementById("recalculate-stats-button");
+        if (recalculateButton) {
+            recalculateButton.addEventListener("click", () => {
+                Swal.fire({
+                    title: 'Bạn có chắc không?',
+                    text: "Hành động này sẽ tính toán lại số tin đăng và giao dịch cho TẤT CẢ người dùng. Việc này có thể mất một lúc.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Đồng ý, chạy đi!',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        recalculateButton.disabled = true;
+                        recalculateButton.textContent = "Đang xử lý...";
+
+                        const func = functions.httpsCallable('recalculateAllUserStats');
+                        func({})
+                            .then(res => {
+                                Swal.fire('Thành công!', res.data.message, 'success');
+                                recalculateButton.disabled = false;
+                                recalculateButton.textContent = "Đồng bộ lại Số liệu Thống kê Người dùng";
+                            })
+                            .catch(err => {
+                                Swal.fire('Lỗi!', err.message, 'error');
+                                recalculateButton.disabled = false;
+                                recalculateButton.textContent = "Đồng bộ lại Số liệu Thống kê Người dùng";
+                            });
+                    }
+                });
+            });
+        }
 });

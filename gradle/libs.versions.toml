@@ -53,6 +53,7 @@ compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide
 emoji-android = { module = "com.vanniktech:emoji-android", version.ref = "emojiAndroid" }
 emoji-google = { module = "com.vanniktech:emoji-google", version.ref = "emojiGoogle" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
+firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug" }
 firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }

@@ -17,7 +17,7 @@ public class Transaction {
     private boolean buyerReviewed;
     @ServerTimestamp
     private Date transactionDate;
-
+    private String paymentMethod;
     public Transaction() {}
 
     // Getters and Setters
@@ -45,4 +45,6 @@ public class Transaction {
     public void setBuyerReviewed(boolean buyerReviewed) { this.buyerReviewed = buyerReviewed; }
     public Date getTransactionDate() { return transactionDate; }
     public void setTransactionDate(Date transactionDate) { this.transactionDate = transactionDate; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 }

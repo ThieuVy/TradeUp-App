@@ -112,12 +112,18 @@ public class ProductDetailViewModel extends ViewModel {
 
         return offerRepository.createOffer(offer);
     }
-    public LiveData<String> findOrCreateChat(String otherUserId) {
-        // ViewModel chỉ đơn giản là gọi Repository
-        return chatRepository.findOrCreateChat(otherUserId);
+    public LiveData<String> findOrCreateChat(String otherUserId, String listingId) {
+        return chatRepository.findOrCreateChat(otherUserId, listingId);
     }
-
     public LiveData<User> getSellerProfile() {
         return sellerProfile;
+    }
+    public void recordUserView(Listing listing) {
+        if (currentUserId != null && listing != null) {
+            userRepository.logUserView(currentUserId, listing.getId(), listing.getCategory());
+        }
+    }
+    public LiveData<Boolean> processCashOnDelivery(Listing listing) {
+        return offerRepository.completeTransactionForBuyNow(listing.getId());
     }
 }

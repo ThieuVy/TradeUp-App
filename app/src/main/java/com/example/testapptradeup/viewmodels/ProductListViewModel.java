@@ -4,6 +4,8 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+
+import com.example.testapptradeup.models.Category;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.repositories.ListingRepository;
 import com.example.testapptradeup.repositories.UserRepository;
@@ -50,24 +52,14 @@ public class ProductListViewModel extends ViewModel {
      */
     public void updateToolbarTitle(String filterType, @Nullable String id) {
         if ("category".equals(filterType) && id != null) {
-            // Lấy tên category từ ID để hiển thị
-            FirebaseFirestore.getInstance().collection("categories").document(id)
-                    .get()
-                    .addOnSuccessListener(documentSnapshot -> {
-                        if (documentSnapshot.exists()) {
-                            String categoryName = documentSnapshot.getString("name");
-                            toolbarTitle.setValue(categoryName);
-                        } else {
-                            toolbarTitle.setValue("Danh mục không tồn tại");
-                        }
-                    })
-                    .addOnFailureListener(e -> toolbarTitle.setValue("Danh mục"));
+            String categoryName = Category.getCategoryNameById(id);
+            toolbarTitle.setValue(categoryName);
         } else if ("recommended".equals(filterType)) {
             toolbarTitle.setValue("Đề xuất cho bạn");
         } else if ("recent".equals(filterType)) {
             toolbarTitle.setValue("Tin đăng gần đây");
         } else if ("user".equals(filterType)) {
-            // Sử dụng tham số 'id' đã được truyền vào, vì nó chính là userId trong trường hợp này.
+            // Logic này đã đúng, không cần sửa
             if (id != null) {
                 FirebaseFirestore.getInstance().collection("users").document(id).get()
                         .addOnSuccessListener(doc -> {

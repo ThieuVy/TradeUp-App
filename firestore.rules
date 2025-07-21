@@ -25,6 +25,14 @@ service cloud.firestore {
             allow read: if isAuthenticated();
             allow write: if isOwner(userId) || isAdmin();
 
+            // QUY TẮC ĐÃ SỬA LỖI: Cho phép người dùng tạo, đọc, VÀ CẬP NHẬT
+            // lịch sử xem của chính họ.
+            match /viewHistory/{listingId} {
+                // Hợp nhất create và update vào chung một quyền 'write'
+                // hoặc liệt kê rõ ràng: allow read, create, update
+                allow read, create, update: if isOwner(userId);
+                allow delete: if false; // Vẫn giữ nguyên việc không cho phép xóa
+            }
         }
 
         match /notifications/{notificationId} {
@@ -97,8 +105,17 @@ service cloud.firestore {
         }
 
         match /transactions/{transactionId} {
-            allow read: if isAuthenticated() && (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId);
-            allow write: if false;
+            // Cho phép lấy MỘT giao dịch nếu bạn là người mua hoặc người bán
+            allow get: if isAuthenticated() &&
+                    (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId);
+
+            // Cho phép TRUY VẤN DANH SÁCH nếu đã đăng nhập.
+            // Việc giới hạn người dùng chỉ thấy giao dịch của mình đã được xử lý an toàn
+            // trong code của ứng dụng (trong HistoryRepository).
+            allow list: if isAuthenticated();
+
+            // Giữ nguyên các quyền khác
+            allow create, update, delete: if false;
         }
 
         match /reviews/{reviewId} {

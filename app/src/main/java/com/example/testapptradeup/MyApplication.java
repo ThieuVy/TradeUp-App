@@ -11,14 +11,14 @@ import androidx.lifecycle.ProcessLifecycleOwner;
 import com.example.testapptradeup.utils.CloudinaryManager;
 import com.example.testapptradeup.utils.SharedPrefsHelper;
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.appcheck.BuildConfig;
 import com.google.firebase.appcheck.FirebaseAppCheck;
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory;
 import com.google.firebase.auth.FirebaseAuth;
 
-// ================== THÊM CÁC IMPORT NÀY ==================
 import com.vanniktech.emoji.EmojiManager;
 import com.vanniktech.emoji.google.GoogleEmojiProvider;
-// =======================================================
 
 public class MyApplication extends Application implements LifecycleObserver {
 
@@ -33,11 +33,21 @@ public class MyApplication extends Application implements LifecycleObserver {
         FirebaseApp.initializeApp(this);
 
         FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
-        firebaseAppCheck.installAppCheckProviderFactory(
-                PlayIntegrityAppCheckProviderFactory.getInstance());
+
+        // SỬA ĐỔI LOGIC: Tự động chọn Provider phù hợp
+        // Nếu là bản build DEBUG -> Dùng Debug Provider
+        // Nếu là bản build RELEASE -> Dùng Play Integrity Provider
+        if (BuildConfig.DEBUG) {
+            Log.i(TAG, "Initializing App Check for DEBUG build.");
+            firebaseAppCheck.installAppCheckProviderFactory(
+                    DebugAppCheckProviderFactory.getInstance());
+        } else {
+            Log.i(TAG, "Initializing App Check for RELEASE build.");
+            firebaseAppCheck.installAppCheckProviderFactory(
+                    PlayIntegrityAppCheckProviderFactory.getInstance());
+        }
 
         EmojiManager.install(new GoogleEmojiProvider());
-
         CloudinaryManager.setup(this);
         prefsHelper = new SharedPrefsHelper(this);
         ProcessLifecycleOwner.get().getLifecycle().addObserver(this);

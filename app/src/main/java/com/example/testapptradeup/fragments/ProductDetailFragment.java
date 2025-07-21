@@ -179,11 +179,14 @@ public class ProductDetailFragment extends Fragment {
                 return;
             }
 
-            viewModel.findOrCreateChat(currentListing.getSellerId()).observe(getViewLifecycleOwner(), chatId -> {
+            viewModel.findOrCreateChat(currentListing.getSellerId(), currentListing.getId()).observe(getViewLifecycleOwner(), chatId -> {
                 if (chatId != null && !chatId.isEmpty()) {
                     ProductDetailFragmentDirections.ActionProductDetailToChatDetail action =
                             ProductDetailFragmentDirections.actionProductDetailToChatDetail(chatId, currentListing.getSellerName());
+
+                    // Dòng này rất quan trọng để khi người nhận mở thông báo chat, họ biết chat này về sản phẩm nào
                     action.setListingId(currentListing.getId());
+
                     navController.navigate(action);
                 } else {
                     Toast.makeText(getContext(), "Không thể bắt đầu cuộc trò chuyện. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
@@ -192,25 +195,52 @@ public class ProductDetailFragment extends Fragment {
         });
         btnBuyNow.setOnClickListener(v -> {
             if (currentListing != null) {
-                showBuyNowConfirmationDialog();
+                showPaymentMethodDialog();
             } else {
                 Toast.makeText(getContext(), "Dữ liệu sản phẩm chưa sẵn sàng.", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    /**
-     * Hiển thị dialog xác nhận trước khi chuyển đến màn hình thanh toán.
-     */
-    private void showBuyNowConfirmationDialog() {
+    private void showPaymentMethodDialog() {
         if (getContext() == null || currentListing == null) return;
 
+        final CharSequence[] options = {"Thanh toán bằng thẻ (An toàn qua Stripe)", "Thanh toán khi nhận hàng (Tiền mặt)", "Hủy"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Chọn phương thức thanh toán");
+        builder.setItems(options, (dialog, item) -> {
+            if (options[item].toString().contains("Thanh toán bằng thẻ")) {
+                navigateToPayment(); // Giữ nguyên luồng thanh toán thẻ
+            } else if (options[item].toString().contains("Thanh toán khi nhận hàng")) {
+                processCashOnDelivery(); // Gọi luồng xử lý tiền mặt mới
+            } else {
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
+    private void processCashOnDelivery() {
+        if (currentListing == null || currentUserId == null) {
+            Toast.makeText(getContext(), "Lỗi: Không đủ thông tin.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         new AlertDialog.Builder(getContext())
-                .setTitle("Xác nhận mua hàng")
-                .setMessage("Bạn có chắc chắn muốn mua sản phẩm \"" + currentListing.getTitle() + "\" với giá " + currentListing.getFormattedPrice() + "?")
-                .setPositiveButton("Mua ngay", (dialog, which) -> {
-                    // Người dùng đã xác nhận, điều hướng đến màn hình thanh toán
-                    navigateToPayment();
+                .setTitle("Xác nhận Đặt hàng")
+                .setMessage("Bạn xác nhận đặt hàng sản phẩm này với phương thức thanh toán tiền mặt? Người bán sẽ liên hệ với bạn để giao dịch.")
+                .setPositiveButton("Xác nhận", (dialog, which) -> {
+                    // Gọi ViewModel để xử lý
+                    viewModel.processCashOnDelivery(currentListing).observe(getViewLifecycleOwner(), success -> {
+                        if (Boolean.TRUE.equals(success)) {
+                            Toast.makeText(getContext(), "Đặt hàng thành công! Giao dịch của bạn đã được ghi lại.", Toast.LENGTH_LONG).show();
+                            // Quay về màn hình chính sau khi thành công
+                            navController.popBackStack(R.id.navigation_home, false);
+                        } else {
+                            Toast.makeText(getContext(), "Đặt hàng thất bại. Sản phẩm có thể đã được bán.", Toast.LENGTH_LONG).show();
+                        }
+                    });
                 })
                 .setNegativeButton("Hủy", null)
                 .show();
@@ -221,10 +251,7 @@ public class ProductDetailFragment extends Fragment {
      */
     private void navigateToPayment() {
         if (navController != null && currentListing != null) {
-            // Tạo một "offer" ảo với giá gốc của sản phẩm để luồng thanh toán có thể xử lý
-            // ID của offer ảo này có thể là một chuỗi đặc biệt, ví dụ: "BUY_NOW_" + listingId
             String virtualOfferId = "BUY_NOW_" + currentListing.getId();
-
             ProductDetailFragmentDirections.ActionProductDetailFragmentToPaymentFragment action =
                     ProductDetailFragmentDirections.actionProductDetailFragmentToPaymentFragment(
                             currentListing.getId(),
@@ -242,6 +269,7 @@ public class ProductDetailFragment extends Fragment {
             if (listing != null) {
                 this.currentListing = listing;
                 populateUI(listing);
+                viewModel.recordUserView(listing); // <-- GỌI HÀM GHI LỊCH SỬ TẠI ĐÂY
             } else {
                 Toast.makeText(getContext(), "Không tìm thấy sản phẩm.", Toast.LENGTH_SHORT).show();
                 navController.popBackStack();

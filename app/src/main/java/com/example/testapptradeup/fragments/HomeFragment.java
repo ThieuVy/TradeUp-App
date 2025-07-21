@@ -46,7 +46,7 @@ public class HomeFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         featuredAdapter = new FeaturedAdapter(this::navigateToProductDetail);
-        recommendationsAdapter = new ProductGridAdapter(this::navigateToProductDetail);
+        recommendationsAdapter = new ProductGridAdapter(this::navigateToProductDetail, this::onFavoriteClick);
         recentListingsAdapter = new ListingsAdapter(this::navigateToProductDetail, this::onFavoriteClick);
     }
 
@@ -112,6 +112,14 @@ public class HomeFragment extends Fragment {
             updateListVisibility(listings, binding.listingsRecycler, binding.listingsEmptyText);
             recentListingsAdapter.submitList(listings);
             Log.d("HomeFragment", "Danh sách tin gần đây đã được cập nhật!");
+        });
+
+        viewModel.getFavoriteIds().observe(getViewLifecycleOwner(), favoriteIds -> {
+            if (favoriteIds != null) {
+                // Cập nhật cho cả hai adapter
+                recentListingsAdapter.setFavoriteIds(favoriteIds);
+                recommendationsAdapter.setFavoriteIds(favoriteIds);
+            }
         });
     }
 

@@ -297,4 +297,20 @@ public class UserRepository {
         // Sử dụng .set với merge=true để cập nhật an toàn và tránh lỗi "NOT_FOUND"
         return userRef.set(data, SetOptions.merge());
     }
+
+    public void logUserView(String userId, String listingId, String categoryId) {
+        if (userId == null || listingId == null) return;
+
+        DocumentReference viewRef = db.collection("users").document(userId)
+                .collection("viewHistory").document(listingId);
+
+        Map<String, Object> viewData = new HashMap<>();
+        viewData.put("viewedAt", FieldValue.serverTimestamp());
+        viewData.put("categoryId", categoryId);
+
+        // Dùng set với merge để ghi đè timestamp nếu xem lại, không tạo document mới
+        viewRef.set(viewData, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Ghi lại lịch sử xem thành công cho listing: " + listingId))
+                .addOnFailureListener(e -> Log.e(TAG, "Lỗi ghi lịch sử xem", e));
+    }
 }

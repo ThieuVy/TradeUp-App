@@ -300,14 +300,14 @@ public class ListingRepository {
         return data;
     }
 
-    public void incrementViewCount(String listingId) {
-        if (listingId == null || listingId.isEmpty()) {
-            return;
-        }
-        db.collection("listings").document(listingId)
-                .update("views", FieldValue.increment(1))
-                .addOnFailureListener(e -> Log.w(TAG, "Lỗi khi tăng lượt xem cho tin đăng: " + listingId, e));
-    }
+//    public void incrementViewCount(String listingId) {
+//        if (listingId == null || listingId.isEmpty()) {
+//            return;
+//        }
+//        db.collection("listings").document(listingId)
+//                .update("views", FieldValue.increment(1))
+//                .addOnFailureListener(e -> Log.w(TAG, "Lỗi khi tăng lượt xem cho tin đăng: " + listingId, e));
+//    }
 
     /**
      * Lấy thông tin chi tiết của một tin đăng bằng ID.

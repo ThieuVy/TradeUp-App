@@ -99,7 +99,7 @@
                     tools:text="245" />
                 <ImageView
                     style="@style/PostManagementIcon"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="10dp"
                     android:src="@drawable/ic_tag_outline"
                     android:contentDescription="Đề nghị"
                     tools:ignore="HardcodedText" />
@@ -107,6 +107,16 @@
                     android:id="@+id/txt_offers"
                     style="@style/PostManagementStat"
                     tools:text="3 đề nghị" />
+                <ImageView
+                    style="@style/PostManagementIcon"
+                    android:layout_marginStart="10dp"
+                    android:src="@drawable/ic_chat"
+                    android:contentDescription="Cuộc trò chuyện"
+                    tools:ignore="HardcodedText" />
+                <TextView
+                    android:id="@+id/txt_chats"
+                    style="@style/PostManagementStat"
+                    tools:text="1 tin nhắn" />
                 <View
                     android:layout_width="0dp"
                     android:layout_height="1dp"
@@ -114,6 +124,7 @@
                 <ImageView
                     style="@style/PostManagementIcon"
                     android:src="@drawable/ic_time"
+                    android:layout_marginStart="10dp"
                     android:contentDescription="Thời gian"
                     tools:ignore="HardcodedText" />
                 <TextView

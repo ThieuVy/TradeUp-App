@@ -1,41 +1,48 @@
 package com.example.testapptradeup.adapters;
 
+import android.annotation.SuppressLint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Listing;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class ProductGridAdapter extends ListAdapter<Listing, ProductGridAdapter.ProductGridViewHolder> {
 
-    // BƯỚC 1: Định nghĩa một interface để làm "khuôn mẫu" cho sự kiện click
     public interface OnProductClickListener {
         void onProductClick(Listing listing);
     }
 
-    // BƯỚC 2: Khai báo một biến để lưu trữ listener
-    private final OnProductClickListener listener;
+    public interface OnFavoriteClickListener {
+        void onFavoriteClick(Listing listing, ImageView favoriteIcon);
+    }
 
-    // BƯỚC 3: Sửa lại constructor để nó nhận vào một OnProductClickListener
-    public ProductGridAdapter(@NonNull OnProductClickListener listener) {
+    private final OnProductClickListener productClickListener;
+    private final OnFavoriteClickListener favoriteClickListener;
+    private List<String> favoriteIds = new ArrayList<>(); // Danh sách ID yêu thích
+
+    public ProductGridAdapter(@NonNull OnProductClickListener productClickListener, @NonNull OnFavoriteClickListener favoriteClickListener) {
         super(DIFF_CALLBACK);
-        this.listener = listener; // Lưu lại listener được truyền vào
+        this.productClickListener = productClickListener;
+        this.favoriteClickListener = favoriteClickListener;
     }
 
     @NonNull
     @Override
     public ProductGridViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_product_grid, parent, false);
-        // BƯỚC 4: Truyền listener vào trong ViewHolder khi nó được tạo ra
-        return new ProductGridViewHolder(view, listener);
+        return new ProductGridViewHolder(view, productClickListener, favoriteClickListener);
     }
 
     @Override
@@ -44,13 +51,18 @@ public class ProductGridAdapter extends ListAdapter<Listing, ProductGridAdapter.
         holder.bind(listing);
     }
 
-    // BỎ TỪ KHÓA 'static' ĐỂ VIEWHOLDER CÓ THỂ TRUY CẬP PHƯƠNG THỨC getItem() CỦA ADAPTER
+    // Phương thức mới để cập nhật danh sách ID yêu thích từ Fragment
+    @SuppressLint("NotifyDataSetChanged")
+    public void setFavoriteIds(List<String> favoriteIds) {
+        this.favoriteIds = favoriteIds;
+        notifyDataSetChanged(); // Yêu cầu adapter vẽ lại các item hiển thị
+    }
+
     class ProductGridViewHolder extends RecyclerView.ViewHolder {
         ImageView productImage, favoriteButton;
         TextView productPrice, productTitle, productLocation;
 
-        // BƯỚC 5: Constructor của ViewHolder cũng nhận listener
-        ProductGridViewHolder(View itemView, final OnProductClickListener listener) {
+        ProductGridViewHolder(View itemView, final OnProductClickListener productClickListener, final OnFavoriteClickListener favoriteClickListener) {
             super(itemView);
             productImage = itemView.findViewById(R.id.product_image);
             favoriteButton = itemView.findViewById(R.id.favorite_button);
@@ -58,13 +70,17 @@ public class ProductGridAdapter extends ListAdapter<Listing, ProductGridAdapter.
             productTitle = itemView.findViewById(R.id.product_title);
             productLocation = itemView.findViewById(R.id.product_location);
 
-            // BƯỚC 6: Gán sự kiện click cho toàn bộ item view
             itemView.setOnClickListener(v -> {
-                int position = getBindingAdapterPosition(); // Lấy vị trí item một cách an toàn
-                // Luôn kiểm tra vị trí hợp lệ trước khi thực hiện hành động
+                int position = getBindingAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
-                    // Gọi phương thức trong interface đã được truyền vào
-                    listener.onProductClick(getItem(position));
+                    productClickListener.onProductClick(getItem(position));
+                }
+            });
+
+            favoriteButton.setOnClickListener(v -> {
+                int position = getBindingAdapterPosition();
+                if (position != RecyclerView.NO_POSITION) {
+                    favoriteClickListener.onFavoriteClick(getItem(position), favoriteButton);
                 }
             });
         }
@@ -80,7 +96,16 @@ public class ProductGridAdapter extends ListAdapter<Listing, ProductGridAdapter.
                     .error(R.drawable.img_placeholder)
                     .into(productImage);
 
-            // TODO: Thêm logic cho nút yêu thích nếu cần
+            // Logic cập nhật trạng thái icon trái tim
+            if (favoriteIds.contains(listing.getId())) {
+                favoriteButton.setImageResource(R.drawable.ic_favorite_filled);
+                favoriteButton.setColorFilter(ContextCompat.getColor(itemView.getContext(), R.color.red_error));
+                favoriteButton.setTag(true); // Đánh dấu là đang được yêu thích
+            } else {
+                favoriteButton.setImageResource(R.drawable.ic_favorite_outline);
+                favoriteButton.setColorFilter(ContextCompat.getColor(itemView.getContext(), R.color.text_secondary));
+                favoriteButton.setTag(false); // Đánh dấu là không được yêu thích
+            }
         }
     }
 
@@ -92,7 +117,6 @@ public class ProductGridAdapter extends ListAdapter<Listing, ProductGridAdapter.
 
         @Override
         public boolean areContentsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
-            // Đảm bảo bạn đã override hàm equals() trong model Listing
             return oldItem.equals(newItem);
         }
     };

@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
 import com.example.testapptradeup.R;
+import com.example.testapptradeup.models.Category;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.viewmodels.EditPostViewModel;
@@ -24,7 +25,9 @@ import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.auth.FirebaseAuth;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class EditPostFragment extends PostFragment { // Kế thừa từ PostFragment
@@ -97,14 +100,22 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
         });
     }
 
-    // Ghi đè hàm observeViewModel
     @Override
     protected void observeViewModel() {
+        // Thêm đoạn mã này để lắng nghe sự thay đổi của danh sách ảnh từ
+        // PostViewModel (của lớp cha) và cập nhật giao diện.
+        // Đây là bước bị thiếu, gây ra lỗi không hiển thị ảnh.
+        viewModel.getSelectedImageUris().observe(getViewLifecycleOwner(), uris -> {
+            if (photoAdapter != null && tvPhotoCountHeader != null) {
+                photoAdapter.setImageUris(new ArrayList<>(uris));
+                tvPhotoCountHeader.setText(String.format(Locale.getDefault(), "Thêm hình ảnh (%d/%d)", uris.size(), 10));
+            }
+        });
+
+        // Các observer hiện có cho EditPostViewModel được giữ nguyên
         editViewModel.isLoading().observe(getViewLifecycleOwner(), this::showLoading);
 
-        // <<< SỬA LỖI 2: Lỗi này sẽ tự hết sau khi sửa lỗi 1 >>>
         editViewModel.getListingData().observe(getViewLifecycleOwner(), listing -> {
-            // Hiển thị loading trong khi chờ dữ liệu
             showLoading(false);
             if (listing != null) {
                 populateForm(listing);
@@ -124,13 +135,16 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
         });
     }
 
+    @SuppressLint("DefaultLocale")
     private void populateForm(Listing listing) {
         etProductTitle.setText(listing.getTitle());
-        // Chuyển đổi double sang chuỗi một cách an toàn
         etPrice.setText(String.format("%.0f", listing.getPrice()));
-        spinnerCategory.setText(listing.getCategory(), false);
         etDescription.setText(listing.getDescription());
         etLocation.setText(listing.getLocation());
+
+        // Lấy ID từ Firestore (ví dụ: "furniture") và dùng hàm "phiên dịch" để lấy tên tiếng Việt
+        String vietnameseCategoryName = Category.getCategoryNameById(listing.getCategory());
+        spinnerCategory.setText(vietnameseCategoryName, false); // Hiển thị "Đồ gia dụng"
 
         if (listing.getCondition() != null) {
             switch (listing.getCondition()) {

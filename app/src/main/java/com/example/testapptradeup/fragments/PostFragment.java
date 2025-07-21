@@ -91,6 +91,7 @@ public class PostFragment extends Fragment {
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private ActivityResultLauncher<String> locationPermissionLauncher;
     private MainViewModel mainViewModel;
+    private List<Category> appCategories;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -99,6 +100,7 @@ public class PostFragment extends Fragment {
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         prefsHelper = new SharedPrefsHelper(requireContext());
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
+        appCategories = Category.getAppCategories(); // Tải danh sách categories một lần
         setupActivityResultLaunchers();
     }
 
@@ -134,8 +136,11 @@ public class PostFragment extends Fragment {
         etAdditionalTags = view.findViewById(R.id.et_additional_tags);
         chipGroupTags = view.findViewById(R.id.chip_group_tags);
 
-        String[] categories = {"Điện thoại", "Laptop", "Thời trang", "Đồ gia dụng", "Xe cộ", "Khác"};
-        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, categories);
+        List<String> categoryNames = appCategories.stream()
+                .map(Category::getName)
+                .collect(Collectors.toList());
+
+        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, categoryNames);
         spinnerCategory.setAdapter(categoryAdapter);
     }
 
@@ -238,7 +243,7 @@ public class PostFragment extends Fragment {
         Listing listing = new Listing();
         listing.setTitle(title);
         listing.setPrice(Double.parseDouble(priceStr));
-        listing.setCategory(spinnerCategory.getText().toString());
+//        listing.setCategory(spinnerCategory.getText().toString());
         listing.setDescription(description);
         listing.setCondition(getSelectedCondition());
         listing.setSellerId(currentUserId);
@@ -268,38 +273,8 @@ public class PostFragment extends Fragment {
             listing.setImageUrls(imageUris.stream().map(Uri::toString).collect(Collectors.toList()));
         }
 
-        String selectedCategoryName = spinnerCategory.getText().toString(); // Ví dụ: "Laptop"
-        String categoryIdToSave = "";
-
-        // Ánh xạ từ TÊN HIỂN THỊ về ID CHUẨN
-        switch (selectedCategoryName) {
-            case "Điện tử": // Tên này phải khớp với tên trong mảng `categories` bạn tạo
-                categoryIdToSave = Category.AppConstants.CATEGORY_ELECTRONICS;
-                break;
-            case "Laptop":
-                categoryIdToSave = Category.AppConstants.CATEGORY_LAPTOPS;
-                break;
-            case "Thời trang":
-                categoryIdToSave = Category.AppConstants.CATEGORY_FASHION;
-                break;
-            case "Đồ gia dụng":
-                categoryIdToSave = Category.AppConstants.CATEGORY_HOME_GOODS;
-                break;
-            case "Xe cộ":
-                categoryIdToSave = Category.AppConstants.CATEGORY_CARS;
-                break;
-            case "Đồ thể thao":
-                categoryIdToSave = Category.AppConstants.CATEGORY_SPORTS;
-                break;
-            case "Sách":
-                categoryIdToSave = Category.AppConstants.CATEGORY_BOOKS;
-                break;
-            default:
-                categoryIdToSave = Category.AppConstants.CATEGORY_OTHER;
-                break;
-        }
-
-        listing.setCategory(getSelectedCategoryId());
+        String selectedCategoryName = spinnerCategory.getText().toString();
+        String categoryIdToSave = Category.getCategoryIdByName(selectedCategoryName);
         listing.setCategory(categoryIdToSave);
 
         return listing;
@@ -526,15 +501,13 @@ public class PostFragment extends Fragment {
         }
 
         String selectedName = spinnerCategory.getText().toString();
-        switch (selectedName) {
-            case "Điện thoại": return Category.AppConstants.CATEGORY_ELECTRONICS;
-            case "Laptop": return Category.AppConstants.CATEGORY_LAPTOPS;
-            case "Thời trang": return Category.AppConstants.CATEGORY_FASHION;
-            case "Đồ gia dụng": return Category.AppConstants.CATEGORY_HOME_GOODS;
-            case "Xe cộ": return Category.AppConstants.CATEGORY_CARS;
-            case "Đồ thể thao": return Category.AppConstants.CATEGORY_SPORTS;
-            case "Sách": return Category.AppConstants.CATEGORY_BOOKS;
-            default: return Category.AppConstants.CATEGORY_OTHER;
+
+        // Tìm trong danh sách chuẩn thay vì dùng switch-case
+        for (Category category : appCategories) {
+            if (selectedName.equals(category.getName())) {
+                return category.getId();
+            }
         }
+        return Category.AppConstants.CATEGORY_OTHER; // Mặc định nếu không tìm thấy
     }
 }

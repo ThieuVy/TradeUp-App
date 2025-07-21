@@ -29,7 +29,7 @@ public class PublicProfileViewModel extends ViewModel {
     private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
     private final ChatRepository chatRepository;
     public LiveData<String> findOrCreateChat(String otherUserId) {
-        return chatRepository.findOrCreateChat(otherUserId);
+        return chatRepository.findOrCreateChat(otherUserId, null);
     }
 
     public PublicProfileViewModel() {

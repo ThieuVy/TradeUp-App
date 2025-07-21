@@ -53,7 +53,7 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
     // Lớp ViewHolder bây giờ không cần 'static' nữa
     public static class ListingViewHolder extends RecyclerView.ViewHolder {
         ImageView imgPost;
-        TextView txtTitle, txtPrice, txtPostedTime, txtStatus, txtViews, txtOffers;
+        TextView txtTitle, txtPrice, txtPostedTime, txtStatus, txtViews, txtOffers, txtChats;
         Button btnEdit, btnDelete, btnViewOffers;
         View itemView;
 
@@ -70,6 +70,7 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
             btnEdit = itemView.findViewById(R.id.btn_edit);
             btnDelete = itemView.findViewById(R.id.btn_delete);
             btnViewOffers = itemView.findViewById(R.id.btn_view_offers);
+            txtChats = itemView.findViewById(R.id.txt_chats);
         }
 
         @SuppressLint({"SetTextI18n", "DefaultLocale"})
@@ -80,6 +81,7 @@ public class ManageListingsAdapter extends ListAdapter<Listing, ManageListingsAd
             txtPrice.setText(listing.getFormattedPrice());
             txtViews.setText(String.valueOf(listing.getViews()));
             txtOffers.setText(String.format("%d đề nghị", listing.getOffersCount()));
+            txtChats.setText(String.format("%d tin nhắn", listing.getChatCount()));
 
             if (listing.getTimePosted() != null) {
                 txtPostedTime.setText(android.text.format.DateUtils.getRelativeTimeSpanString(listing.getTimePosted().getTime()));

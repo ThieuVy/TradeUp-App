@@ -10,6 +10,7 @@ import com.example.testapptradeup.models.Conversation;
 import com.example.testapptradeup.models.User;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
@@ -182,52 +183,52 @@ public class ChatRepository {
      * @param otherUserId ID của người dùng cần chat cùng.
      * @return LiveData chứa ID của cuộc trò chuyện (chatId).
      */
-    public LiveData<String> findOrCreateChat(String otherUserId) {
+    public LiveData<String> findOrCreateChat(String otherUserId, String listingId) {
         MutableLiveData<String> chatIdLiveData = new MutableLiveData<>();
         String currentUserId = FirebaseAuth.getInstance().getUid();
         if (currentUserId == null || otherUserId == null || currentUserId.equals(otherUserId)) {
-            chatIdLiveData.setValue(null); // Không thể tự chat với chính mình
+            chatIdLiveData.setValue(null);
             return chatIdLiveData;
         }
 
-        // Tạo một danh sách members để truy vấn
-        List<String> membersToFind = Arrays.asList(currentUserId, otherUserId);
-
-        // Truy vấn để tìm cuộc trò chuyện có chính xác 2 thành viên này
+        // Truy vấn để tìm cuộc trò chuyện có cả 2 thành viên VÀ listingId
         db.collection("chats")
-                .whereEqualTo("members", membersToFind)
-                .limit(1)
+                .whereArrayContains("members", currentUserId)
+                .whereEqualTo("listingId", listingId)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         QuerySnapshot snapshots = task.getResult();
-                        if (snapshots != null && !snapshots.isEmpty()) {
-                            // Đã tìm thấy cuộc trò chuyện, trả về ID của nó
-                            String existingChatId = snapshots.getDocuments().get(0).getId();
-                            Log.d(TAG, "Đã tìm thấy cuộc trò chuyện có sẵn: " + existingChatId);
-                            chatIdLiveData.postValue(existingChatId);
-                        } else {
-                            // Không tìm thấy, tiến hành tạo mới
-                            Log.d(TAG, "Không tìm thấy cuộc trò chuyện, đang tạo mới...");
-                            createChat(otherUserId, chatIdLiveData);
+                        // Lọc thêm ở client để đảm bảo cả otherUserId cũng có trong members
+                        for (DocumentSnapshot doc : snapshots.getDocuments()) {
+                            List<String> members = (List<String>) doc.get("members");
+                            if (members != null && members.contains(otherUserId)) {
+                                chatIdLiveData.postValue(doc.getId());
+                                return; // Tìm thấy, thoát khỏi vòng lặp
+                            }
                         }
+
+                        // Nếu vòng lặp kết thúc mà không tìm thấy -> tạo mới
+                        Log.d(TAG, "Không tìm thấy cuộc trò chuyện, đang tạo mới...");
+                        createChat(otherUserId, listingId, chatIdLiveData);
+
                     } else {
                         Log.e(TAG, "Lỗi khi tìm cuộc trò chuyện: ", task.getException());
                         chatIdLiveData.postValue(null);
                     }
                 });
-
         return chatIdLiveData;
     }
 
-    private void createChat(String otherUserId, MutableLiveData<String> chatIdLiveData) {
+    private void createChat(String otherUserId, String listingId, MutableLiveData<String> chatIdLiveData) {
+        String currentUserId = FirebaseAuth.getInstance().getUid();
         DocumentReference newChatRef = db.collection("chats").document();
 
         Map<String, Object> chatData = new HashMap<>();
-        // Đảm bảo trường "members" được thêm vào đây
         chatData.put("members", Arrays.asList(currentUserId, otherUserId));
         chatData.put("timestamp", FieldValue.serverTimestamp());
-        chatData.put("lastMessage", "Hãy bắt đầu cuộc trò chuyện!");
+        chatData.put("listingId", listingId);
+        chatData.put("lastMessage", "Cuộc trò chuyện về sản phẩm đã bắt đầu."); // Thay đổi tin nhắn mặc định
 
         newChatRef.set(chatData)
                 .addOnSuccessListener(aVoid -> {

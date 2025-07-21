@@ -115,15 +115,21 @@ public class PublicProfileFragment extends Fragment {
 
     private void setupRecyclerViews() {
         // Cài đặt cho danh sách sản phẩm
-        listingsAdapter = new ProductGridAdapter(listing -> {
-            PublicProfileFragmentDirections.ActionPublicProfileFragmentToProductDetailFragment action =
-                    PublicProfileFragmentDirections.actionPublicProfileFragmentToProductDetailFragment(listing.getId());
-            navController.navigate(action);
-        });
+        // SỬA ĐỔI Ở ĐÂY: Cung cấp cả hai listener theo yêu cầu của constructor mới
+        listingsAdapter = new ProductGridAdapter(
+                // 1. Listener cho sự kiện click vào cả item (giữ nguyên)
+                listing -> {
+                    PublicProfileFragmentDirections.ActionPublicProfileFragmentToProductDetailFragment action =
+                            PublicProfileFragmentDirections.actionPublicProfileFragmentToProductDetailFragment(listing.getId());
+                    navController.navigate(action);
+                },
+                // 2. Listener cho sự kiện click vào nút tim (chúng ta sẽ thông báo tính năng này chưa có ở đây)
+                (listing, favoriteIcon) -> Toast.makeText(getContext(), "Bạn chỉ có thể yêu thích sản phẩm từ trang chủ.", Toast.LENGTH_SHORT).show()
+        );
         recyclerActiveListings.setLayoutManager(new GridLayoutManager(getContext(), 2));
         recyclerActiveListings.setAdapter(listingsAdapter);
 
-        // Cài đặt cho danh sách đánh giá
+        // Cài đặt cho danh sách đánh giá (giữ nguyên)
         recyclerReviews.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerReviews.setNestedScrollingEnabled(false);
         reviewAdapter = new PublicReviewAdapter();
@@ -239,7 +245,7 @@ public class PublicProfileFragment extends Fragment {
         int totalActiveListings = user.getActiveListingsCount();
 
         // Hiển thị nút nếu tổng số tin đăng lớn hơn 4
-        if (totalActiveListings > 4) {
+        if (totalActiveListings > 2) {
             btnViewAllListings.setVisibility(View.VISIBLE);
         } else {
             btnViewAllListings.setVisibility(View.GONE);

@@ -30,22 +30,27 @@
                 android:clickable="true"
                 android:focusable="true">
 
+                <!-- SỬA ĐỔI CARDVIEW NÀY -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="80dp"
                     android:layout_height="80dp"
                     app:cardCornerRadius="40dp"
-                    app:cardElevation="2dp">
+                    app:cardElevation="2dp"
+                    android:clickable="false"
+                    android:focusable="false">
 
                     <ImageView
                         android:id="@+id/profile_image"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:src="@drawable/img"
                         android:scaleType="centerCrop"
+                        android:src="@drawable/img"
                         android:contentDescription="Ảnh đại diện"
                         tools:ignore="HardcodedText" />
+
                 </androidx.cardview.widget.CardView>
 
+                <!-- VÀ SỬA ĐỔI CẢ CARDVIEW NÀY -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
@@ -54,7 +59,9 @@
                     android:layout_marginBottom="4dp"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="2dp"
-                    app:cardBackgroundColor="@color/charcoal_black">
+                    app:cardBackgroundColor="@color/charcoal_black"
+                    android:clickable="false"
+                    android:focusable="false">
 
                     <ImageView
                         android:id="@+id/camera_icon"
@@ -65,6 +72,7 @@
                         android:tint="@android:color/white"
                         android:contentDescription="Thay đổi ảnh đại diện"
                         tools:ignore="HardcodedText,UseAppTint" />
+
                 </androidx.cardview.widget.CardView>
             </FrameLayout>
 
