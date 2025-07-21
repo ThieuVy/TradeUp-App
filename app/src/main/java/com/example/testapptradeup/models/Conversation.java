@@ -11,10 +11,8 @@ public class Conversation {
     private String otherUserName;
     private String otherUserAvatarUrl;
     private String lastMessage;
-
-    // ================= SỬA LỖI: THÊM TRƯỜNG NÀY =================
+    private String lastMessageSenderId;
     private List<String> members; // Danh sách ID của 2 người dùng trong cuộc trò chuyện
-    // ==========================================================
 
     @ServerTimestamp
     private Date timestamp;
@@ -30,6 +28,7 @@ public class Conversation {
     public String getOtherUserName() { return otherUserName; }
     public String getOtherUserAvatarUrl() { return otherUserAvatarUrl; }
     public String getLastMessage() { return lastMessage; }
+    public String getLastMessageSenderId() { return lastMessageSenderId; }
     public Date getTimestamp() { return timestamp; }
     public int getUnreadCount() { return unreadCount; }
 
@@ -42,6 +41,7 @@ public class Conversation {
     public void setOtherUserName(String otherUserName) { this.otherUserName = otherUserName; }
     public void setOtherUserAvatarUrl(String otherUserAvatarUrl) { this.otherUserAvatarUrl = otherUserAvatarUrl; }
     public void setLastMessage(String lastMessage) { this.lastMessage = lastMessage; }
+    public void setLastMessageSenderId(String lastMessageSenderId) { this.lastMessageSenderId = lastMessageSenderId; }
     public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
     public void setUnreadCount(int unreadCount) { this.unreadCount = unreadCount; }
 

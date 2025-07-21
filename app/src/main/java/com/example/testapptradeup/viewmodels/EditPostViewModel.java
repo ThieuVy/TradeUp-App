@@ -2,6 +2,7 @@ package com.example.testapptradeup.viewmodels;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 import com.example.testapptradeup.models.Listing;
@@ -9,56 +10,52 @@ import com.example.testapptradeup.repositories.ListingRepository;
 
 public class EditPostViewModel extends ViewModel {
     private final ListingRepository repository;
-
-    // Trigger để bắt đầu tải dữ liệu
     private final MutableLiveData<String> listingIdTrigger = new MutableLiveData<>();
 
-    // LiveData chứa dữ liệu tin đăng gốc để hiển thị lên form
+    // <<< SỬA LỖI 1: Thay đổi từ public field sang private và thêm getter >>>
     private final LiveData<Listing> listingData;
 
-    // LiveData báo cáo trạng thái của thao tác cập nhật
     private final MutableLiveData<Boolean> _updateStatus = new MutableLiveData<>();
-    public LiveData<Boolean> getUpdateStatus() { return _updateStatus; }
-
     private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>();
-    public LiveData<Boolean> isLoading() { return _isLoading; }
 
     public EditPostViewModel() {
         this.repository = new ListingRepository();
-
-        // Sử dụng switchMap để tự động gọi repository khi listingIdTrigger thay đổi
-        listingData = Transformations.switchMap(listingIdTrigger, id -> {
-            _isLoading.setValue(true);
-            return repository.getListingById(id);
-        });
+        listingData = Transformations.switchMap(listingIdTrigger, repository::getListingById);
     }
 
-    /**
-     * Fragment gọi hàm này để bắt đầu quá trình tải dữ liệu.
-     * @param listingId ID của tin đăng cần sửa.
-     */
+    // <<< SỬA LỖI 1: Thêm phương thức getter này >>>
+    public LiveData<Listing> getListingData() {
+        return listingData;
+    }
+
+    public LiveData<Boolean> getUpdateStatus() {
+        return _updateStatus;
+    }
+
+    public LiveData<Boolean> isLoading() {
+        return _isLoading;
+    }
+
     public void loadListingData(String listingId) {
         if (listingId != null && !listingId.equals(listingIdTrigger.getValue())) {
             listingIdTrigger.setValue(listingId);
         }
     }
 
-    /**
-     * Fragment gọi hàm này để lưu các thay đổi.
-     * @param updatedListing Đối tượng Listing đã chứa các thông tin mới từ UI.
-     */
-    public void saveChanges(Listing updatedListing) {
+    // Phương thức này không thay đổi, nhưng giờ nó sẽ được gọi đúng cách từ Fragment
+    public void saveChanges(Listing updatedListing, MainViewModel mainViewModel) {
         _isLoading.setValue(true);
-        repository.updateListing(updatedListing).observeForever(success -> {
-            _isLoading.setValue(false);
-            _updateStatus.setValue(success);
+        LiveData<Boolean> result = repository.updateListing(updatedListing);
+        result.observeForever(new Observer<>() {
+            @Override
+            public void onChanged(Boolean success) {
+                _isLoading.setValue(false);
+                _updateStatus.setValue(success);
+                if (Boolean.TRUE.equals(success)) {
+                    mainViewModel.postListingUpdateEvent();
+                }
+                result.removeObserver(this);
+            }
         });
-    }
-
-    /**
-     * Getter để Fragment có thể observe dữ liệu tin đăng.
-     */
-    public LiveData<Listing> getListingData() {
-        return listingData;
     }
 }

@@ -23,10 +23,13 @@ import com.example.testapptradeup.adapters.FeaturedAdapter;
 import com.example.testapptradeup.adapters.ListingsAdapter;
 import com.example.testapptradeup.adapters.ProductGridAdapter;
 import com.example.testapptradeup.databinding.FragmentHomeBinding;
+import com.example.testapptradeup.models.Category;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.viewmodels.HomeViewModel;
 import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.google.firebase.auth.FirebaseAuth;
+
+import java.util.List;
 
 public class HomeFragment extends Fragment {
 
@@ -35,7 +38,6 @@ public class HomeFragment extends Fragment {
     private MainViewModel mainViewModel;
     private NavController navController;
 
-    // Adapters
     private FeaturedAdapter featuredAdapter;
     private ProductGridAdapter recommendationsAdapter;
     private ListingsAdapter recentListingsAdapter;
@@ -68,12 +70,11 @@ public class HomeFragment extends Fragment {
     }
 
     private void observeSharedViewModel() {
-        mainViewModel.getNewListingPosted().observe(getViewLifecycleOwner(), newListing -> {
-            if (newListing != null) {
-                Log.d("HomeFragment", "Nhận được sự kiện đăng bài mới, đang thêm vào đầu danh sách...");
-                viewModel.addNewListingToTop(newListing);
-                binding.listingsRecycler.scrollToPosition(0);
-                mainViewModel.onNewListingEventHandled();
+        // <<< SỬA LỖI 1 & 2: Sửa cú pháp Observer cho Event >>>
+        mainViewModel.getListingUpdatedEvent().observe(getViewLifecycleOwner(), event -> {
+            if (event.getContentIfNotHandled() != null) {
+                Toast.makeText(getContext(), "Dữ liệu đã được làm mới!", Toast.LENGTH_SHORT).show();
+                binding.listingsRecycler.smoothScrollToPosition(0);
             }
         });
     }
@@ -88,6 +89,39 @@ public class HomeFragment extends Fragment {
         binding.listingsRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.listingsRecycler.setAdapter(recentListingsAdapter);
     }
+
+    private void observeViewModel() {
+        // --- Observer cho mục "Nổi bật" ---
+        viewModel.getFeaturedItems().observe(getViewLifecycleOwner(), listings -> {
+            binding.featuredProgress.setVisibility(View.GONE);
+            updateListVisibility(listings, binding.featuredRecycler, binding.featuredEmptyText);
+            featuredAdapter.submitList(listings);
+        });
+
+        // --- Observer cho mục "Đề xuất" ---
+        viewModel.getRecommendations().observe(getViewLifecycleOwner(), listings -> {
+            binding.recommendationsProgress.setVisibility(View.GONE);
+            updateListVisibility(listings, binding.recommendationsRecycler, binding.recommendationsEmptyText);
+            recommendationsAdapter.submitList(listings);
+        });
+
+        // <<< SỬA LỖI 3, 4, 5: Gọi đúng phương thức và các lỗi liên quan tự hết >>>
+        // --- Observer cho mục "Tin rao gần đây" (đã được ưu tiên theo vị trí) ---
+        viewModel.getPrioritizedRecentListings().observe(getViewLifecycleOwner(), listings -> {
+            binding.listingsProgress.setVisibility(View.GONE);
+            updateListVisibility(listings, binding.listingsRecycler, binding.listingsEmptyText);
+            recentListingsAdapter.submitList(listings);
+            Log.d("HomeFragment", "Danh sách tin gần đây đã được cập nhật!");
+        });
+    }
+
+    private void updateListVisibility(List<?> list, View recyclerView, View emptyView) {
+        boolean isEmpty = list == null || list.isEmpty();
+        recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+        emptyView.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+    }
+
+    // --- Các hàm còn lại giữ nguyên ---
 
     private void setupClickListeners() {
         binding.chatIcon.setOnClickListener(v -> navigateTo(R.id.action_home_to_chatList));
@@ -108,70 +142,18 @@ public class HomeFragment extends Fragment {
             navController.navigate(action);
         });
 
-        binding.categoriesSectionLayout.categoryElectronics.setOnClickListener(v -> navigateToCategory("electronics"));
-        binding.categoriesSectionLayout.categoryFashion.setOnClickListener(v -> navigateToCategory("fashion"));
-        binding.categoriesSectionLayout.categoryHome.setOnClickListener(v -> navigateToCategory("home_goods"));
-        binding.categoriesSectionLayout.categoryCars.setOnClickListener(v -> navigateToCategory("cars"));
-        binding.categoriesSectionLayout.categorySports.setOnClickListener(v -> navigateToCategory("sports"));
-        binding.categoriesSectionLayout.categoryBooks.setOnClickListener(v -> navigateToCategory("books"));
-        binding.categoriesSectionLayout.categoryLaptop.setOnClickListener(v -> navigateToCategory("laptops"));
-        binding.categoriesSectionLayout.categoryOther.setOnClickListener(v -> navigateToCategory("other"));
-    }
-
-    private void observeViewModel() {
-
-        viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
-            // Đây là trạng thái loading chung cho lần tải đầu tiên
-            if (isLoading) {
-                binding.featuredProgress.setVisibility(View.VISIBLE);
-                binding.recommendationsProgress.setVisibility(View.VISIBLE);
-                binding.listingsProgress.setVisibility(View.VISIBLE);
-            }
-        });
-
-        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
-            if (error != null && !error.isEmpty()) {
-                Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
-            }
-        });
-
-        // Observer cho mục "Nổi bật"
-        viewModel.getFeaturedItems().observe(getViewLifecycleOwner(), listings -> {
-            binding.featuredProgress.setVisibility(View.GONE);
-            boolean isEmpty = listings == null || listings.isEmpty();
-            binding.featuredRecycler.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-            binding.featuredEmptyText.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
-            if (!isEmpty) {
-                featuredAdapter.submitList(listings);
-            }
-        });
-
-        // Observer cho mục "Đề xuất"
-        viewModel.getRecommendations().observe(getViewLifecycleOwner(), listings -> {
-            binding.recommendationsProgress.setVisibility(View.GONE);
-            boolean isEmpty = listings == null || listings.isEmpty();
-            binding.recommendationsRecycler.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-            binding.recommendationsEmptyText.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
-            if (!isEmpty) {
-                recommendationsAdapter.submitList(listings);
-            }
-        });
-
-        // Observer cho mục "Tin rao gần đây"
-        viewModel.getPrioritizedRecentListings().observe(getViewLifecycleOwner(), listings -> {
-            binding.listingsProgress.setVisibility(View.GONE);
-            boolean isEmpty = listings == null || listings.isEmpty();
-            binding.listingsRecycler.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-            binding.listingsEmptyText.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
-            if (!isEmpty) {
-                recentListingsAdapter.submitList(listings);
-            }
-        });
+        binding.categoriesSectionLayout.categoryElectronics.setOnClickListener(v -> navigateToCategory(Category.AppConstants.CATEGORY_ELECTRONICS));
+        binding.categoriesSectionLayout.categoryFashion.setOnClickListener(v -> navigateToCategory(Category.AppConstants.CATEGORY_FASHION));
+        binding.categoriesSectionLayout.categoryHome.setOnClickListener(v -> navigateToCategory(Category.AppConstants.CATEGORY_HOME_GOODS));
+        binding.categoriesSectionLayout.categoryCars.setOnClickListener(v -> navigateToCategory(Category.AppConstants.CATEGORY_CARS));
+        binding.categoriesSectionLayout.categorySports.setOnClickListener(v -> navigateToCategory(Category.AppConstants.CATEGORY_SPORTS));
+        binding.categoriesSectionLayout.categoryBooks.setOnClickListener(v -> navigateToCategory(Category.AppConstants.CATEGORY_BOOKS));
+        binding.categoriesSectionLayout.categoryLaptop.setOnClickListener(v -> navigateToCategory(Category.AppConstants.CATEGORY_LAPTOPS));
+        binding.categoriesSectionLayout.categoryOther.setOnClickListener(v -> navigateToCategory(Category.AppConstants.CATEGORY_OTHER));
     }
 
     private void navigateToCategory(String categoryId) {
         if (navController != null) {
-            // Truyền cả filterType="category" và categoryId
             HomeFragmentDirections.ActionHomeToProductList action =
                     HomeFragmentDirections.actionHomeToProductList("category");
             action.setCategoryId(categoryId);
@@ -180,15 +162,13 @@ public class HomeFragment extends Fragment {
     }
 
     private void navigateToProductDetail(Listing listing) {
-        // KIỂM TRA NULL NGHIÊM NGẶT ĐỂ TRÁNH CRASH
         if (navController != null && listing != null && listing.getId() != null) {
             HomeFragmentDirections.ActionHomeToProductDetail action =
                     HomeFragmentDirections.actionHomeToProductDetail(listing.getId());
             navController.navigate(action);
         } else {
-            // Ghi log lỗi và thông báo cho người dùng một cách an toàn
             Log.e("HomeFragment", "Không thể điều hướng: listing hoặc listing ID là null.");
-            Toast.makeText(getContext(), "Không thể mở chi tiết sản phẩm lúc này.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Không thể mở chi tiết sản phẩm.", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -201,25 +181,19 @@ public class HomeFragment extends Fragment {
         boolean isCurrentlyFavorited = favoriteIcon.getTag() != null && (boolean) favoriteIcon.getTag();
         boolean newFavoriteState = !isCurrentlyFavorited;
 
-        // Cập nhật giao diện ngay lập tức
         updateFavoriteIconUI(favoriteIcon, newFavoriteState);
-
-        // Gọi ViewModel để xử lý logic ở backend
         viewModel.toggleFavorite(listing.getId(), newFavoriteState);
-
-        // Tạm thời hiển thị Toast
-        String message = newFavoriteState ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích";
-        Toast.makeText(getContext(), message + ": " + listing.getTitle(), Toast.LENGTH_SHORT).show();
     }
 
     private void updateFavoriteIconUI(ImageView favoriteIcon, boolean isFavorite) {
+        if (getContext() == null) return;
         if (isFavorite) {
-            favoriteIcon.setImageResource(R.drawable.ic_favorite_filled); // Icon trái tim đầy
-            favoriteIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.red_error)); // Màu đỏ
-            favoriteIcon.setTag(true); // Dùng tag để lưu trạng thái
+            favoriteIcon.setImageResource(R.drawable.ic_favorite_filled);
+            favoriteIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.red_error));
+            favoriteIcon.setTag(true);
         } else {
-            favoriteIcon.setImageResource(R.drawable.ic_favorite_outline); // Icon trái tim rỗng
-            favoriteIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.text_secondary)); // Màu xám
+            favoriteIcon.setImageResource(R.drawable.ic_favorite_outline);
+            favoriteIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.text_secondary));
             favoriteIcon.setTag(false);
         }
     }
@@ -228,12 +202,6 @@ public class HomeFragment extends Fragment {
         if (navController != null && navController.getCurrentDestination() != null && navController.getCurrentDestination().getId() != destinationId) {
             navController.navigate(destinationId);
         }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        viewModel.refreshData();
     }
 
     @Override

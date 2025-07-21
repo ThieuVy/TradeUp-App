@@ -1,5 +1,7 @@
 package com.example.testapptradeup.viewmodels;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
@@ -16,70 +18,80 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class MyListingsViewModel extends ViewModel {
     private final ListingRepository listingRepository;
-    @Nullable
     private final String userId;
 
+    // Lớp nội bộ để đóng gói tham số tải dữ liệu, đã bao gồm 'status'
     private static class LoadParams {
         @NonNull final String userId;
+        @Nullable final String status;
         @Nullable final DocumentSnapshot lastVisible;
-        LoadParams(@NonNull String userId, @Nullable DocumentSnapshot lastVisible) {
+
+        public LoadParams(@NonNull String userId, @Nullable String status, @Nullable DocumentSnapshot lastVisible) {
             this.userId = userId;
+            this.status = status;
             this.lastVisible = lastVisible;
         }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             LoadParams that = (LoadParams) o;
-            return userId.equals(that.userId) && Objects.equals(lastVisible, that.lastVisible);
+            return userId.equals(that.userId) &&
+                    Objects.equals(status, that.status) &&
+                    Objects.equals(lastVisible, that.lastVisible);
         }
+
         @Override
         public int hashCode() {
-            return Objects.hash(userId, lastVisible);
+            return Objects.hash(userId, status, lastVisible);
         }
     }
 
     private final MutableLiveData<LoadParams> loadTrigger = new MutableLiveData<>();
     private final LiveData<PagedResult<Listing>> pagedResult;
-    private final MediatorLiveData<List<Listing>> allMyListings = new MediatorLiveData<>();
+
+    // Đây là LiveData chính chứa danh sách hiển thị, được cập nhật trực tiếp từ pagedResult
     private final MediatorLiveData<List<Listing>> displayedListings = new MediatorLiveData<>();
     private final MutableLiveData<String> filterStatus = new MutableLiveData<>("all");
+
     public final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
     public final MutableLiveData<Boolean> isLoadingMore = new MutableLiveData<>(false);
-    private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
+    private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
 
     private DocumentSnapshot lastVisibleDocument = null;
     private boolean isLastPage = false;
     private boolean isCurrentlyLoading = false;
 
-    public boolean isCurrentlyLoading() {
-        return isCurrentlyLoading;
-    }
-
     public MyListingsViewModel() {
         this.listingRepository = new ListingRepository();
         this.userId = FirebaseAuth.getInstance().getUid();
 
-        pagedResult = Transformations.switchMap(loadTrigger, params -> {
+        pagedResult = Transformations.switchMap(Transformations.distinctUntilChanged(loadTrigger), params -> {
             if (params == null) {
-                MutableLiveData<PagedResult<Listing>> emptyResult = new MutableLiveData<>();
-                emptyResult.setValue(new PagedResult<>(Collections.emptyList(), null, null));
-                return emptyResult;
+                return new MutableLiveData<>();
             }
             isCurrentlyLoading = true;
-            return listingRepository.getMyListings(params.userId, params.lastVisible);
+            // Gọi hàm getMyListings đã được sửa đổi với 3 tham số
+            return listingRepository.getMyListings(params.userId, params.status, params.lastVisible);
         });
 
-        allMyListings.addSource(pagedResult, result -> {
-            if (result == null || !result.isSuccess() || result.getData() == null) {
-                _errorMessage.setValue("Không thể tải danh sách tin đăng.");
+        // Lắng nghe kết quả phân trang và cập nhật danh sách hiển thị
+        displayedListings.addSource(pagedResult, result -> {
+            if (result == null) {
+                errorMessage.setValue("Đã xảy ra lỗi không xác định.");
+                resetLoadingStates();
+                return;
+            }
+            if (!result.isSuccess() || result.getData() == null) {
+                Exception error = result.getError();
+                String message = (error != null) ? error.getMessage() : null;
+                errorMessage.setValue(message != null && !message.isEmpty() ? message : "Không thể tải danh sách tin đăng.");
                 resetLoadingStates();
                 return;
             }
@@ -87,29 +99,24 @@ public class MyListingsViewModel extends ViewModel {
             boolean isInitialLoad = (loadTrigger.getValue() != null && loadTrigger.getValue().lastVisible == null);
 
             if (isInitialLoad) {
-                allMyListings.setValue(result.getData());
+                // Nếu là lần tải đầu (refresh hoặc đổi tab), thay thế hoàn toàn danh sách
+                displayedListings.setValue(new ArrayList<>(result.getData()));
             } else {
-                List<Listing> currentList = allMyListings.getValue();
+                // Nếu là tải thêm trang, nối vào danh sách cũ
+                List<Listing> currentList = displayedListings.getValue();
                 if (currentList == null) currentList = new ArrayList<>();
                 List<Listing> updatedList = new ArrayList<>(currentList);
                 updatedList.addAll(result.getData());
-                allMyListings.setValue(updatedList);
+                displayedListings.setValue(updatedList);
             }
 
+            Log.d("MyListingsCheck", "ViewModel đang tải tin đăng cho User ID: " + this.userId);
             lastVisibleDocument = result.getLastVisible();
-            isLastPage = result.getData() == null || result.getData().size() < ListingRepository.PAGE_SIZE;
+            isLastPage = result.getData().size() < ListingRepository.PAGE_SIZE;
             resetLoadingStates();
         });
 
-        displayedListings.addSource(allMyListings, listings -> {
-            String currentFilter = filterStatus.getValue();
-            applyFilterAndPost(listings, currentFilter);
-        });
-        displayedListings.addSource(filterStatus, status -> {
-            List<Listing> currentListings = allMyListings.getValue();
-            applyFilterAndPost(currentListings, status);
-        });
-
+        // Tải dữ liệu lần đầu với bộ lọc mặc định là "all"
         refreshListings();
     }
 
@@ -119,69 +126,80 @@ public class MyListingsViewModel extends ViewModel {
         isLoadingMore.setValue(false);
     }
 
-    private void applyFilterAndPost(@Nullable List<Listing> listings, @Nullable String status) {
-        if (listings == null) {
-            displayedListings.setValue(new ArrayList<>());
-            return;
-        }
-        if (status == null || "all".equals(status)) {
-            displayedListings.setValue(listings);
-            return;
-        }
-        List<Listing> filtered = listings.stream()
-                .filter(l -> status.equals(l.getStatus()))
-                .collect(Collectors.toList());
-        displayedListings.setValue(filtered);
-    }
-
     public void loadNextPage() {
-        if (userId == null || isCurrentlyLoading || isLastPage) {
-            return;
-        }
+        if (userId == null || isCurrentlyLoading || isLastPage) return;
         isLoadingMore.setValue(true);
-        loadTrigger.setValue(new LoadParams(userId, lastVisibleDocument));
+        // Truyền cả status hiện tại khi tải thêm trang
+        loadTrigger.setValue(new LoadParams(userId, filterStatus.getValue(), lastVisibleDocument));
     }
 
     public void refreshListings() {
-        if (userId == null || isCurrentlyLoading) {
-            return;
-        }
+        if (userId == null) return;
         isLoading.setValue(true);
         isLastPage = false;
         lastVisibleDocument = null;
-        loadTrigger.setValue(new LoadParams(userId, null));
+        // Xóa danh sách cũ để UI hiển thị vòng xoay loading chính
+        displayedListings.setValue(new ArrayList<>());
+        // Kích hoạt trigger để tải lại từ đầu với status hiện tại
+        loadTrigger.setValue(new LoadParams(userId, filterStatus.getValue(), null));
     }
-
-    public LiveData<List<Listing>> getDisplayedListings() { return displayedListings; }
-    public LiveData<Boolean> isLoading() { return isLoading; }
-    public LiveData<Boolean> isLoadingMore() { return isLoadingMore; }
-    public boolean isLastPage() { return isLastPage; }
-    public LiveData<String> getErrorMessage() { return _errorMessage; }
 
     public void setFilter(String status) {
         if (!Objects.equals(filterStatus.getValue(), status)) {
             filterStatus.setValue(status);
+            // Khi đổi tab (thay đổi bộ lọc), luôn luôn tải lại danh sách từ đầu
+            refreshListings();
         }
     }
 
     public LiveData<Boolean> deleteListing(String listingId) {
         MutableLiveData<Boolean> deleteResult = new MutableLiveData<>();
-        listingRepository.deleteListing(listingId).observeForever(new Observer<>() {
+        // Sử dụng observeForever an toàn trong ViewModel vì nó sẽ được dọn dẹp trong onCleared()
+        // Tuy nhiên, gỡ observer ngay sau khi hoàn thành là một thói quen tốt.
+        Observer<Boolean> observer = new Observer<>() {
             @Override
             public void onChanged(Boolean success) {
                 if (Boolean.TRUE.equals(success)) {
-                    // Cập nhật lại danh sách trên UI sau khi xóa thành công
-                    List<Listing> currentList = allMyListings.getValue();
+                    List<Listing> currentList = displayedListings.getValue();
                     if (currentList != null) {
                         List<Listing> updatedList = new ArrayList<>(currentList);
                         updatedList.removeIf(l -> l.getId().equals(listingId));
-                        allMyListings.setValue(updatedList);
+                        displayedListings.setValue(updatedList);
                     }
                 }
                 deleteResult.setValue(success);
-                listingRepository.deleteListing(listingId).removeObserver(this);
+                // Gỡ bỏ observer để tránh gọi lại nhiều lần
+                deleteResult.removeObserver(this);
             }
-        });
+        };
+        listingRepository.deleteListing(listingId).observeForever(observer);
         return deleteResult;
+    }
+
+    // --- Getters cho Fragment ---
+
+    // Fragment sẽ observe trực tiếp LiveData này
+    public LiveData<List<Listing>> getDisplayedListings() {
+        return displayedListings;
+    }
+
+    public LiveData<Boolean> isLoading() {
+        return isLoading;
+    }
+
+    public LiveData<Boolean> isLoadingMore() {
+        return isLoadingMore;
+    }
+
+    public LiveData<String> getErrorMessage() {
+        return errorMessage;
+    }
+
+    public boolean isLastPage() {
+        return isLastPage;
+    }
+
+    public boolean isCurrentlyLoading() {
+        return isCurrentlyLoading;
     }
 }

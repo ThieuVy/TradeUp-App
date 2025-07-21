@@ -5,7 +5,7 @@ import android.app.Application;
 import android.location.Location;
 
 import androidx.annotation.NonNull;
-import androidx.lifecycle.AndroidViewModel; // SỬA LỖI 1: Import AndroidViewModel
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -25,46 +25,42 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế thừa từ AndroidViewModel
+public class HomeViewModel extends AndroidViewModel {
 
     private final ListingRepository listingRepository;
+    private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+    private final String currentUserId;
 
+    // LiveData cho các danh sách
     private final LiveData<List<Listing>> featuredItems;
-    private final LiveData<List<Category>> categories;
     private final LiveData<List<Listing>> recommendations;
-    private final LiveData<List<Listing>> recentListings;
-    private final LiveData<Boolean> isLoading;
-    private final LiveData<String> errorMessage;
-    private final UserRepository userRepository; // Cần có UserRepository
-    private final String currentUserId; // Cần có ID người dùng
+    private final LiveData<List<Category>> categories; // Giữ lại để có thể mở rộng
 
-    // SỬA LỖI 2: Thêm 'final'
+    // LiveData cho việc xử lý vị trí
     private final FusedLocationProviderClient fusedLocationClient;
     private final MutableLiveData<Location> userLocation = new MutableLiveData<>();
     private final MediatorLiveData<List<Listing>> prioritizedRecentListings = new MediatorLiveData<>();
 
     public HomeViewModel(@NonNull Application application) {
-        super(application); // SỬA LỖI 1: Gọi super constructor của AndroidViewModel
+        super(application);
         this.listingRepository = new ListingRepository();
-        this.categoryRepository = new CategoryRepository();
+        this.userRepository = new UserRepository();
+        this.categoryRepository = new CategoryRepository(); // Vẫn khởi tạo nếu cần
+        this.currentUserId = FirebaseAuth.getInstance().getUid();
 
+        // Lấy dữ liệu trực tiếp từ repository, chúng sẽ tự cập nhật
         this.featuredItems = listingRepository.getFeaturedListings();
         this.recommendations = listingRepository.getRecommendedListings(4);
-        this.recentListings = listingRepository.getRecentListings();
-        this.categories = categoryRepository.getTopCategories(8);
-        this.isLoading = listingRepository.isLoading();
-        this.errorMessage = listingRepository.getErrorMessage();
-        this.userRepository = new UserRepository(); // Khởi tạo
-        this.currentUserId = FirebaseAuth.getInstance().getUid(); // Lấy ID
+        this.categories = categoryRepository.getTopCategories(8); // Giả sử CategoryRepository cũng dùng listener
 
-        // SỬA LỖI 1: Lấy context từ application được truyền vào
+        // Thiết lập FusedLocationProviderClient
         this.fusedLocationClient = LocationServices.getFusedLocationProviderClient(application);
 
-        // Lấy LiveData gốc từ repository
+        // Lấy LiveData gốc của "Tin gần đây" từ repository
         LiveData<List<Listing>> recentListingsSource = listingRepository.getRecentListings();
 
-        // Mediator sẽ lắng nghe cả vị trí và danh sách gốc
+        // Mediator sẽ lắng nghe cả vị trí và danh sách gốc để kết hợp và sắp xếp
         prioritizedRecentListings.addSource(userLocation, location ->
                 combineAndSort(location, recentListingsSource.getValue())
         );
@@ -72,42 +68,21 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
                 combineAndSort(userLocation.getValue(), listings)
         );
 
+        // Bắt đầu lấy vị trí người dùng
         fetchUserLocation();
     }
 
+    /**
+     * Kết hợp và sắp xếp danh sách tin đăng dựa trên vị trí người dùng.
+     * Phương thức này tạo một danh sách mới để sắp xếp, tránh thay đổi danh sách gốc.
+     */
     private void combineAndSort(Location location, List<Listing> listings) {
-        if (listings == null) return;
-
-        if (location != null) {
-            final GeoLocation center = new GeoLocation(location.getLatitude(), location.getLongitude());
-            listings.sort(Comparator.comparingDouble(l ->
-                    (l.getLatitude() != 0 && l.getLongitude() != 0)
-                            ? GeoFireUtils.getDistanceBetween(new GeoLocation(l.getLatitude(), l.getLongitude()), center)
-                            : Double.MAX_VALUE
-            ));
-        }
-        prioritizedRecentListings.setValue(listings);
-    }
-
-    public LiveData<List<Listing>> getPrioritizedRecentListings() {
-        return prioritizedRecentListings;
-    }
-
-    @SuppressLint("MissingPermission")
-    private void fetchUserLocation() {
-        fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
-            if (location != null) {
-                userLocation.setValue(location);
-            }
-        });
-    }
-
-    private void combineAndSortListings(Location location, List<Listing> listings) {
         if (listings == null) {
-            prioritizedRecentListings.setValue(new ArrayList<>());
+            prioritizedRecentListings.setValue(new ArrayList<>()); // Trả về danh sách rỗng nếu nguồn là null
             return;
         }
 
+        // Tạo một bản sao của danh sách để thực hiện sắp xếp
         List<Listing> listToSort = new ArrayList<>(listings);
 
         if (location != null) {
@@ -119,35 +94,42 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
                 return Double.MAX_VALUE; // Đẩy các tin không có vị trí xuống cuối
             }));
         }
-
+        // Cập nhật MediatorLiveData với danh sách đã được sắp xếp
         prioritizedRecentListings.setValue(listToSort);
     }
 
-    public void addNewListingToTop(Listing newListing) {
-        listingRepository.prependLocalListing(newListing);
+    /**
+     * Lấy vị trí cuối cùng đã biết của người dùng.
+     */
+    @SuppressLint("MissingPermission")
+    private void fetchUserLocation() {
+        // Hàm này có thể được gọi lại nếu người dùng thực hiện "kéo để làm mới"
+        fusedLocationClient.getLastLocation().addOnSuccessListener(userLocation::setValue);
     }
 
+    /**
+     * Xử lý hành động "kéo để làm mới" từ Fragment.
+     * Hiện tại, chỉ cần lấy lại vị trí người dùng vì dữ liệu tin đăng đã tự cập nhật.
+     */
     public void refreshData() {
-        listingRepository.fetchAll();
-        categoryRepository.fetchAll();
-        fetchUserLocation(); // Lấy lại vị trí mới khi refresh
+        fetchUserLocation();
     }
 
+    /**
+     * Thêm hoặc xóa một tin đăng khỏi danh sách yêu thích của người dùng.
+     */
     public void toggleFavorite(String listingId, boolean isFavorite) {
-        if (currentUserId == null) {
-            // Có thể báo lỗi nếu cần
-            return;
+        if (currentUserId != null) {
+            userRepository.toggleFavorite(currentUserId, listingId, isFavorite);
         }
-        userRepository.toggleFavorite(currentUserId, listingId, isFavorite);
     }
 
-    // --- GETTERS CHO FRAGMENT OBSERVE ---
+    // --- GETTERS ĐỂ FRAGMENT OBSERVE ---
 
     public LiveData<List<Listing>> getFeaturedItems() {
         return featuredItems;
     }
 
-    // Phương thức này hiện tại chưa được dùng nhưng vẫn giữ lại để có thể mở rộng
     public LiveData<List<Category>> getCategories() {
         return categories;
     }
@@ -156,20 +138,14 @@ public class HomeViewModel extends AndroidViewModel { // SỬA LỖI 1: Kế th�
         return recommendations;
     }
 
-    // Lấy prioritizedRecentListings thay vì recentListings
-    public LiveData<List<Listing>> getListings() {
+    /**
+     * Cung cấp danh sách "Tin gần đây" đã được ưu tiên hóa theo vị trí.
+     */
+    public LiveData<List<Listing>> getPrioritizedRecentListings() {
         return prioritizedRecentListings;
     }
 
-    public LiveData<Boolean> getIsLoading() {
-        return isLoading;
-    }
-
     public LiveData<String> getErrorMessage() {
-        return errorMessage;
-    }
-
-    public LiveData<Boolean> isLoading() {
-        return isLoading;
+        return listingRepository.getErrorMessage();
     }
 }

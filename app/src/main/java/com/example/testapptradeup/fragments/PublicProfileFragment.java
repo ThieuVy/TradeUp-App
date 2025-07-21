@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -17,23 +18,22 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
+import com.example.testapptradeup.adapters.ProductGridAdapter;
 import com.example.testapptradeup.adapters.PublicReviewAdapter;
-import com.example.testapptradeup.models.Listing; // <<< SỬA LỖI: Thêm import quan trọng này
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.viewmodels.PublicProfileViewModel;
-import com.google.android.flexbox.FlexboxLayout; // <<< THÊM MỚI: Import FlexboxLayout
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
-import java.util.List; // <<< SỬA LỖI: Đảm bảo import java.util.List
 import java.util.Locale;
 import java.util.Map;
 
@@ -48,12 +48,14 @@ public class PublicProfileFragment extends Fragment {
     private ProgressBar progressBar;
     private ImageView profileImage, btnBack, btnMoreOptions;
     private TextView textDisplayName, textMemberSince, textRatingStars, textRatingInfo, textBio, textLocation;
+    private Button btnMessage;
     private TextView statsActiveListings, statsCompletedSales, statsReviews;
     private TextView btnViewAllListings, btnViewAllReviews;
 
-    // SỬA LỖI: Chỉ cần FlexboxLayout và RecyclerView cho reviews
-    private FlexboxLayout flexboxActiveListings;
+    // Adapters và RecyclerViews
+    private RecyclerView recyclerActiveListings;
     private RecyclerView recyclerReviews;
+    private ProductGridAdapter listingsAdapter;
     private PublicReviewAdapter reviewAdapter;
 
 
@@ -77,7 +79,7 @@ public class PublicProfileFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         navController = Navigation.findNavController(view);
         initViews(view);
-        setupReviewRecyclerView();
+        setupRecyclerViews();
         setupClickListeners();
         observeViewModel();
 
@@ -89,20 +91,106 @@ public class PublicProfileFragment extends Fragment {
         }
     }
 
+    private void initViews(View view) {
+        contentLayout = view.findViewById(R.id.profile_content_layout);
+        progressBar = view.findViewById(R.id.profile_loading_progress);
+        profileImage = view.findViewById(R.id.profile_image);
+        btnBack = view.findViewById(R.id.btn_back);
+        textDisplayName = view.findViewById(R.id.text_display_name);
+        textMemberSince = view.findViewById(R.id.text_member_since);
+        textRatingStars = view.findViewById(R.id.text_rating_stars);
+        textRatingInfo = view.findViewById(R.id.text_rating_info);
+        textBio = view.findViewById(R.id.text_bio);
+        textLocation = view.findViewById(R.id.text_location);
+        btnMessage = view.findViewById(R.id.btn_message);
+        statsActiveListings = view.findViewById(R.id.stats_active_listings);
+        statsCompletedSales = view.findViewById(R.id.stats_completed_sales);
+        statsReviews = view.findViewById(R.id.stats_reviews);
+        recyclerActiveListings = view.findViewById(R.id.recycler_active_listings);
+        recyclerReviews = view.findViewById(R.id.recycler_reviews);
+        btnViewAllListings = view.findViewById(R.id.btn_view_all_listings);
+        btnViewAllReviews = view.findViewById(R.id.btn_view_all_reviews);
+        btnMoreOptions = view.findViewById(R.id.btn_more_options);
+    }
+
+    private void setupRecyclerViews() {
+        // Cài đặt cho danh sách sản phẩm
+        listingsAdapter = new ProductGridAdapter(listing -> {
+            PublicProfileFragmentDirections.ActionPublicProfileFragmentToProductDetailFragment action =
+                    PublicProfileFragmentDirections.actionPublicProfileFragmentToProductDetailFragment(listing.getId());
+            navController.navigate(action);
+        });
+        recyclerActiveListings.setLayoutManager(new GridLayoutManager(getContext(), 2));
+        recyclerActiveListings.setAdapter(listingsAdapter);
+
+        // Cài đặt cho danh sách đánh giá
+        recyclerReviews.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerReviews.setNestedScrollingEnabled(false);
+        reviewAdapter = new PublicReviewAdapter();
+        recyclerReviews.setAdapter(reviewAdapter);
+    }
+
+    private void setupClickListeners() {
+        btnBack.setOnClickListener(v -> navController.popBackStack());
+
+        btnMessage.setOnClickListener(v -> {
+            String currentAuthUserId = FirebaseAuth.getInstance().getUid();
+            // Kiểm tra người dùng có tự nhắn tin cho mình không
+            if (userId.equals(currentAuthUserId)) {
+                Toast.makeText(getContext(), "Bạn không thể tự nhắn tin cho mình.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Kiểm tra đã đăng nhập chưa
+            if (currentAuthUserId == null) {
+                Toast.makeText(getContext(), "Vui lòng đăng nhập để nhắn tin.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Gọi ViewModel để tìm hoặc tạo cuộc trò chuyện
+            viewModel.findOrCreateChat(userId).observe(getViewLifecycleOwner(), chatId -> {
+                if (chatId != null && !chatId.isEmpty()) {
+                    // Đã có chatId, điều hướng đến màn hình chat chi tiết
+                    PublicProfileFragmentDirections.ActionPublicProfileFragmentToChatDetailFragment action =
+                            PublicProfileFragmentDirections.actionPublicProfileFragmentToChatDetailFragment(chatId, textDisplayName.getText().toString());
+                    navController.navigate(action);
+                } else {
+                    Toast.makeText(getContext(), "Không thể tạo cuộc trò chuyện.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+
+        btnMoreOptions.setOnClickListener(v -> showReportDialog());
+        btnViewAllListings.setOnClickListener(v -> {
+            // Tạo action với tham số bắt buộc
+            PublicProfileFragmentDirections.ActionPublicProfileFragmentToProductListFragment action =
+                    PublicProfileFragmentDirections.actionPublicProfileFragmentToProductListFragment("user");
+            // Sử dụng setter để gán userId. Tham số categoryId sẽ mặc định là null.
+            action.setUserId(userId);
+            navController.navigate(action);
+        });
+        btnViewAllReviews.setOnClickListener(v -> Toast.makeText(getContext(), "Xem tất cả đánh giá cho " + textDisplayName.getText(), Toast.LENGTH_SHORT).show());
+    }
+
     private void observeViewModel() {
         viewModel.getUserProfile().observe(getViewLifecycleOwner(), this::updateProfileUI);
 
-        // SỬA LỖI: Gọi đúng hàm populateListingsFlexbox
-        viewModel.getUserListings().observe(getViewLifecycleOwner(), this::populateListingsFlexbox);
+        // Observer này chỉ nhận TỐI ĐA 4 tin đăng để hiển thị
+        viewModel.getUserListings().observe(getViewLifecycleOwner(), listings -> {
+            if (listings != null) {
+                listingsAdapter.submitList(listings);
+            }
+        });
 
         viewModel.getUserReviews().observe(getViewLifecycleOwner(), userReviews -> {
             int maxReviewsToShow = 2;
-            if (userReviews.size() > maxReviewsToShow) {
-                reviewAdapter.submitList(userReviews.subList(0, maxReviewsToShow));
-                btnViewAllReviews.setVisibility(View.VISIBLE);
-            } else {
-                reviewAdapter.submitList(userReviews);
-                btnViewAllReviews.setVisibility(View.GONE);
+            if (userReviews != null) {
+                if (userReviews.size() > maxReviewsToShow) {
+                    reviewAdapter.submitList(userReviews.subList(0, maxReviewsToShow));
+                    btnViewAllReviews.setVisibility(View.VISIBLE);
+                } else {
+                    reviewAdapter.submitList(userReviews);
+                    btnViewAllReviews.setVisibility(View.GONE);
+                }
             }
         });
 
@@ -119,90 +207,10 @@ public class PublicProfileFragment extends Fragment {
         });
     }
 
-    private void initViews(View view) {
-        contentLayout = view.findViewById(R.id.profile_content_layout);
-        progressBar = view.findViewById(R.id.profile_loading_progress);
-        profileImage = view.findViewById(R.id.profile_image);
-        btnBack = view.findViewById(R.id.btn_back);
-        textDisplayName = view.findViewById(R.id.text_display_name);
-        textMemberSince = view.findViewById(R.id.text_member_since);
-        textRatingStars = view.findViewById(R.id.text_rating_stars);
-        textRatingInfo = view.findViewById(R.id.text_rating_info);
-        textBio = view.findViewById(R.id.text_bio);
-        textLocation = view.findViewById(R.id.text_location);
-        statsActiveListings = view.findViewById(R.id.stats_active_listings);
-        statsCompletedSales = view.findViewById(R.id.stats_completed_sales);
-        statsReviews = view.findViewById(R.id.stats_reviews);
-        flexboxActiveListings = view.findViewById(R.id.flexbox_active_listings);
-        recyclerReviews = view.findViewById(R.id.recycler_reviews);
-        btnViewAllListings = view.findViewById(R.id.btn_view_all_listings);
-        btnViewAllReviews = view.findViewById(R.id.btn_view_all_reviews);
-        btnMoreOptions = view.findViewById(R.id.btn_more_options);
-    }
-
-    private void setupReviewRecyclerView() {
-        recyclerReviews.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerReviews.setNestedScrollingEnabled(false);
-        reviewAdapter = new PublicReviewAdapter();
-        recyclerReviews.setAdapter(reviewAdapter);
-    }
-
-    private void setupClickListeners() {
-        btnBack.setOnClickListener(v -> navController.popBackStack());
-        btnMoreOptions.setOnClickListener(v -> showReportDialog());
-
-        btnViewAllListings.setOnClickListener(v -> Toast.makeText(getContext(), "Xem tất cả sản phẩm của " + textDisplayName.getText(), Toast.LENGTH_SHORT).show());
-
-        btnViewAllReviews.setOnClickListener(v -> Toast.makeText(getContext(), "Xem tất cả đánh giá cho " + textDisplayName.getText(), Toast.LENGTH_SHORT).show());
-    }
-
-    private void populateListingsFlexbox(List<Listing> listings) {
-        if (getContext() == null || listings == null) return;
-        flexboxActiveListings.removeAllViews();
-        int maxItemsToShow = 4;
-
-        if (listings.size() > maxItemsToShow) {
-            btnViewAllListings.setVisibility(View.VISIBLE);
-        } else {
-            btnViewAllListings.setVisibility(View.GONE);
-        }
-
-        for (int i = 0; i < listings.size() && i < maxItemsToShow; i++) {
-            Listing listing = listings.get(i);
-
-            LayoutInflater inflater = LayoutInflater.from(getContext());
-            View itemView = inflater.inflate(R.layout.item_public_listing, flexboxActiveListings, false);
-
-            ImageView listingImage = itemView.findViewById(R.id.listing_image);
-            TextView listingTitle = itemView.findViewById(R.id.listing_title);
-            TextView listingPrice = itemView.findViewById(R.id.listing_price);
-            TextView listingStatus = itemView.findViewById(R.id.listing_status);
-
-            listingTitle.setText(listing.getTitle());
-            listingPrice.setText(listing.getFormattedPrice());
-
-            if ("available".equalsIgnoreCase(listing.getStatus())) {
-                listingStatus.setVisibility(View.VISIBLE);
-                listingStatus.setText(R.string.listing_status_available);
-            } else {
-                listingStatus.setVisibility(View.GONE);
-            }
-
-            Glide.with(this)
-                    .load(listing.getPrimaryImageUrl())
-                    .placeholder(R.drawable.img_placeholder)
-                    .error(R.drawable.img_placeholder)
-                    .into(listingImage);
-
-            itemView.setOnClickListener(v -> Toast.makeText(getContext(), "Mở chi tiết: " + listing.getTitle(), Toast.LENGTH_SHORT).show());
-
-            flexboxActiveListings.addView(itemView);
-        }
-    }
-
     @SuppressLint("SetTextI18n")
     private void updateProfileUI(User user) {
-        if (user == null) return;
+        if (user == null || getContext() == null) return;
+
         textDisplayName.setText(user.getName());
         textBio.setText(user.getBio());
         textLocation.setText(user.getAddress());
@@ -213,14 +221,12 @@ public class PublicProfileFragment extends Fragment {
             textMemberSince.setText(getString(R.string.profile_member_since_format, sdf.format(user.getMemberSince())));
         }
 
-        if (getContext() != null && user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
-            Glide.with(getContext())
-                    .load(user.getProfileImageUrl())
-                    .placeholder(R.drawable.ic_profile_placeholder)
-                    .error(R.drawable.ic_profile_placeholder)
-                    .circleCrop()
-                    .into(profileImage);
-        }
+        Glide.with(this)
+                .load(user.getProfileImageUrl())
+                .placeholder(R.drawable.ic_profile_placeholder)
+                .error(R.drawable.ic_profile_placeholder)
+                .circleCrop()
+                .into(profileImage);
 
         textRatingInfo.setText(getString(R.string.profile_rating_info_format, user.getRating(), user.getReviewCount()));
         textRatingStars.setText(getStarString(user.getRating()));
@@ -228,6 +234,16 @@ public class PublicProfileFragment extends Fragment {
         statsActiveListings.setText(String.valueOf(user.getActiveListingsCount()));
         statsCompletedSales.setText(String.valueOf(user.getCompletedSalesCount()));
         statsReviews.setText(String.valueOf(user.getReviewCount()));
+
+        // Lấy tổng số tin đăng từ đối tượng User
+        int totalActiveListings = user.getActiveListingsCount();
+
+        // Hiển thị nút nếu tổng số tin đăng lớn hơn 4
+        if (totalActiveListings > 4) {
+            btnViewAllListings.setVisibility(View.VISIBLE);
+        } else {
+            btnViewAllListings.setVisibility(View.GONE);
+        }
     }
 
     private String getStarString(double rating) {

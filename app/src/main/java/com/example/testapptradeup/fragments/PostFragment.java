@@ -43,6 +43,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.adapters.PhotoAdapter;
+import com.example.testapptradeup.models.Category;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.utils.SharedPrefsHelper;
@@ -237,7 +238,7 @@ public class PostFragment extends Fragment {
         Listing listing = new Listing();
         listing.setTitle(title);
         listing.setPrice(Double.parseDouble(priceStr));
-        listing.setCategoryId(spinnerCategory.getText().toString());
+        listing.setCategory(spinnerCategory.getText().toString());
         listing.setDescription(description);
         listing.setCondition(getSelectedCondition());
         listing.setSellerId(currentUserId);
@@ -266,6 +267,41 @@ public class PostFragment extends Fragment {
         if (imageUris != null) {
             listing.setImageUrls(imageUris.stream().map(Uri::toString).collect(Collectors.toList()));
         }
+
+        String selectedCategoryName = spinnerCategory.getText().toString(); // Ví dụ: "Laptop"
+        String categoryIdToSave = "";
+
+        // Ánh xạ từ TÊN HIỂN THỊ về ID CHUẨN
+        switch (selectedCategoryName) {
+            case "Điện tử": // Tên này phải khớp với tên trong mảng `categories` bạn tạo
+                categoryIdToSave = Category.AppConstants.CATEGORY_ELECTRONICS;
+                break;
+            case "Laptop":
+                categoryIdToSave = Category.AppConstants.CATEGORY_LAPTOPS;
+                break;
+            case "Thời trang":
+                categoryIdToSave = Category.AppConstants.CATEGORY_FASHION;
+                break;
+            case "Đồ gia dụng":
+                categoryIdToSave = Category.AppConstants.CATEGORY_HOME_GOODS;
+                break;
+            case "Xe cộ":
+                categoryIdToSave = Category.AppConstants.CATEGORY_CARS;
+                break;
+            case "Đồ thể thao":
+                categoryIdToSave = Category.AppConstants.CATEGORY_SPORTS;
+                break;
+            case "Sách":
+                categoryIdToSave = Category.AppConstants.CATEGORY_BOOKS;
+                break;
+            default:
+                categoryIdToSave = Category.AppConstants.CATEGORY_OTHER;
+                break;
+        }
+
+        listing.setCategory(getSelectedCategoryId());
+        listing.setCategory(categoryIdToSave);
+
         return listing;
     }
 
@@ -478,5 +514,27 @@ public class PostFragment extends Fragment {
     protected void showLoading(boolean isLoading) {
         postProgressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         btnPostListing.setEnabled(!isLoading);
+    }
+
+    /**
+     * Chuyển đổi tên danh mục người dùng chọn trên UI thành ID chuẩn để lưu vào DB.
+     * @return ID chuẩn của danh mục (ví dụ: "electronics").
+     */
+    private String getSelectedCategoryId() {
+        if (spinnerCategory == null || spinnerCategory.getText() == null) {
+            return Category.AppConstants.CATEGORY_OTHER;
+        }
+
+        String selectedName = spinnerCategory.getText().toString();
+        switch (selectedName) {
+            case "Điện thoại": return Category.AppConstants.CATEGORY_ELECTRONICS;
+            case "Laptop": return Category.AppConstants.CATEGORY_LAPTOPS;
+            case "Thời trang": return Category.AppConstants.CATEGORY_FASHION;
+            case "Đồ gia dụng": return Category.AppConstants.CATEGORY_HOME_GOODS;
+            case "Xe cộ": return Category.AppConstants.CATEGORY_CARS;
+            case "Đồ thể thao": return Category.AppConstants.CATEGORY_SPORTS;
+            case "Sách": return Category.AppConstants.CATEGORY_BOOKS;
+            default: return Category.AppConstants.CATEGORY_OTHER;
+        }
     }
 }

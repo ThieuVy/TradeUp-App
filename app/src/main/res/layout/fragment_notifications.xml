@@ -90,13 +90,13 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Danh sách"
+            android:text="Tin đăng"
             tools:ignore="HardcodedText" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Khuyến mãi"
+            android:text="Đề nghị"
             tools:ignore="HardcodedText" />
 
     </com.google.android.material.tabs.TabLayout>

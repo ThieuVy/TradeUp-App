@@ -1,35 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:gravity="start|bottom"
     android:orientation="horizontal"
     android:paddingHorizontal="8dp"
-    android:paddingVertical="4dp"
-    android:gravity="start|bottom">
+    android:paddingVertical="4dp">
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/image_sender_avatar"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:src="@drawable/img"
-        android:layout_marginEnd="8dp"/>
+        android:layout_marginEnd="8dp"
+        android:src="@drawable/ic_default_avatar" />
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/text_message_body"
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_chat_bubble_received"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="10dp"
-            android:textColor="@color/text_primary"
-            android:maxWidth="280dp"
-            tools:text="Đây là tin nhắn bạn nhận được."/>
+            app:cardCornerRadius="18dp"
+            app:cardElevation="1dp"
+            app:cardBackgroundColor="@color/background_light">
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="60dp"
+                android:maxWidth="280dp">
+
+                <!-- ImageView để hiển thị ảnh -->
+                <ImageView
+                    android:id="@+id/image_message_body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone"
+                    tools:src="@drawable/img_placeholder"
+                    tools:visibility="visible"
+                    android:contentDescription="Ảnh đã nhận"
+                    tools:ignore="HardcodedText" />
+
+                <!-- TextView để hiển thị text -->
+                <TextView
+                    android:id="@+id/text_message_body"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="10dp"
+                    android:textColor="@color/text_primary"
+                    tools:text="Đây là tin nhắn bạn nhận được."/>
+            </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:id="@+id/text_message_time"
@@ -39,7 +67,7 @@
             android:layout_marginTop="2dp"
             android:textColor="@color/text_secondary"
             android:textSize="10sp"
-            tools:ignore="SmallSp,TextContrastCheck"
-            tools:text="10:36" />
+            tools:text="10:36"
+            tools:ignore="SmallSp" />
     </LinearLayout>
 </LinearLayout>

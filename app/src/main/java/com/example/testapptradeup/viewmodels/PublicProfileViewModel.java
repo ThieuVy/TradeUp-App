@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.Review;
 import com.example.testapptradeup.models.User;
+import com.example.testapptradeup.repositories.ChatRepository;
 import com.example.testapptradeup.repositories.ListingRepository;
 import com.example.testapptradeup.repositories.UserRepository;
 import com.example.testapptradeup.utils.Result;
@@ -26,11 +27,15 @@ public class PublicProfileViewModel extends ViewModel {
     private final LiveData<List<Review>> userReviews;
     private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>();
     private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
+    private final ChatRepository chatRepository;
+    public LiveData<String> findOrCreateChat(String otherUserId) {
+        return chatRepository.findOrCreateChat(otherUserId);
+    }
 
     public PublicProfileViewModel() {
         userRepository = new UserRepository();
         listingRepository = new ListingRepository();
-
+        this.chatRepository = new ChatRepository();
         // Sử dụng switchMap để tự động tải lại dữ liệu khi userIdTrigger thay đổi
         LiveData<Result<User>> userProfileResult = Transformations.switchMap(userIdTrigger, id -> {
             if (id == null || id.isEmpty()) {
@@ -53,10 +58,10 @@ public class PublicProfileViewModel extends ViewModel {
             }
         });
 
-        // Tương tự cho listings và reviews
         userListings = Transformations.switchMap(userIdTrigger, id -> {
             if (id == null || id.isEmpty()) return new MutableLiveData<>(Collections.emptyList());
-            return listingRepository.getActiveListingsByUser(id, 10); // Lấy 10 tin đăng gần nhất
+            // Gọi repository với giới hạn là 4 sản phẩm
+            return listingRepository.getActiveListingsByUser(id, 4);
         });
 
         userReviews = Transformations.switchMap(userIdTrigger, id -> {

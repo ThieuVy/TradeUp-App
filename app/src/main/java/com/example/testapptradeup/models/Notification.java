@@ -1,64 +1,68 @@
 package com.example.testapptradeup.models;
 
+import com.google.firebase.firestore.DocumentId;
+import com.google.firebase.firestore.PropertyName; // <-- THÊM IMPORT NÀY
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 
-// Lớp POJO để ánh xạ dữ liệu từ Firestore
 public class Notification {
+
+    public enum NotificationType {
+        MESSAGE, OFFER, LISTING, PROMOTION, SYSTEM, OTHER, TRADE, PRICE_ALERT, NEWS
+    }
+
+    @DocumentId
+    private String id;
     private String title;
     private String content;
-    private String type; // "message", "offer", "listing", "promotion"
-    private boolean read;
+    private NotificationType type;
+
+    // =======================================================
+    // SỬA LỖI CUSTOM CLASS MAPPER
+    // Tên trường trong Firestore là "read", nhưng getter là "isRead()"
+    // Dùng @PropertyName để chỉ cho Firestore biết điều này.
+    // =======================================================
+    @PropertyName("read")
+    private boolean isRead;
+
+    private String relatedId;
+    private String senderId;
+    private String userId;
+    private String category;
+    private String actionUrl;
+
     @ServerTimestamp
     private Date timestamp;
 
-    // Cần có một constructor rỗng cho Firestore
     public Notification() {}
 
-    public Notification(String title, String content, String type, boolean read) {
-        this.title = title;
-        this.content = content;
-        this.type = type;
-        this.read = read;
-    }
+    // --- GETTERS AND SETTERS ---
 
-    public String getTitle() {
-        return title;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+    public NotificationType getType() { return type; }
+    public void setType(NotificationType type) { this.type = type; }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
+    // Setter và Getter cho isRead
+    @PropertyName("read")
+    public boolean isRead() { return isRead; }
+    @PropertyName("read")
+    public void setRead(boolean read) { isRead = read; }
 
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public boolean isRead() {
-        return read;
-    }
-
-    public void setRead(boolean read) {
-        this.read = read;
-    }
-
-    public Date getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Date timestamp) {
-        this.timestamp = timestamp;
-    }
+    public String getRelatedId() { return relatedId; }
+    public void setRelatedId(String relatedId) { this.relatedId = relatedId; }
+    public String getSenderId() { return senderId; }
+    public void setSenderId(String senderId) { this.senderId = senderId; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+    public String getActionUrl() { return actionUrl; }
+    public void setActionUrl(String actionUrl) { this.actionUrl = actionUrl; }
+    public Date getTimestamp() { return timestamp; }
+    public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
 }

@@ -1,5 +1,6 @@
 package com.example.testapptradeup.fragments;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +14,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -62,6 +64,33 @@ public class ChatListFragment extends Fragment implements ChatListAdapter.OnConv
         adapter = new ChatListAdapter(this);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
+
+        // Thêm logic vuốt để xóa
+        ItemTouchHelper.SimpleCallback itemTouchHelperCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int position = viewHolder.getAdapterPosition();
+                Conversation conversationToDelete = adapter.getCurrentList().get(position);
+
+                // Hiển thị dialog xác nhận
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("Xác nhận xóa")
+                        .setMessage("Bạn có chắc chắn muốn xóa cuộc trò chuyện này không? Hành động này không thể hoàn tác.")
+                        .setPositiveButton("Xóa", (dialog, which) -> viewModel.deleteConversation(conversationToDelete.getId()))
+                        .setNegativeButton("Hủy", (dialog, which) -> {
+                            // Hoàn tác lại item nếu người dùng hủy
+                            adapter.notifyItemChanged(position);
+                        })
+                        .setCancelable(false)
+                        .show();
+            }
+        };
+        new ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(recyclerView);
     }
 
     private void setupListeners() {

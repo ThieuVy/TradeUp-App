@@ -7,9 +7,12 @@ import java.util.List;
 public class PagedResult<T> {
 
     private final List<T> data;
+    @Nullable
     private final DocumentSnapshot lastVisible;
+    @Nullable
     private final Exception error;
 
+    // Constructor duy nhất, an toàn
     public PagedResult(List<T> data, @Nullable DocumentSnapshot lastVisible, @Nullable Exception error) {
         this.data = data;
         this.lastVisible = lastVisible;
@@ -30,6 +33,7 @@ public class PagedResult<T> {
         return error;
     }
 
+    // Hàm tiện ích để kiểm tra kết quả
     public boolean isSuccess() {
         return error == null;
     }

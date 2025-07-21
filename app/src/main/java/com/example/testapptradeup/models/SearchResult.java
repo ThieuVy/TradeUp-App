@@ -4,8 +4,10 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import com.google.firebase.firestore.IgnoreExtraProperties;
 
+// Lớp này đại diện cho MỘT KẾT QUẢ TÌM KIẾM
 @IgnoreExtraProperties
 public class SearchResult implements Parcelable {
+
     private String id;
     private String title;
     private String price;
@@ -19,10 +21,21 @@ public class SearchResult implements Parcelable {
     private String category;
     private boolean isFavorite;
 
-    // Constructors và các Getters/Setters khác giữ nguyên...
-    // [Các constructors, getters, setters của bạn ở đây]
+    // Constructor rỗng cần thiết cho Firebase
     public SearchResult() {}
-    public SearchResult(Listing listing, boolean isFavorite) { /* ... */ }
+
+    // Constructor để chuyển đổi từ Listing (ví dụ)
+    // Bạn cần hoàn thiện logic này nếu sử dụng
+    public SearchResult(Listing listing, boolean isFavorite) {
+        // Gán các giá trị từ listing vào đây
+        // this.id = listing.getId();
+        // this.title = listing.getTitle();
+        // ...
+        this.isFavorite = isFavorite;
+    }
+
+    // --- Getters and Setters ---
+    // (Giữ nguyên tất cả các getter và setter của bạn cho các trường trên)
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     public String getTitle() { return title; }
@@ -48,7 +61,8 @@ public class SearchResult implements Parcelable {
     public boolean isFavorite() { return isFavorite; }
     public void setFavorite(boolean favorite) { isFavorite = favorite; }
 
-    // --- BẮT ĐẦU SỬA LỖI 3.2 CHO LỚP SEARCHRESULT ---
+
+    // --- Parcelable Implementation ---
     protected SearchResult(Parcel in) {
         id = in.readString();
         title = in.readString();
@@ -66,18 +80,23 @@ public class SearchResult implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(id != null ? id : "");
-        dest.writeString(title != null ? title : "");
-        dest.writeString(price != null ? price : "");
-        dest.writeString(condition != null ? condition : "");
-        dest.writeString(location != null ? location : "");
-        dest.writeString(postedTime != null ? postedTime : "");
-        dest.writeString(imageUrl != null ? imageUrl : "");
+        dest.writeString(id);
+        dest.writeString(title);
+        dest.writeString(price);
+        dest.writeString(condition);
+        dest.writeString(location);
+        dest.writeString(postedTime);
+        dest.writeString(imageUrl);
         dest.writeDouble(latitude);
         dest.writeDouble(longitude);
-        dest.writeString(distance != null ? distance : "");
-        dest.writeString(category != null ? category : "");
+        dest.writeString(distance);
+        dest.writeString(category);
         dest.writeByte((byte) (isFavorite ? 1 : 0));
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
     }
 
     public static final Creator<SearchResult> CREATOR = new Creator<SearchResult>() {
@@ -91,9 +110,4 @@ public class SearchResult implements Parcelable {
             return new SearchResult[size];
         }
     };
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
 }

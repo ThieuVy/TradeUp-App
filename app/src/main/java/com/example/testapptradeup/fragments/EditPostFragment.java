@@ -20,6 +20,7 @@ import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.viewmodels.EditPostViewModel;
+import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -30,11 +31,15 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
 
     private EditPostViewModel editViewModel;
     private String listingIdToEdit;
+    private MainViewModel mainViewModel;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         editViewModel = new ViewModelProvider(this).get(EditPostViewModel.class);
+        // Lấy MainViewModel từ activity chứa nó
+        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+
         if (getArguments() != null) {
             listingIdToEdit = EditPostFragmentArgs.fromBundle(getArguments()).getListingIdToEdit();
         }
@@ -42,7 +47,6 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Vẫn sử dụng layout của lớp cha
         return super.onCreateView(inflater, container, savedInstanceState);
     }
 
@@ -57,13 +61,13 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
         MaterialToolbar toolbar = view.findViewById(R.id.toolbar_post);
         LinearLayout headerLayout = view.findViewById(R.id.header_layout);
 
-        toolbar.setVisibility(View.VISIBLE); // Hiển thị Toolbar
-        headerLayout.setVisibility(View.GONE); // Ẩn header mặc định
+        toolbar.setVisibility(View.VISIBLE);
+        headerLayout.setVisibility(View.GONE);
         toolbar.setTitle("Chỉnh sửa tin đăng");
         toolbar.setNavigationOnClickListener(v -> navController.popBackStack());
 
         btnPostListing.setText("Lưu thay đổi");
-        setupListenersForEdit(); // Hàm listener riêng cho màn hình edit
+        setupListenersForEdit();
         observeViewModel();
 
         if (listingIdToEdit != null) {
@@ -98,7 +102,9 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
     protected void observeViewModel() {
         editViewModel.isLoading().observe(getViewLifecycleOwner(), this::showLoading);
 
+        // <<< SỬA LỖI 2: Lỗi này sẽ tự hết sau khi sửa lỗi 1 >>>
         editViewModel.getListingData().observe(getViewLifecycleOwner(), listing -> {
+            // Hiển thị loading trong khi chờ dữ liệu
             showLoading(false);
             if (listing != null) {
                 populateForm(listing);
@@ -120,8 +126,9 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
 
     private void populateForm(Listing listing) {
         etProductTitle.setText(listing.getTitle());
-        etPrice.setText(String.valueOf(listing.getPrice()));
-        spinnerCategory.setText(listing.getCategoryId(), false);
+        // Chuyển đổi double sang chuỗi một cách an toàn
+        etPrice.setText(String.format("%.0f", listing.getPrice()));
+        spinnerCategory.setText(listing.getCategory(), false);
         etDescription.setText(listing.getDescription());
         etLocation.setText(listing.getLocation());
 
@@ -133,15 +140,18 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
             }
         }
 
+        // Cập nhật tọa độ từ listing đã tải
+        this.listingLatitude = listing.getLatitude();
+        this.listingLongitude = listing.getLongitude();
+
         // Hiển thị ảnh
         if (listing.getImageUrls() != null && !listing.getImageUrls().isEmpty()) {
-            // Chuyển đổi List<String> thành List<Uri>
             List<Uri> imageUris = listing.getImageUrls().stream().map(Uri::parse).collect(Collectors.toList());
-            viewModel.setSelectedImageUris(imageUris); // Cập nhật ViewModel của lớp cha
+            // Cập nhật ViewModel của lớp cha
+            super.viewModel.setSelectedImageUris(imageUris);
         }
 
-        // Hiển thị tags
-        chipGroupTags.removeAllViews(); // Xóa các tag cũ trước khi thêm
+        chipGroupTags.removeAllViews();
         if (listing.getTags() != null) {
             for (String tag : listing.getTags()) {
                 addTagToGroup(tag);
@@ -164,6 +174,7 @@ public class EditPostFragment extends PostFragment { // Kế thừa từ PostFra
         Listing updatedListing = buildListingFromUI(currentUser, currentUserId);
         updatedListing.setId(listingIdToEdit);
 
-        editViewModel.saveChanges(updatedListing);
+        // <<< SỬA LỖI 3: Truyền mainViewModel vào đây >>>
+        editViewModel.saveChanges(updatedListing, mainViewModel);
     }
 }

@@ -25,7 +25,12 @@ import java.util.stream.Collectors;
 public class SearchViewModel extends ViewModel {
 
     public enum UiState {
-        IDLE, LOADING, LOADING_MORE, SUCCESS, EMPTY, ERROR
+        IDLE,       // Trạng thái ban đầu, chưa tìm kiếm
+        LOADING,    // Đang tải cho một tìm kiếm mới
+        LOADING_MORE, // Đang tải thêm trang
+        SUCCESS,    // Tải thành công và có kết quả
+        EMPTY,      // Tải thành công nhưng không có kết quả
+        ERROR       // Có lỗi xảy ra
     }
 
     private final ListingRepository listingRepository;
@@ -86,6 +91,9 @@ public class SearchViewModel extends ViewModel {
             return;
         }
 
+        // KHÔNG xóa searchResults ở đây nữa
+        // searchResults.setValue(new ArrayList<>());
+
         LiveData<PagedResult<Listing>> pagedResultLiveData = listingRepository.searchListings(params, lastVisibleDocument);
 
         pagedResultLiveData.observeForever(new Observer<>() {
@@ -94,15 +102,19 @@ public class SearchViewModel extends ViewModel {
                 pagedResultLiveData.removeObserver(this);
 
                 if (pagedResult == null || !pagedResult.isSuccess()) {
+                    // Bây giờ `getError()` đã tồn tại và trả về Exception
                     Log.e("SearchViewModel", "Search failed", pagedResult != null ? pagedResult.getError() : new Exception("PagedResult is null"));
                     uiState.postValue(UiState.ERROR);
                     return;
                 }
 
-                // SỬA LỖI: Thêm logic lọc theo khoảng cách ở client-side
+                // Từ đây trở đi, chúng ta chắc chắn rằng pagedResult.getData() không phải là null
+                List<Listing> listingsFromResult = pagedResult.getData();
+
+                // SỬA LỖI: Thêm logic lọc theo khoảng cách ở client-side (đoạn này của bạn đã đúng)
                 List<Listing> distanceFilteredListings = new ArrayList<>();
                 if (params.getUserLocation() != null && params.getMaxDistance() > 0) {
-                    for (Listing listing : pagedResult.getData()) {
+                    for (Listing listing : listingsFromResult) {
                         if (listing.getLatitude() != 0 && listing.getLongitude() != 0) {
                             float[] results = new float[1];
                             Location.distanceBetween(
@@ -118,11 +130,11 @@ public class SearchViewModel extends ViewModel {
                         }
                     }
                 } else {
-                    distanceFilteredListings.addAll(pagedResult.getData());
+                    distanceFilteredListings.addAll(listingsFromResult);
                 }
 
                 lastVisibleDocument = pagedResult.getLastVisible();
-                isLastPage = pagedResult.getData() == null || pagedResult.getData().size() < ListingRepository.PAGE_SIZE;
+                isLastPage = listingsFromResult.size() < ListingRepository.PAGE_SIZE;
 
                 List<String> favIds = favoriteIds.getValue();
                 List<SearchResult> newResults = distanceFilteredListings.stream()
@@ -131,11 +143,13 @@ public class SearchViewModel extends ViewModel {
 
                 List<SearchResult> currentList = new ArrayList<>(Objects.requireNonNull(searchResults.getValue()));
                 if (isNewSearch) {
+                    // Chỉ xóa danh sách cũ KHI đã có dữ liệu mới
                     currentList.clear();
                 }
                 currentList.addAll(newResults);
-                searchResults.postValue(currentList);
+                searchResults.postValue(currentList); // Cập nhật danh sách mới
 
+                // Cập nhật UI State cuối cùng
                 if (currentList.isEmpty()) {
                     uiState.postValue(UiState.EMPTY);
                 } else {

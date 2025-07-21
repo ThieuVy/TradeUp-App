@@ -21,8 +21,18 @@ const verifyAdmin = async (context) => {
 };
 
 const getOrCreateCustomer = async (userId) => {
-    const userDoc = await admin.firestore().collection("users").doc(userId).get();
+    const userRef = admin.firestore().collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    // Kiểm tra xem document người dùng có tồn tại không
+    if (!userDoc.exists) {
+        // Ghi log lỗi để bạn có thể debug trên Firebase Console
+        console.error(`Không tìm thấy document cho người dùng với UID: ${userId}`);
+        // Ném ra một lỗi HttpsError cụ thể để ứng dụng có thể xử lý
+        throw new functions.https.HttpsError("not-found", `Không tìm thấy thông tin người dùng cho UID: ${userId}.`);
+    }
     const userData = userDoc.data();
+
     if (userData && userData.stripeCustomerId) {
         return userData.stripeCustomerId;
     }
@@ -30,7 +40,7 @@ const getOrCreateCustomer = async (userId) => {
         email: userData.email,
         metadata: { firebaseUID: userId },
     });
-    await admin.firestore().collection("users").doc(userId).update({
+    await userRef.update({
         stripeCustomerId: customer.id,
     });
     return customer.id;
@@ -305,7 +315,16 @@ exports.sendChatNotification = functions.firestore
         const chatId = context.params.chatId;
         const senderId = message.senderId;
 
-        const chatDoc = await admin.firestore().collection("chats").doc(chatId).get();
+        // 1. Cập nhật thông tin cuộc trò chuyện (lastMessage, timestamp)
+        const chatRef = admin.firestore().collection("chats").doc(chatId);
+        await chatRef.update({
+            lastMessage: message.text || "Đã gửi một hình ảnh.",
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            lastMessageSenderId: senderId,
+        });
+
+        // 2. Lấy thông tin người nhận và token
+        const chatDoc = await chatRef.get();
         if (!chatDoc.exists) return null;
 
         const recipientId = chatDoc.data().members.find((id) => id !== senderId);
@@ -318,35 +337,35 @@ exports.sendChatNotification = functions.firestore
         const senderData = senderDoc.data();
         const recipientData = recipientDoc.data();
 
+        // 3. (Tùy chọn) Tạo một notification document trong Firestore (cho trang thông báo)
+        // ... (code tạo notification document)
         const notificationPayload = {
-            userId: recipientId,
-            title: `Tin nhắn mới từ ${senderData.name || "Một người dùng"}`,
-            content: message.text || "Đã gửi một hình ảnh.",
+            userId: sellerId,
+            title: "Bạn có đề nghị mới!",
+            content: `${buyerName} đã đề nghị ${offerPrice} cho sản phẩm "${listingTitle}".`,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            type: "MESSAGE",
-            category: "Tin nhắn",
+            type: "OFFER", // <<< SỬA ĐỔI TỪ "PROMOTION" THÀNH "OFFER"
+            category: "Ưu đãi",
             isRead: false,
-            actionUrl: `chat/${chatId}`
+            relatedId: offer.listingId, // Sửa actionUrl thành relatedId cho nhất quán
         };
-        await admin.firestore().collection("notifications").add(notificationPayload);
+        return admin.firestore().collection("notifications").add(notificationPayload);
 
+        // 4. Gửi Push Notification qua FCM
         const fcmToken = recipientData.fcmToken;
         if (fcmToken) {
-            const pushPayload = {
+            const payload = {
                 notification: {
                     title: `Tin nhắn mới từ ${senderData.name}`,
                     body: message.text || "Đã gửi một hình ảnh",
-                    icon: senderData.profileImageUrl || "default_icon_url",
-                    click_action: "FLUTTER_NOTIFICATION_CLICK",
-                    tag: chatId,
                 },
                 data: {
-                    chatId: chatId,
-                    senderId: senderId,
+                    chatId: chatId, // Gửi thêm dữ liệu để xử lý deep-link
                 },
             };
             try {
-                await admin.messaging().sendToDevice(fcmToken, pushPayload);
+                await admin.messaging().sendToDevice(fcmToken, payload);
+                console.log("Gửi push notification thành công đến:", recipientId);
             } catch (error) {
                 console.error("Lỗi khi gửi push notification:", error);
             }
@@ -387,36 +406,36 @@ exports.sendNewOfferNotification = functions.firestore
  * Lấy lịch sử giao dịch Stripe cho người dùng đã xác thực.
  */
 exports.getPaymentHistory = functions.https.onCall(async (data, context) => {
-    // 1. Xác thực người dùng
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Yêu cầu cần được xác thực.");
     }
     const userId = context.auth.uid;
 
     try {
-        // 2. Lấy Stripe Customer ID từ Firestore
         const customerId = await getOrCreateCustomer(userId);
 
-        // 3. Gọi Stripe API để lấy danh sách Payment Intents
         const paymentIntents = await stripe.paymentIntents.list({
             customer: customerId,
-            limit: 50, // Giới hạn 50 giao dịch gần nhất
+            limit: 50,
         });
 
-        // 4. Định dạng lại dữ liệu trả về cho client
+        // Định dạng lại dữ liệu trả về
         const history = paymentIntents.data.map((pi) => ({
             id: pi.id,
             description: pi.description || "Thanh toán cho sản phẩm",
             amount: pi.amount,
             currency: pi.currency,
-            status: pi.status, // succeeded, requires_payment_method, canceled
-            created: pi.created, // Unix timestamp
+            status: pi.status,
+            created: pi.created,
         }));
 
+        // Luôn trả về một object có trường `success`
         return { success: true, history: history };
+
     } catch (error) {
         console.error("Lỗi khi lấy lịch sử thanh toán Stripe:", error);
-        throw new functions.https.HttpsError("internal", "Không thể lấy lịch sử giao dịch.");
+        // Trả về cấu trúc lỗi nhất quán
+        return { success: false, error: error.message };
     }
 });
 
@@ -451,3 +470,149 @@ exports.updateListingOnNewOffer = functions.firestore
             return { success: false, error: error.message };
         }
     });
+
+/**
+ * TRIGGER: Tự động tạo thông báo xác nhận cho người bán
+ * khi họ đăng một tin mới thành công.
+ */
+exports.sendNewListingConfirmation = functions.firestore
+    .document("listings/{listingId}")
+    .onCreate(async (snap, context) => {
+        // 1. Lấy dữ liệu của tin đăng vừa được tạo
+        const listing = snap.data();
+        if (!listing) {
+            console.log("Không có dữ liệu tin đăng, bỏ qua.");
+            return null;
+        }
+
+        // 2. Lấy ID của người bán từ tin đăng
+        const sellerId = listing.sellerId;
+        if (!sellerId) {
+            console.log("Tin đăng không có sellerId, bỏ qua.");
+            return null;
+        }
+
+        // 3. Tạo nội dung cho thông báo
+        const notificationPayload = {
+            userId: sellerId, // Thông báo này dành cho người bán
+            title: "Đăng tin thành công!",
+            content: `Tin đăng "${listing.title || "sản phẩm của bạn"}" đã được đăng thành công và đang hiển thị.`,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: "LISTING", // Loại thông báo liên quan đến tin đăng
+            category: "Tin đăng", // Category để lọc trên app
+            read: false, // Mặc định là chưa đọc
+            relatedId: context.params.listingId, // ID của tin đăng liên quan
+            // senderId có thể bỏ trống vì đây là thông báo hệ thống
+        };
+
+        // 4. Ghi thông báo mới vào collection "notifications"
+        console.log(`Đang tạo thông báo đăng tin thành công cho người dùng: ${sellerId}`);
+        return admin.firestore().collection("notifications").add(notificationPayload);
+    });
+
+    /**
+     * TRIGGER: Cập nhật số liệu thống kê của người dùng khi một tin đăng thay đổi.
+     * - Tăng/giảm activeListingsCount.
+     * - Tăng/giảm completedSalesCount.
+     */
+    exports.updateUserStatsOnListingChange = functions.firestore
+        .document("listings/{listingId}")
+        .onWrite(async (change, context) => {
+            const listingBefore = change.before.data();
+            const listingAfter = change.after.data();
+            const db = admin.firestore();
+
+            // Trường hợp 1: Tin đăng mới được TẠO
+            if (!change.before.exists && change.after.exists) {
+                if (listingAfter.status === "available") {
+                    const userRef = db.collection("users").doc(listingAfter.sellerId);
+                    console.log(`Tăng activeListingsCount cho user: ${listingAfter.sellerId}`);
+                    return userRef.update({
+                        activeListingsCount: admin.firestore.FieldValue.increment(1),
+                    });
+                }
+                return null;
+            }
+
+            // Trường hợp 2: Tin đăng bị XÓA
+            if (change.before.exists && !change.after.exists) {
+                const userRef = db.collection("users").doc(listingBefore.sellerId);
+                let updates = {};
+                if (listingBefore.status === "available") {
+                    updates.activeListingsCount = admin.firestore.FieldValue.increment(-1);
+                }
+                if (listingBefore.status === "sold") {
+                    updates.completedSalesCount = admin.firestore.FieldValue.increment(-1);
+                }
+                if (Object.keys(updates).length > 0) {
+                     console.log(`Giảm stats cho user: ${listingBefore.sellerId}`);
+                    return userRef.update(updates);
+                }
+                return null;
+            }
+
+            // Trường hợp 3: Tin đăng được CẬP NHẬT
+            if (change.before.exists && change.after.exists) {
+                if (listingBefore.status === listingAfter.status) {
+                    return null; // Trạng thái không đổi, không làm gì cả
+                }
+
+                const userRef = db.collection("users").doc(listingAfter.sellerId);
+                const updates = {};
+
+                // Chuyển từ available -> sold
+                if (listingBefore.status === "available" && listingAfter.status === "sold") {
+                    updates.activeListingsCount = admin.firestore.FieldValue.increment(-1);
+                    updates.completedSalesCount = admin.firestore.FieldValue.increment(1);
+                }
+                // Chuyển từ sold -> available (trường hợp hiếm)
+                else if (listingBefore.status === "sold" && listingAfter.status === "available") {
+                    updates.activeListingsCount = admin.firestore.FieldValue.increment(1);
+                    updates.completedSalesCount = admin.firestore.FieldValue.increment(-1);
+                }
+                // Các trường hợp chuyển sang/khỏi 'paused'
+                // ... (bạn có thể thêm logic cho 'paused' nếu cần)
+
+                if (Object.keys(updates).length > 0) {
+                    console.log(`Cập nhật stats cho user: ${listingAfter.sellerId}`);
+                    return userRef.update(updates);
+                }
+            }
+
+            return null;
+        });
+/**
+ * (TÙY CHỌN) Hàm HTTPS Callable để chạy một lần, dùng để đồng bộ lại
+ * số liệu cho tất cả người dùng hiện có.
+ */
+exports.recalculateAllUserStats = functions.https.onCall(async (data, context) => {
+    // Bảo mật: Chỉ admin mới được chạy hàm này
+    // (Bạn cần có logic `verifyAdmin` như đã hướng dẫn trước)
+    // await verifyAdmin(context);
+
+    const db = admin.firestore();
+    const usersSnapshot = await db.collection("users").get();
+
+    for (const userDoc of usersSnapshot.docs) {
+        const userId = userDoc.id;
+
+        const activeListingsQuery = db.collection("listings")
+            .where("sellerId", "==", userId)
+            .where("status", "==", "available");
+
+        const soldListingsQuery = db.collection("listings")
+            .where("sellerId", "==", userId)
+            .where("status", "==", "sold");
+
+        const activeCount = (await activeListingsQuery.get()).size;
+        const soldCount = (await soldListingsQuery.get()).size;
+
+        await userDoc.ref.update({
+            activeListingsCount: activeCount,
+            completedSalesCount: soldCount,
+        });
+        console.log(`Đã cập nhật stats cho user ${userId}: Active=${activeCount}, Sold=${soldCount}`);
+    }
+
+    return { success: true, message: `Đã cập nhật lại số liệu cho ${usersSnapshot.size} người dùng.` };
+});

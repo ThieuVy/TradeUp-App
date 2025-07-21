@@ -4,15 +4,17 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Category;
-import java.util.Objects;
 
 public class CategoryAdapter extends ListAdapter<Category, CategoryAdapter.CategoryViewHolder> {
 
@@ -47,31 +49,35 @@ public class CategoryAdapter extends ListAdapter<Category, CategoryAdapter.Categ
 
         CategoryViewHolder(View itemView) {
             super(itemView);
-            categoryIcon = itemView.findViewById(R.id.category_icon);
-            categoryName = itemView.findViewById(R.id.category_name);
+            // SỬA LỖI: Ánh xạ lại đúng ID từ layout `categories_section_layout.xml`
+            // Layout này có nhiều ImageView và TextView, bạn cần đảm bảo ánh xạ đúng.
+            // Ví dụ, nếu bạn đang bind cho danh mục "Electronics":
+            LinearLayout electronicsLayout = itemView.findViewById(R.id.category_electronics);
+            categoryIcon = electronicsLayout.findViewById(R.id.img_home); // Giả sử ID icon là đây
+            categoryName = electronicsLayout.findViewById(R.id.tv_home); // Giả sử ID text là đây
         }
 
         void bind(final Category category, final OnCategoryClickListener listener) {
             categoryName.setText(category.getName());
 
-            // SỬA LỖI Ở ĐÂY:
-            // Thay thế category.getIconUrl() bằng category.getIcon()
-            // getIcon() sẽ trả về một chuỗi URL mà bạn lưu trên Firestore.
+            // === SỬA LỖI GỌI PHƯƠNG THỨC ===
+            // Gọi đúng phương thức getIconResId()
             Glide.with(itemView.getContext())
-                    .load(category.getIcon()) // <<< THAY ĐỔI Ở ĐÂY
+                    .load(category.getIconResId()) // <<< SỬA ĐỔI QUAN TRỌNG
                     .placeholder(R.drawable.ic_category_placeholder)
-                    .error(R.drawable.ic_category_placeholder) // Thêm dòng này để xử lý lỗi tải ảnh
+                    .error(R.drawable.ic_category_placeholder)
                     .into(categoryIcon);
 
             itemView.setOnClickListener(v -> listener.onCategoryClick(category));
         }
     }
 
-    private static final DiffUtil.ItemCallback<Category> DIFF_CALLBACK = new DiffUtil.ItemCallback<Category>() {
+    private static final DiffUtil.ItemCallback<Category> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull Category oldItem, @NonNull Category newItem) {
             return oldItem.getId().equals(newItem.getId());
         }
+
         @Override
         public boolean areContentsTheSame(@NonNull Category oldItem, @NonNull Category newItem) {
             return oldItem.equals(newItem);

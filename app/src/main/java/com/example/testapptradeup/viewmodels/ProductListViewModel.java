@@ -6,35 +6,35 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.repositories.ListingRepository;
-// <<< THÊM MỚI: Import UserRepository >>>
 import com.example.testapptradeup.repositories.UserRepository;
-// <<< THÊM MỚI: Import các lớp cần thiết cho việc lấy tên Category >>>
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.List;
 
 public class ProductListViewModel extends ViewModel {
     private final ListingRepository listingRepository;
-    private final UserRepository userRepository; // <<< THÊM MỚI: Khai báo UserRepository >>>
+    private final UserRepository userRepository;
     public LiveData<List<Listing>> productList;
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
-
-    // <<< BƯỚC 1: Thêm LiveData để giữ tiêu đề của Toolbar >>>
     private final MutableLiveData<String> toolbarTitle = new MutableLiveData<>();
 
     public ProductListViewModel() {
         this.listingRepository = new ListingRepository();
-        this.userRepository = new UserRepository(); // <<< THÊM MỚI: Khởi tạo UserRepository >>>
+        this.userRepository = new UserRepository();
     }
 
-    public void loadProducts(String filterType, @Nullable String categoryId) {
+    /**
+     * Tải danh sách sản phẩm dựa trên loại bộ lọc và một ID (có thể là categoryId hoặc userId).
+     * @param filterType Loại bộ lọc ("category", "user", "recommended", v.v.).
+     * @param id ID tương ứng với bộ lọc (categoryId hoặc userId).
+     */
+    public void loadProducts(String filterType, @Nullable String id) {
         isLoading.setValue(true);
-        productList = listingRepository.getListingsByFilter(filterType, categoryId);
-        // Lắng nghe kết quả để tắt loading
+        // Truyền cả filterType và id vào repository
+        productList = listingRepository.getListingsByFilter(filterType, id);
         productList.observeForever(listings -> isLoading.setValue(false));
     }
 
-    // <<< BƯỚC 2: Thêm Getter cho Fragment để observe >>>
     public LiveData<String> getToolbarTitle() {
         return toolbarTitle;
     }
@@ -43,15 +43,18 @@ public class ProductListViewModel extends ViewModel {
         return isLoading;
     }
 
-    // <<< BƯỚC 3: Tạo phương thức để cập nhật tiêu đề >>>
-    public void updateToolbarTitle(String filterType, @Nullable String categoryId) {
-        if ("category".equals(filterType) && categoryId != null) {
+    /**
+     * Cập nhật tiêu đề cho Toolbar dựa trên loại bộ lọc và ID.
+     * @param filterType Loại bộ lọc.
+     * @param id ID tương ứng (categoryId hoặc userId).
+     */
+    public void updateToolbarTitle(String filterType, @Nullable String id) {
+        if ("category".equals(filterType) && id != null) {
             // Lấy tên category từ ID để hiển thị
-            FirebaseFirestore.getInstance().collection("categories").document(categoryId)
+            FirebaseFirestore.getInstance().collection("categories").document(id)
                     .get()
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
-                            // Giả sử có trường "name" trong document category
                             String categoryName = documentSnapshot.getString("name");
                             toolbarTitle.setValue(categoryName);
                         } else {
@@ -63,14 +66,24 @@ public class ProductListViewModel extends ViewModel {
             toolbarTitle.setValue("Đề xuất cho bạn");
         } else if ("recent".equals(filterType)) {
             toolbarTitle.setValue("Tin đăng gần đây");
+        } else if ("user".equals(filterType)) {
+            // Sử dụng tham số 'id' đã được truyền vào, vì nó chính là userId trong trường hợp này.
+            if (id != null) {
+                FirebaseFirestore.getInstance().collection("users").document(id).get()
+                        .addOnSuccessListener(doc -> {
+                            if (doc.exists()) {
+                                toolbarTitle.setValue("Tin đăng của " + doc.getString("name"));
+                            } else {
+                                toolbarTitle.setValue("Tin đăng của người dùng");
+                            }
+                        });
+            }
         } else {
             toolbarTitle.setValue("Danh sách sản phẩm");
         }
     }
 
-    // <<< BƯỚC 4 (Tùy chọn): Thêm logic xử lý yêu thích >>>
     public void toggleFavorite(String listingId, boolean isFavorite) {
-        // <<< THAY ĐỔI: Gọi userRepository.toggleFavorite() >>>
         String userId = FirebaseAuth.getInstance().getCurrentUser() != null ? FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
         if (userId != null) {
             userRepository.toggleFavorite(userId, listingId, isFavorite);

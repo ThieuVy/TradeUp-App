@@ -30,24 +30,25 @@ public class PaymentRepository {
                         try {
                             Map<String, Object> result = (Map<String, Object>) task.getResult().getData();
 
-                            // <<< SỬA ĐỔI: Kiểm tra null an toàn để tránh NullPointerException >>>
                             if (result != null && Boolean.TRUE.equals(result.get("success"))) {
-                                // Dùng Gson để parse danh sách an toàn
+                                // Parse dữ liệu nếu thành công
                                 Gson gson = new Gson();
                                 String historyJson = gson.toJson(result.get("history"));
                                 Type listType = new TypeToken<ArrayList<StripeTransaction>>() {}.getType();
                                 List<StripeTransaction> transactions = gson.fromJson(historyJson, listType);
                                 historyLiveData.setValue(transactions);
                             } else {
+                                // Nếu thất bại, trả về danh sách RỖNG
+                                Log.e("PaymentRepository", "Cloud function báo lỗi: " + (result != null ? result.get("error") : "Unknown error"));
                                 historyLiveData.setValue(new ArrayList<>());
                             }
                         } catch (Exception e) {
                             Log.e("PaymentRepository", "Lỗi khi parse dữ liệu getPaymentHistory", e);
-                            historyLiveData.setValue(null); // Báo lỗi
+                            historyLiveData.setValue(new ArrayList<>()); // Trả về danh sách rỗng khi có lỗi parse
                         }
                     } else {
                         Log.e("PaymentRepository", "Lỗi khi gọi getPaymentHistory", task.getException());
-                        historyLiveData.setValue(null); // Báo lỗi
+                        historyLiveData.setValue(null); // Trả về null để ViewModel biết là có lỗi mạng
                     }
                 });
 

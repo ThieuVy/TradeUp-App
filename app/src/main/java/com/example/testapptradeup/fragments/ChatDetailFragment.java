@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.Editable;
+import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +19,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -162,6 +164,24 @@ public class ChatDetailFragment extends Fragment {
             btnSend.setEnabled(!isSending);
             btnAttachImage.setEnabled(!isSending);
             btnEmoji.setEnabled(!isSending);
+        });
+
+        viewModel.getOtherUserStatus(otherUserId).observe(getViewLifecycleOwner(), status -> {
+            if (status != null && status.isOnline()) { // Sửa: gọi isOnline()
+                toolbar.setSubtitle("Đang hoạt động");
+                toolbar.setSubtitleTextColor(ContextCompat.getColor(requireContext(), R.color.success));
+            } else {
+                // SỬA LỖI Ở ĐÂY: Gọi phương thức helper mới
+                long lastSeen = (status != null) ? status.getLastSeenLong() : 0;
+
+                if (lastSeen > 0) {
+                    String timeAgo = DateUtils.getRelativeTimeSpanString(lastSeen, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString();
+                    toolbar.setSubtitle("Hoạt động " + timeAgo);
+                } else {
+                    toolbar.setSubtitle("Không hoạt động");
+                }
+                toolbar.setSubtitleTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+            }
         });
     }
 

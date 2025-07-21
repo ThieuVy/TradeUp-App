@@ -122,8 +122,6 @@ public class ProfileFragment extends Fragment {
                 ProfileFragmentDirections.ActionNavigationProfileToPublicProfileFragment action =
                         ProfileFragmentDirections.actionNavigationProfileToPublicProfileFragment(currentUser.getId());
                 navController.navigate(action);
-            } else {
-                Toast.makeText(getContext(), "Không thể xem hồ sơ lúc này.", Toast.LENGTH_SHORT).show();
             }
         });
         cardSavedItems.setOnClickListener(v -> navController.navigate(R.id.action_navigation_profile_to_favoritesFragment));
@@ -144,7 +142,7 @@ public class ProfileFragment extends Fragment {
     @SuppressLint("SetTextI18n")
     private void clearUI() {
         this.currentUser = null;
-        textDisplayName.setText("Đang tải..."); // Hoặc chuỗi mặc định
+        textDisplayName.setText("Đang tải..."); // Hiển thị trạng thái loading
         textEmail.setText("");
         textBio.setText("Chưa có tiểu sử.");
         textRatingInfo.setText("Chưa có đánh giá");
@@ -159,9 +157,11 @@ public class ProfileFragment extends Fragment {
     private void observeViewModels() {
         mainViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
-                updateUI(user); // Có người dùng -> cập nhật UI
+                // Chỉ cập nhật UI khi có dữ liệu người dùng hợp lệ
+                updateUI(user);
             } else {
-                clearUI(); // Người dùng null (đã đăng xuất) -> xóa thông tin
+                // Nếu người dùng là null (ví dụ: đang đăng xuất), xóa thông tin trên UI
+                clearUI();
             }
         });
 
@@ -180,7 +180,7 @@ public class ProfileFragment extends Fragment {
         });
     }
 
-    @SuppressLint({"SetTextI18n", "StringFormatMatches"})
+    @SuppressLint("SetTextI18n")
     private void updateUI(User user) {
         if (user == null) return;
         this.currentUser = user;
@@ -188,6 +188,10 @@ public class ProfileFragment extends Fragment {
         textDisplayName.setText(user.getName() != null ? user.getName() : "Chưa có tên");
         textEmail.setText(user.getEmail() != null ? user.getEmail() : "Chưa có email");
         textBio.setText(user.getBio() != null && !user.getBio().isEmpty() ? user.getBio() : "Chưa có tiểu sử.");
+
+        if (user.getId() != null) {
+            profileViewModel.loadUserReviews(user.getId());
+        }
 
         if (user.getReviewCount() > 0) {
             textRatingInfo.setText(getString(R.string.profile_rating_info_format, user.getRating(), user.getReviewCount()));

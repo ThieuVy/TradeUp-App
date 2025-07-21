@@ -11,11 +11,11 @@ import com.example.testapptradeup.models.Offer;
 import com.example.testapptradeup.models.OfferWithListing;
 import com.example.testapptradeup.models.Transaction;
 import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldPath;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -255,5 +255,57 @@ public class OfferRepository {
         newTransaction.setBuyerReviewed(false);
         // transactionDate sẽ được tự động gán bởi @ServerTimestamp trên model
         return newTransaction;
+    }
+    /**
+     * THÊM MỚI: Hoàn tất giao dịch cho trường hợp "Mua ngay".
+     * @param listingId ID của tin đăng.
+     * @return LiveData báo hiệu thành công/thất bại.
+     */
+    public LiveData<Boolean> completeTransactionForBuyNow(String listingId) {
+        MutableLiveData<Boolean> success = new MutableLiveData<>();
+        String buyerId = FirebaseAuth.getInstance().getUid();
+        // Giả sử chúng ta cần lấy thông tin người mua từ DB để có tên
+        // Tạm thời, chúng ta có thể để trống hoặc dùng tên mặc định
+
+        DocumentReference listingRef = listingsCollection.document(listingId);
+
+        listingRef.get().addOnSuccessListener(listingSnapshot -> {
+            if (!listingSnapshot.exists()) {
+                Log.e(TAG, "Không tìm thấy tin đăng để hoàn tất giao dịch Mua ngay.");
+                success.setValue(false);
+                return;
+            }
+
+            Listing listing = listingSnapshot.toObject(Listing.class);
+            Objects.requireNonNull(listing).setId(listingSnapshot.getId());
+
+            WriteBatch batch = db.batch();
+
+            // 1. Cập nhật tin đăng thành "sold"
+            batch.update(listingRef, "status", "sold");
+
+            // 2. Tạo một document giao dịch mới
+            DocumentReference transactionRef = transactionsCollection.document();
+            Transaction newTransaction = new Transaction();
+            newTransaction.setId(transactionRef.getId());
+            newTransaction.setListingId(listing.getId());
+            newTransaction.setListingTitle(listing.getTitle());
+            newTransaction.setListingImageUrl(listing.getPrimaryImageUrl());
+            newTransaction.setSellerId(listing.getSellerId());
+            newTransaction.setSellerName(listing.getSellerName());
+            newTransaction.setBuyerId(buyerId);
+            newTransaction.setBuyerName("Người mua"); // Cần lấy tên thật từ DB
+            newTransaction.setFinalPrice(listing.getPrice()); // Giá gốc
+            newTransaction.setSellerReviewed(false);
+            newTransaction.setBuyerReviewed(false);
+
+            batch.set(transactionRef, newTransaction);
+
+            batch.commit()
+                    .addOnSuccessListener(aVoid -> success.setValue(true))
+                    .addOnFailureListener(e -> success.setValue(false));
+        }).addOnFailureListener(e -> success.setValue(false));
+
+        return success;
     }
 }

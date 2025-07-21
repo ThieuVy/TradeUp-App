@@ -1,5 +1,6 @@
 package com.example.testapptradeup.activities;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -233,17 +234,41 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void saveNewUserAndNavigate(User newUser) {
+        // Lấy FirebaseUser hiện tại để có thể xóa nếu cần
+        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+        if (firebaseUser == null) {
+            showLoading(false);
+            Toast.makeText(this, "Phiên đăng nhập không hợp lệ.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         db.collection("users").document(newUser.getId())
                 .set(newUser)
                 .addOnSuccessListener(aVoid -> {
+                    // Chỉ điều hướng khi LƯU THÀNH CÔNG
                     Toast.makeText(LoginActivity.this, "Chào mừng bạn đến với TradeUp!", Toast.LENGTH_SHORT).show();
                     prefsHelper.saveCurrentUser(newUser);
                     navigateToMainActivity();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error saving new Google user to Firestore: " + e.getMessage(), e);
-                    Toast.makeText(LoginActivity.this, "Lỗi khi lưu thông tin người dùng.", Toast.LENGTH_SHORT).show();
-                    navigateToMainActivity();
+                    Log.e(TAG, "CRITICAL: Lỗi khi lưu người dùng Google mới vào Firestore: ", e);
+                    showLoading(false); // Tắt loading
+
+                    // === BƯỚC QUAN TRỌNG: Xóa tài khoản Auth nếu không lưu được hồ sơ ===
+                    firebaseUser.delete().addOnCompleteListener(deleteTask -> {
+                        if (deleteTask.isSuccessful()) {
+                            Log.w(TAG, "Đã xóa tài khoản Google Auth không hoàn chỉnh do lỗi Firestore.");
+                        } else {
+                            Log.e(TAG, "Lỗi nghiêm trọng: Không thể xóa tài khoản Auth không hoàn chỉnh.", deleteTask.getException());
+                        }
+                    });
+
+                    // Hiển thị thông báo lỗi rõ ràng và KHÔNG điều hướng đi đâu cả
+                    new AlertDialog.Builder(this)
+                            .setTitle("Đăng nhập không thành công")
+                            .setMessage("Đã xảy ra lỗi khi tạo hồ sơ của bạn. Vui lòng kiểm tra kết nối mạng và thử đăng nhập lại.")
+                            .setPositiveButton("OK", null)
+                            .show();
                 });
     }
 
@@ -272,7 +297,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void createFallbackUserAndSave(String userId, String reason) {
-        Log.d(TAG, "Đang tạo người dùng dự phòng: " + reason);
+        Log.w(TAG, "Đang tạo người dùng dự phòng và LƯU LÊN FIRESTORE: " + reason);
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser != null) {
             User fallbackUser = new User();
@@ -291,7 +316,20 @@ public class LoginActivity extends AppCompatActivity {
             fallbackUser.setWalletStatus("not_connected");
             fallbackUser.setNotificationCount(0);
             fallbackUser.setMemberSince(new Date());
+
+            // 1. Lưu vào bộ nhớ đệm cục bộ (như cũ)
             prefsHelper.saveCurrentUser(fallbackUser);
+
+            // 2. === BƯỚC THÊM VÀO: Cố gắng lưu người dùng này lên Firestore ===
+            db.collection("users").document(userId)
+                    .set(fallbackUser)
+                    .addOnSuccessListener(aVoid -> {
+                        Log.i(TAG, "Tự sửa lỗi thành công: Đã tạo document Firestore cho người dùng: " + userId);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Tự sửa lỗi thất bại: Không thể tạo document Firestore.", e);
+                        // Dù thất bại, ứng dụng vẫn tiếp tục với dữ liệu cục bộ
+                    });
         }
     }
 

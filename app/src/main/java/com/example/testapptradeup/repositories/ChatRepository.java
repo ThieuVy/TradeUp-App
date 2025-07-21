@@ -163,35 +163,14 @@ public class ChatRepository {
             return sendStatus;
         }
 
-        // Tạo một reference cho tin nhắn mới trong sub-collection
-        DocumentReference newMessageRef = db.collection("chats").document(chatId)
-                .collection("messages").document();
-        message.setMessageId(newMessageRef.getId());
-
-        // Tạo một reference đến document cuộc trò chuyện cha
-        DocumentReference chatDocRef = db.collection("chats").document(chatId);
-
-        // Tạo một WriteBatch
-        WriteBatch batch = db.batch();
-
-        // 1. Thêm tin nhắn mới vào batch
-        batch.set(newMessageRef, message);
-
-        // 2. Cập nhật cuộc trò chuyện cha vào batch
-        Map<String, Object> chatUpdates = new HashMap<>();
-        chatUpdates.put("lastMessage", message.getText());
-        chatUpdates.put("timestamp", FieldValue.serverTimestamp());
-        chatUpdates.put("lastMessageSenderId", message.getSenderId());
-        batch.update(chatDocRef, chatUpdates);
-
-        // 3. Thực thi batch
-        batch.commit()
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Gửi tin nhắn và cập nhật cuộc trò chuyện thành công.");
+        db.collection("chats").document(chatId)
+                .collection("messages").add(message) // Chỉ cần thêm tin nhắn mới
+                .addOnSuccessListener(documentReference -> {
+                    Log.d(TAG, "Gửi tin nhắn thành công, trigger sẽ xử lý phần còn lại.");
                     sendStatus.setValue(true);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Lỗi khi thực thi batch gửi tin nhắn.", e);
+                    Log.e(TAG, "Lỗi khi gửi tin nhắn.", e);
                     sendStatus.setValue(false);
                 });
 
@@ -205,6 +184,7 @@ public class ChatRepository {
      */
     public LiveData<String> findOrCreateChat(String otherUserId) {
         MutableLiveData<String> chatIdLiveData = new MutableLiveData<>();
+        String currentUserId = FirebaseAuth.getInstance().getUid();
         if (currentUserId == null || otherUserId == null || currentUserId.equals(otherUserId)) {
             chatIdLiveData.setValue(null); // Không thể tự chat với chính mình
             return chatIdLiveData;
@@ -290,5 +270,51 @@ public class ChatRepository {
                     }
                 });
         return conversationData;
+    }
+
+    /**
+     * Xóa một cuộc trò chuyện, bao gồm tất cả tin nhắn con.
+     * @param chatId ID của cuộc trò chuyện cần xóa.
+     * @return LiveData<Boolean> để báo trạng thái thành công/thất bại.
+     */
+    public LiveData<Boolean> deleteConversation(String chatId) {
+        MutableLiveData<Boolean> deleteStatus = new MutableLiveData<>();
+        if (chatId == null || chatId.isEmpty()) {
+            deleteStatus.setValue(false);
+            return deleteStatus;
+        }
+
+        // Bước 1: Lấy tất cả các tin nhắn trong subcollection để xóa
+        db.collection("chats").document(chatId).collection("messages").get()
+                .addOnSuccessListener(messageSnapshots -> {
+                    // Bước 2: Tạo một WriteBatch để thực hiện nhiều thao tác cùng lúc
+                    WriteBatch batch = db.batch();
+
+                    // Bước 3: Thêm lệnh xóa cho từng tin nhắn vào batch
+                    for (QueryDocumentSnapshot messageDoc : messageSnapshots) {
+                        batch.delete(messageDoc.getReference());
+                    }
+
+                    // Bước 4: Thêm lệnh xóa cho document cuộc trò chuyện chính vào batch
+                    DocumentReference chatRef = db.collection("chats").document(chatId);
+                    batch.delete(chatRef);
+
+                    // Bước 5: Thực thi batch
+                    batch.commit()
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "Đã xóa cuộc trò chuyện và tất cả tin nhắn thành công: " + chatId);
+                                deleteStatus.setValue(true);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Lỗi khi commit batch xóa cuộc trò chuyện: ", e);
+                                deleteStatus.setValue(false);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi khi lấy danh sách tin nhắn để xóa: ", e);
+                    deleteStatus.setValue(false);
+                });
+
+        return deleteStatus;
     }
 }

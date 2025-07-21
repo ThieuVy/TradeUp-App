@@ -6,12 +6,16 @@ import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 import com.example.testapptradeup.models.Listing;
 import com.example.testapptradeup.models.Offer;
+import com.example.testapptradeup.models.Review;
 import com.example.testapptradeup.models.User;
 import com.example.testapptradeup.repositories.ChatRepository;
 import com.example.testapptradeup.repositories.ListingRepository;
 import com.example.testapptradeup.repositories.OfferRepository;
 import com.example.testapptradeup.repositories.UserRepository;
 import com.google.firebase.auth.FirebaseAuth;
+
+import java.util.Collections;
+import java.util.List;
 
 public class ProductDetailViewModel extends ViewModel {
     private final ListingRepository listingRepository;
@@ -24,6 +28,7 @@ public class ProductDetailViewModel extends ViewModel {
 
     private final ChatRepository chatRepository = new ChatRepository();
     private final LiveData<User> sellerProfile;
+    private final LiveData<List<Review>> sellerReviews;
 
     public ProductDetailViewModel() {
         this.listingRepository = new ListingRepository();
@@ -59,6 +64,18 @@ public class ProductDetailViewModel extends ViewModel {
                 }
             });
         });
+
+        sellerReviews = Transformations.switchMap(sellerProfile, seller -> {
+            if (seller == null || seller.getId() == null) {
+                return new MutableLiveData<>(Collections.emptyList());
+            }
+            return userRepository.getUserReviews(seller.getId());
+        });
+    }
+
+    // Thêm getter mới cho Fragment
+    public LiveData<List<Review>> getSellerReviews() {
+        return sellerReviews;
     }
 
     // Hàm loadListingDetail bây giờ chỉ cần set giá trị cho trigger

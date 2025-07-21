@@ -9,8 +9,10 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 import com.example.testapptradeup.models.ChatMessage;
 import com.example.testapptradeup.models.Conversation;
+import com.example.testapptradeup.models.UserStatus;
 import com.example.testapptradeup.repositories.ChatRepository;
 import com.example.testapptradeup.repositories.CloudinaryRepository;
+import com.example.testapptradeup.repositories.UserRepository; // <<< THÊM IMPORT
 import com.google.firebase.auth.FirebaseAuth;
 import java.util.List;
 import java.util.Objects;
@@ -18,6 +20,7 @@ import java.util.Objects;
 public class ChatDetailViewModel extends AndroidViewModel {
     private final ChatRepository chatRepository;
     private final CloudinaryRepository cloudinaryRepository;
+    private final UserRepository userRepository; // <<< THÊM DÒNG NÀY
     private final String currentUserId;
     private final MutableLiveData<String> chatIdTrigger = new MutableLiveData<>();
     private final LiveData<Conversation> chatData;
@@ -29,6 +32,7 @@ public class ChatDetailViewModel extends AndroidViewModel {
         super(application);
         this.chatRepository = new ChatRepository();
         this.cloudinaryRepository = new CloudinaryRepository();
+        this.userRepository = new UserRepository(); // <<< THÊM DÒNG NÀY
         this.currentUserId = FirebaseAuth.getInstance().getUid();
 
         chatData = Transformations.switchMap(chatIdTrigger, chatRepository::getConversationById);
@@ -85,5 +89,9 @@ public class ChatDetailViewModel extends AndroidViewModel {
                     }
                     isSendingImage.setValue(false);
                 });
+    }
+    public LiveData<UserStatus> getOtherUserStatus(String otherUserId) {
+        // Bây giờ 'userRepository' đã được khởi tạo và có thể sử dụng
+        return userRepository.getUserStatus(otherUserId);
     }
 }

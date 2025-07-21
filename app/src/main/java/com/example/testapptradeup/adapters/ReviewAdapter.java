@@ -45,14 +45,24 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
     static class ReviewViewHolder extends RecyclerView.ViewHolder {
         // Ánh xạ các view từ item_review.xml
         TextView reviewerName, reviewComment;
+
         ReviewViewHolder(View itemView) {
             super(itemView);
-            reviewerName = itemView.findViewById(R.id.reviewer_name);
-            reviewComment = itemView.findViewById(R.id.review_comment);
+            // =======================================================
+            // SỬA LỖI: DÙNG ĐÚNG ID TỪ FILE LAYOUT XML
+            // =======================================================
+            reviewerName = itemView.findViewById(R.id.review_user_name); // Sửa ID
+            reviewComment = itemView.findViewById(R.id.review_content); // Sửa ID
         }
+
         void bind(Review review) {
-            reviewerName.setText(review.getReviewerName());
-            reviewComment.setText(review.getComment());
+            // Bây giờ các biến này sẽ không còn null nữa
+            if (reviewerName != null) {
+                reviewerName.setText(review.getReviewerName());
+            }
+            if (reviewComment != null) {
+                reviewComment.setText(review.getComment());
+            }
         }
     }
 }

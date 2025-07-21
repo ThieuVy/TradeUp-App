@@ -1,23 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:gravity="end"
     android:orientation="vertical"
     android:paddingHorizontal="8dp"
-    android:paddingVertical="4dp"
-    android:gravity="end">
+    android:paddingVertical="4dp">
 
-    <TextView
-        android:id="@+id/text_message_body"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_chat_bubble_sent"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="10dp"
-        android:textColor="@android:color/white"
-        android:maxWidth="280dp"
-        tools:text="Đây là tin nhắn bạn gửi đi. Nó có thể rất dài và sẽ tự động xuống dòng."/>
+        app:cardCornerRadius="18dp"
+        app:cardElevation="1dp"
+        app:cardBackgroundColor="@color/purple_500">
+
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="60dp"
+            android:maxWidth="280dp">
+
+            <!-- ImageView để hiển thị ảnh -->
+            <ImageView
+                android:id="@+id/image_message_body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                tools:src="@drawable/img_placeholder"
+                tools:visibility="visible"
+                android:contentDescription="Ảnh đã gửi"
+                tools:ignore="HardcodedText" />
+
+            <!-- TextView để hiển thị text -->
+            <TextView
+                android:id="@+id/text_message_body"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp"
+                android:textColor="@android:color/white"
+                tools:text="Đây là tin nhắn bạn gửi đi."/>
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <TextView
         android:id="@+id/text_message_time"
@@ -27,7 +55,6 @@
         android:layout_marginEnd="4dp"
         android:textColor="@color/text_secondary"
         android:textSize="10sp"
-        tools:ignore="SmallSp,TextContrastCheck"
-        tools:text="10:35" />
-
+        tools:text="10:35"
+        tools:ignore="SmallSp" />
 </LinearLayout>

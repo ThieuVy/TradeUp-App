@@ -71,7 +71,27 @@
         android:id="@+id/notificationsFragment"
         android:name="com.example.testapptradeup.fragments.NotificationsFragment"
         android:label="Thông Báo"
-        tools:layout="@layout/fragment_notifications" />
+        tools:layout="@layout/fragment_notifications" >
+
+        <action
+            android:id="@+id/action_notificationsFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" >
+            <argument
+                android:name="listingId"
+                app:argType="string" />
+        </action>
+        <action
+            android:id="@+id/action_notificationsFragment_to_chatDetailFragment"
+            app:destination="@id/chatDetailFragment" >
+            <argument
+                android:name="chatId"
+                app:argType="string" />
+            <argument
+                android:name="otherUserName"
+                app:argType="string"
+                app:nullable="true" />
+        </action>
+    </fragment>
 
     <fragment
         android:id="@+id/navigation_profile"
@@ -148,6 +168,11 @@
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />
+        <argument
+            android:name="userId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
         <action
             android:id="@+id/action_productList_to_productDetail"
             app:destination="@id/productDetailFragment" >
@@ -156,20 +181,19 @@
                 app:argType="string" />
         </action>
     </fragment>
+
     <fragment
         android:id="@+id/productDetailFragment"
         android:name="com.example.testapptradeup.fragments.ProductDetailFragment"
         android:label="Chi tiết sản phẩm"
         tools:layout="@layout/fragment_product_detail">
 
-        <!-- Sửa đổi: Cho phép listingId có thể null -->
         <argument
             android:name="listingId"
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />
 
-        <!-- Thêm mới: Argument để nhận toàn bộ đối tượng Listing cho việc xem trước -->
         <argument
             android:name="listingPreview"
             app:argType="com.example.testapptradeup.models.Listing"
@@ -178,13 +202,41 @@
 
         <action
             android:id="@+id/action_productDetail_to_chatDetail"
-            app:destination="@id/chatDetailFragment" />
+            app:destination="@id/chatDetailFragment" >
+            <!-- Action này cũng cần có argument để nhất quán -->
+            <argument
+                android:name="chatId"
+                app:argType="string" />
+            <argument
+                android:name="otherUserName"
+                app:argType="string"
+                app:nullable="true"/>
+        </action>
 
         <action
             android:id="@+id/action_productDetailFragment_to_publicProfileFragment"
             app:destination="@id/publicProfileFragment">
             <argument
                 android:name="userId"
+                app:argType="string" />
+        </action>
+
+        <action
+            android:id="@+id/action_productDetailFragment_to_paymentFragment"
+            app:destination="@id/paymentFragment">
+            <!-- Khai báo các tham số mà action này sẽ truyền đi -->
+            <!-- Các tham số này phải khớp với argument của destination (paymentFragment) -->
+            <argument
+                android:name="listingId"
+                app:argType="string" />
+            <argument
+                android:name="sellerId"
+                app:argType="string" />
+            <argument
+                android:name="offerPrice"
+                app:argType="float" />
+            <argument
+                android:name="offerId"
                 app:argType="string" />
         </action>
     </fragment>
@@ -225,6 +277,7 @@
         android:name="com.example.testapptradeup.fragments.EditProfileFragment"
         android:label="Chỉnh sửa hồ sơ"
         tools:layout="@layout/fragment_edit_profile" />
+
     <fragment
         android:id="@+id/publicProfileFragment"
         android:name="com.example.testapptradeup.fragments.PublicProfileFragment"
@@ -233,7 +286,33 @@
         <argument
             android:name="userId"
             app:argType="string" />
+        <action
+            android:id="@+id/action_publicProfileFragment_to_chatDetailFragment"
+            app:destination="@id/chatDetailFragment">
+
+            <argument
+                android:name="chatId"
+                app:argType="string" />
+            <argument
+                android:name="otherUserName"
+                app:argType="string" />
+
+        </action>
+        <action
+            android:id="@+id/action_publicProfileFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment">
+
+            <argument
+                android:name="listingId"
+                app:argType="string" />
+
+        </action>
+
+        <action
+            android:id="@+id/action_publicProfileFragment_to_productListFragment"
+            app:destination="@id/productListFragment" />
     </fragment>
+
     <fragment
         android:id="@+id/favoritesFragment"
         android:name="com.example.testapptradeup.fragments.FavoritesFragment"

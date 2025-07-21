@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.models.Listing;
-import java.util.Objects;
 
 // SỬA ĐỔI 1: Kế thừa từ ListAdapter thay vì RecyclerView.Adapter
 public class FavoritesAdapter extends ListAdapter<Listing, FavoritesAdapter.FavoriteViewHolder> {
@@ -25,7 +24,7 @@ public class FavoritesAdapter extends ListAdapter<Listing, FavoritesAdapter.Favo
 
     // SỬA ĐỔI 3: Constructor gọi đến constructor của lớp cha với DIFF_CALLBACK
     public FavoritesAdapter() {
-        super(DIFF_CALLBACK);
+        super(DIFF_CALLBACK); // Gọi constructor của lớp cha
     }
 
     @NonNull
@@ -83,19 +82,16 @@ public class FavoritesAdapter extends ListAdapter<Listing, FavoritesAdapter.Favo
         }
     }
 
-    // SỬA ĐỔI 6: Khai báo DIFF_CALLBACK là static và final
-    private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<Listing>() {
+    // Thêm DIFF_CALLBACK để ListAdapter biết cách so sánh các item
+    private static final DiffUtil.ItemCallback<Listing> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
-            // So sánh dựa trên ID duy nhất
-            return Objects.equals(oldItem.getId(), newItem.getId());
+            return oldItem.getId().equals(newItem.getId());
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull Listing oldItem, @NonNull Listing newItem) {
-            // So sánh nội dung để biết có cần vẽ lại item không
-            // Đảm bảo Listing có implement equals() một cách chính xác
-            return oldItem.equals(newItem);
+            return oldItem.equals(newItem); // Đảm bảo bạn đã override hàm equals() trong model Listing
         }
     };
 }

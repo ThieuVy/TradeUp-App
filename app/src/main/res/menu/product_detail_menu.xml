@@ -1,35 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
-
+<menu xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/action_favorite"
-        android:icon="@drawable/ic_favorite"
-        android:title="Yêu thích"
+        android:id="@+id/action_more_options"
+        android:icon="@drawable/ic_more_vertical"
+        android:title="Tùy chọn khác"
         app:showAsAction="ifRoom"
         tools:ignore="HardcodedText" />
-
-    <item
-        android:id="@+id/action_share"
-        android:icon="@drawable/ic_share"
-        android:title="Chia sẻ"
-        app:showAsAction="ifRoom"
-        tools:ignore="HardcodedText" />
-
-    <item
-        android:id="@+id/action_more"
-        android:icon="@drawable/ic_more_vert"
-        android:title="Thêm"
-        tools:ignore="HardcodedText">
-        <menu>
-            <item
-                android:id="@+id/action_report"
-                android:title="Báo cáo" />
-            <item
-                android:id="@+id/action_hide"
-                android:title="Ẩn tin" />
-        </menu>
-    </item>
-
 </menu>

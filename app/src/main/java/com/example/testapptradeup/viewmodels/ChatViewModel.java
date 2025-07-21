@@ -100,4 +100,12 @@ public class ChatViewModel extends ViewModel {
         // Gọi repository để gửi tin nhắn
         return chatRepository.sendMessage(chatId, message);
     }
+    /**
+     * Yêu cầu repository xóa một cuộc trò chuyện.
+     *
+     * @param chatId ID của cuộc trò chuyện cần xóa.
+     */
+    public void deleteConversation(String chatId) {
+        chatRepository.deleteConversation(chatId);
+    }
 }

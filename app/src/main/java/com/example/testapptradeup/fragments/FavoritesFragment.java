@@ -52,7 +52,6 @@ public class FavoritesFragment extends Fragment {
         initViews(view);
         setupToolbar();
         setupRecyclerView();
-
         // Kiểm tra người dùng đã đăng nhập chưa
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             Toast.makeText(getContext(), "Vui lòng đăng nhập để xem danh sách yêu thích.", Toast.LENGTH_LONG).show();
@@ -75,21 +74,22 @@ public class FavoritesFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        // CHỈNH SỬA: Khởi tạo adapter không cần tham số vì nó hiện là ListAdapter
+        // Khởi tạo adapter là ListAdapter, không cần truyền danh sách ban đầu
         adapter = new FavoritesAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
     }
 
     private void observeViewModel() {
-        showLoading(true);
+        showLoading(true); // Hiển thị loading ban đầu
+
         viewModel.getFavoriteListings().observe(getViewLifecycleOwner(), listings -> {
-            showLoading(false);
+            showLoading(false); // Ẩn loading khi có kết quả
             if (listings != null) {
                 if (listings.isEmpty()) {
                     showEmptyState("Bạn chưa có mục yêu thích nào.");
                 } else {
-                    // CHỈNH SỬA: dùng submitList() thay vì phương thức tùy chỉnh
+                    // Cập nhật danh sách cho adapter
                     adapter.submitList(listings);
                     recyclerView.setVisibility(View.VISIBLE);
                     emptyStateText.setVisibility(View.GONE);

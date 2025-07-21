@@ -96,6 +96,8 @@ dependencies {
     implementation (libs.geofire.android.common)
     implementation(libs.emoji.google)
     implementation(libs.emoji.android)
+    implementation(libs.firebase.database.v2031)
+    implementation(libs.circleindicator)
 }
 configurations.all {
     exclude(group = "xpp3", module = "xpp3")

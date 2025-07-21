@@ -24,7 +24,8 @@
             android:src="@drawable/ic_arrow_back"
             android:contentDescription="Quay lại"
             android:background="?attr/selectableItemBackgroundBorderless"
-            tools:ignore="HardcodedText" />
+            tools:ignore="HardcodedText"
+            android:visibility="gone"/>
 
         <TextView
             android:id="@+id/header_title"

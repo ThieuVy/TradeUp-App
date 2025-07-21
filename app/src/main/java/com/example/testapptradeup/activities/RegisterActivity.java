@@ -1,5 +1,6 @@
 package com.example.testapptradeup.activities;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -151,12 +152,29 @@ public class RegisterActivity extends AppCompatActivity {
                 .set(newUser)
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Lưu người dùng mới vào Firestore thành công.");
+                    // Chỉ gửi email xác thực và chuyển màn hình KHI đã lưu thành công
                     sendVerificationEmail(firebaseUser);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Lỗi lưu người dùng vào Firestore: ", e);
+                    Log.e(TAG, "CRITICAL: Lỗi lưu người dùng vào Firestore: ", e);
                     showLoading(false);
-                    Toast.makeText(RegisterActivity.this, "Lỗi đăng ký. Vui lòng thử lại.", Toast.LENGTH_LONG).show();
+
+                    // === BƯỚC QUAN TRỌNG NHẤT ===
+                    // Nếu lưu thất bại, hãy xóa tài khoản Auth đã tạo để người dùng có thể thử lại
+                    firebaseUser.delete().addOnCompleteListener(deleteTask -> {
+                        if (deleteTask.isSuccessful()) {
+                            Log.w(TAG, "Đã xóa tài khoản Auth không hoàn chỉnh.");
+                        } else {
+                            Log.e(TAG, "Lỗi nghiêm trọng: Không thể xóa tài khoản Auth không hoàn chỉnh.", deleteTask.getException());
+                        }
+                    });
+
+                    // Hiển thị một thông báo lỗi rõ ràng hơn
+                    new AlertDialog.Builder(this)
+                            .setTitle("Đăng ký không thành công")
+                            .setMessage("Đã xảy ra lỗi khi tạo hồ sơ của bạn. Vui lòng kiểm tra kết nối mạng và thử đăng ký lại.")
+                            .setPositiveButton("OK", null)
+                            .show();
                 });
     }
 

@@ -1,12 +1,14 @@
 [versions]
 agp = "8.11.1"
 circleimageview = "3.1.0"
+circleindicator = "2.1.6"
 cloudinaryAndroidVersion = "3.0.2"
 emojiAndroid = "0.16.0"
 emojiGoogle = "0.15.0"
 firebaseAnalytics = "22.4.0"
 firebaseAuthKtx = "23.2.1"
 firebaseBom = "33.16.0"
+firebaseDatabaseVersion = "20.3.1"
 firebaseFunctions = "21.2.1"
 flexbox = "3.0.0"
 geofireAndroid = "3.2.0"
@@ -45,6 +47,7 @@ navigation = "2.7.7"
 
 [libraries]
 circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circleimageview" }
+circleindicator = { module = "me.relex:circleindicator", version.ref = "circleindicator" }
 cloudinary-android-v302 = { module = "com.cloudinary:cloudinary-android", version.ref = "cloudinaryAndroidVersion" }
 compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
 emoji-android = { module = "com.vanniktech:emoji-android", version.ref = "emojiAndroid" }
@@ -53,6 +56,7 @@ firebase-analytics = { module = "com.google.firebase:firebase-analytics", versio
 firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-database-v2031 = { module = "com.google.firebase:firebase-database", version.ref = "firebaseDatabaseVersion" }
 firebase-functions = { module = "com.google.firebase:firebase-functions", version.ref = "firebaseFunctions" }
 firebase-messaging = { module = "'com.google.firebase:firebase-messaging" }
 firebase-storage = { module = "com.google.firebase:firebase-storage" }

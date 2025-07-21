@@ -22,104 +22,110 @@ service cloud.firestore {
 
         // --- Người dùng (users) ---
         match /users/{userId} {
-            // GIẢI THÍCH: Quy tắc này cho phép bất kỳ ai đã đăng nhập đọc hồ sơ của người khác.
-            // Điều này là chấp nhận được nếu hồ sơ người dùng chỉ chứa thông tin công khai.
-            // Nếu bạn có dữ liệu nhạy cảm (email, sđt), hãy xem xét tạo một sub-collection riêng
-            // với các quy tắc chặt chẽ hơn.
             allow read: if isAuthenticated();
-
-            // Chỉ chủ sở hữu hoặc admin mới có thể ghi/cập nhật
             allow write: if isOwner(userId) || isAdmin();
+
+        }
+
+        match /notifications/{notificationId} {
+            // Ai được ĐỌC TỪNG document?
+            // -> Chủ sở hữu của thông báo đó (dựa vào trường userId trong document).
+            allow get: if isOwner(resource.data.userId);
+
+            // Ai được TRUY VẤN DANH SÁCH?
+            // -> Bất kỳ người dùng đã đăng nhập nào cũng có thể thực hiện
+            // truy vấn "where('userId', '==', their_own_id')".
+            allow list: if isAuthenticated();
+
+            // Ai được CẬP NHẬT/XÓA?
+            // -> Chủ sở hữu của thông báo đó.
+            allow update, delete: if isOwner(resource.data.userId);
+
+            // Ai được TẠO?
+            // -> Không ai từ client, chỉ từ Cloud Functions.
+            allow create: if false;
         }
 
         // --- Tin đăng (listings) ---
         match /listings/{listingId} {
-
-            // Bất kỳ người dùng đã đăng nhập nào cũng có thể đọc một tin đăng cụ thể.
-            allow get: if isAuthenticated();
-
-            // Bất kỳ người dùng đã đăng nhập nào cũng có thể truy vấn danh sách tin đăng,
-            // nhưng giới hạn số lượng để tránh quét toàn bộ dữ liệu.
-            allow list: if isAuthenticated() && request.query.limit <= 50;
-
-            // CHỈ người dùng đã đăng nhập mới có thể TẠO tin đăng, và họ phải là người bán.
-            // Ngăn chặn việc giả mạo người bán.
+            allow read: if isAuthenticated();
             allow create: if isAuthenticated() && request.auth.uid == request.resource.data.sellerId;
-
-            // CHỈ chủ sở hữu của tin đăng (dựa trên sellerId trong document) hoặc admin
-            // mới có quyền CẬP NHẬT tin đăng đó.
             allow update: if isAuthenticated() && (request.auth.uid == resource.data.sellerId || isAdmin());
-
-            // CHỈ chủ sở hữu của tin đăng hoặc admin mới có quyền XÓA.
             allow delete: if isAuthenticated() && (request.auth.uid == resource.data.sellerId || isAdmin());
-
-            // Xóa bỏ quy tắc "allow write" cũ để tránh xung đột.
         }
 
         // --- Trò chuyện (chats) & Tin nhắn (messages) ---
         match /chats/{chatId} {
             function isChatMember() {
-                // Đối với document đã tồn tại
+                // Kiểm tra xem người dùng có phải là thành viên trong document hiện tại không
                 return request.auth.uid in resource.data.members;
             }
-
             function isCreatingChatMember() {
-                // Đối với document sắp được tạo
+                // Kiểm tra xem người dùng có phải là thành viên trong document đang được tạo không
                 return request.auth.uid in request.resource.data.members;
             }
 
-            allow read, update, delete: if isAuthenticated() && isChatMember();
-
-            // CHO PHÉP TẠO MỚI nếu người dùng là thành viên của cuộc trò chuyện sắp tạo
-            allow create: if isAuthenticated() && isCreatingChatMember();
-
+            allow read, delete: if isChatMember();
+            allow create: if isCreatingChatMember();
+            allow update: if isChatMember() &&
+                    request.resource.data.keys().hasOnly(['lastMessage', 'timestamp', 'lastMessageSenderId']);
 
             match /messages/{messageId} {
-                allow create: if isChatMember() && isOwner(request.resource.data.senderId);
-                allow read: if isChatMember();
-                allow update, delete: if false;
+                // Ai được ĐỌC tin nhắn? -> Thành viên của cuộc trò chuyện.
+                // Sử dụng hàm get() để truy cập document cha (chat).
+                allow read: if request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+
+                // Ai được TẠO tin nhắn? -> Thành viên của cuộc trò chuyện VÀ là người gửi tin nhắn.
+                allow create: if request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members &&
+                        request.auth.uid == request.resource.data.senderId;
+
+                // Ai được XÓA tin nhắn? -> Bất kỳ thành viên nào của cuộc trò chuyện.
+                // Logic này cho phép người dùng xóa toàn bộ cuộc trò chuyện của họ.
+                allow delete: if request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+
+                // Không cho phép CẬP NHẬT tin nhắn sau khi đã gửi.
+                allow update: if false;
             }
         }
 
-        // --- Đề nghị (offers) ---
+        // --- Các quy tắc khác giữ nguyên ---
         match /offers/{offerId} {
             allow read: if isAuthenticated() && (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId);
-            // SỬA LỖI BẢO MẬT: Đảm bảo người tạo đề nghị là chính họ.
             allow create: if isAuthenticated() && isOwner(request.resource.data.buyerId);
             allow update: if isAuthenticated() && (isOwner(resource.data.sellerId) || isOwner(resource.data.buyerId));
             allow delete: if false;
         }
 
-        // --- Thông báo (notifications) ---
-        match /notifications/{notificationId} {
-            allow read, update, delete: if isOwner(resource.data.userId);
-            allow create: if false; // Chỉ cho phép tạo từ Cloud Functions.
-        }
-
-        // --- Giao dịch (transactions) ---
         match /transactions/{transactionId} {
             allow read: if isAuthenticated() && (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId);
-            allow write: if false; // Chỉ cho phép tạo từ Cloud Functions.
+            allow write: if false;
         }
 
-        // --- Báo cáo (reports) ---
+        match /reviews/{reviewId} {
+            allow read: if isAuthenticated();
+            allow create: if isAuthenticated() && request.auth.uid == request.resource.data.reviewerId;
+            allow update, delete: if false;
+        }
+
         match /reports/{reportId} {
-            // SỬA LỖI BẢO MẬT: Đảm bảo người báo cáo (reporterId) là chính họ.
             allow create: if isAuthenticated() && request.auth.uid == request.resource.data.reporterId;
             allow read, update, delete: if isAdmin();
         }
 
-        // --- Người dùng bị chặn (blocked_users) ---
         match /blocked_users/{blockId} {
             allow create: if isAuthenticated() && isOwner(request.resource.data.blockerId);
             allow read, delete: if isAuthenticated() && isOwner(resource.data.blockerId);
             allow update: if false;
         }
 
-        // --- Ký quỹ (Escrows) ---
+        match /categories/{categoryId} {
+            allow read: if isAuthenticated();
+            allow write: if isAdmin();
+        }
+
         match /escrows/{escrowId} {
             allow read: if isAdmin() || (isAuthenticated() && (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId));
-            allow write: if false; // Chỉ cho phép tạo từ Cloud Functions.
+            allow write: if false;
         }
     }
 }

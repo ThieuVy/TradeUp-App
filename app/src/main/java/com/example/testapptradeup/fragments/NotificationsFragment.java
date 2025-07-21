@@ -15,21 +15,27 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
-// Thêm import ContextCompat
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.adapters.NotificationAdapter;
-import com.example.testapptradeup.models.NotificationItem; // Đảm bảo import NotificationItem
+import com.example.testapptradeup.models.Notification; // Sửa: Dùng model Notification đã thống nhất
 import com.example.testapptradeup.viewmodels.NotificationsViewModel;
 import com.google.android.material.tabs.TabLayout;
 
 import java.util.Objects;
 
+/**
+ * Fragment này hiển thị danh sách thông báo và xử lý các tương tác của người dùng.
+ * Nó triển khai OnNotificationClickListener để nhận sự kiện click từ adapter.
+ */
 public class NotificationsFragment extends Fragment implements NotificationAdapter.OnNotificationClickListener {
 
     private NotificationsViewModel notificationsViewModel;
@@ -37,31 +43,41 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
     private LinearLayout layoutEmptyState;
     private ProgressBar progressLoading;
     private NotificationAdapter notificationAdapter;
+    private NavController navController;
 
+    // Các thành phần của Popup Menu
     private TabLayout tabLayoutNotifications;
     private ImageView menuMore;
     private CardView popupMenuCard;
     private TextView menuMarkAllRead, menuClearAll, menuSettings;
 
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
+        // Chỉ khởi tạo ViewModel ở đây
         notificationsViewModel = new ViewModelProvider(this).get(NotificationsViewModel.class);
+        return inflater.inflate(R.layout.fragment_notifications, container, false);
+    }
 
-        View root = inflater.inflate(R.layout.fragment_notifications, container, false);
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        initViews(root);
+        // Khởi tạo NavController
+        navController = Navigation.findNavController(view);
+
+        // Gọi các hàm thiết lập
+        initViews(view);
         setupRecyclerView();
         setupTabLayout();
         setupClickListeners();
         observeViewModel();
-
-        // Load initial notifications (e.g., "Tất cả")
-        notificationsViewModel.loadNotifications("Tất cả");
-
-        return root;
     }
 
+    /**
+     * Ánh xạ tất cả các biến UI với các View tương ứng trong layout XML.
+     */
     private void initViews(View root) {
         recyclerNotifications = root.findViewById(R.id.recycler_notifications);
         layoutEmptyState = root.findViewById(R.id.layout_empty_state);
@@ -74,55 +90,49 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
         menuSettings = root.findViewById(R.id.menu_settings);
     }
 
+    /**
+     * Thiết lập RecyclerView và Adapter.
+     * Fragment này (`this`) được truyền vào làm listener cho các sự kiện click.
+     */
     private void setupRecyclerView() {
-        notificationAdapter = new NotificationAdapter();
-        notificationAdapter.setOnNotificationClickListener(this);
-
+        notificationAdapter = new NotificationAdapter(this);
         recyclerNotifications.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerNotifications.setAdapter(notificationAdapter);
     }
 
+    /**
+     * Thiết lập các tab lọc và listener cho chúng.
+     */
     private void setupTabLayout() {
-        // Xóa các tab cũ nếu có để tránh lặp lại
         tabLayoutNotifications.removeAllTabs();
-
-        // Thêm các tab bằng code
         tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tất cả"));
         tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tin nhắn"));
         tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Ưu đãi"));
-        tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tin đăng")); // Sửa "Danh sách" thành "Tin đăng" cho rõ nghĩa
+        tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Tin đăng"));
         tabLayoutNotifications.addTab(tabLayoutNotifications.newTab().setText("Khuyến mãi"));
 
         tabLayoutNotifications.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 String categoryFilter = Objects.requireNonNull(tab.getText()).toString();
-                // ViewModel sẽ chịu trách nhiệm lọc và cập nhật LiveData
-                // Ánh xạ tên hiển thị sang loại category trong model
                 String internalCategory;
                 switch(categoryFilter) {
                     case "Tin nhắn": internalCategory = "MESSAGE"; break;
-                    case "Ưu đãi":
-                    case "Khuyến mãi":
-                        internalCategory = "PROMOTION"; break;
+                    case "Ưu đãi": internalCategory = "OFFER"; break; // Đổi thành OFFER cho đúng với Enum
+                    case "Khuyến mãi": internalCategory = "PROMOTION"; break;
                     case "Tin đăng": internalCategory = "LISTING"; break;
                     default: internalCategory = "Tất cả"; break;
                 }
                 notificationsViewModel.loadNotifications(internalCategory);
             }
-
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {
-                // Do nothing
-            }
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {
-                onTabSelected(tab);
-            }
+            @Override public void onTabUnselected(TabLayout.Tab tab) {}
+            @Override public void onTabReselected(TabLayout.Tab tab) { onTabSelected(tab); }
         });
     }
 
+    /**
+     * Thiết lập các sự kiện click cho menu "..."
+     */
     private void setupClickListeners() {
         menuMore.setOnClickListener(v -> togglePopupMenu());
 
@@ -140,8 +150,123 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
         menuSettings.setOnClickListener(v -> {
             showToast("Mở cài đặt thông báo");
             popupMenuCard.setVisibility(View.GONE);
-            // TODO: Navigate to notification settings screen
+            // TODO: Điều hướng đến màn hình cài đặt
         });
+    }
+
+    /**
+     * Lắng nghe các thay đổi từ ViewModel để cập nhật giao diện.
+     */
+    private void observeViewModel() {
+        notificationsViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            progressLoading.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+            if (isLoading) {
+                recyclerNotifications.setVisibility(View.GONE);
+                layoutEmptyState.setVisibility(View.GONE);
+            }
+        });
+
+        notificationsViewModel.getNotifications().observe(getViewLifecycleOwner(), notifications -> {
+            notificationAdapter.submitList(notifications);
+            if (notifications == null || notifications.isEmpty()) {
+                // Chỉ hiện empty state khi đã load xong
+                if (notificationsViewModel.getIsLoading().getValue() != null && !notificationsViewModel.getIsLoading().getValue()) {
+                    showEmptyState();
+                }
+            } else {
+                showNotificationsList();
+            }
+        });
+
+        notificationsViewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
+            if (message != null && !message.isEmpty()) {
+                showError(message);
+                notificationsViewModel.clearErrorMessage();
+            }
+        });
+
+        notificationsViewModel.getUnreadCount().observe(getViewLifecycleOwner(), count -> {
+            Log.d(TAG, "Số thông báo chưa đọc: " + count);
+            // Cập nhật badge tại đây nếu có
+        });
+    }
+
+    /**
+     * Đây là phương thức quan trọng nhất, được gọi từ Adapter khi người dùng nhấn vào một thông báo.
+     * @param notification Đối tượng thông báo đã được click.
+     */
+    @Override
+    public void onNotificationClick(Notification notification) {
+        Log.d(TAG, "Clicked notification: " + notification.getTitle() + ", Type: " + notification.getType());
+
+        // Bước 1: Luôn đánh dấu là đã đọc (nếu chưa đọc)
+        if (!notification.isRead()) {
+            notificationsViewModel.markAsRead(notification.getId());
+        }
+
+        // Bước 2: Thực hiện hành động điều hướng
+        handleNotificationAction(notification);
+    }
+
+    /**
+     * Hàm này chứa logic chính để quyết định sẽ điều hướng đi đâu
+     * dựa vào loại thông báo.
+     */
+    private void handleNotificationAction(Notification notification) {
+        if (notification.getType() == null || notification.getRelatedId() == null || notification.getRelatedId().isEmpty()) {
+            Log.w(TAG, "Không thể điều hướng: Loại thông báo hoặc ID liên quan là null/rỗng.");
+            showToast("Không có hành động cho thông báo này.");
+            return;
+        }
+
+        try {
+            switch (notification.getType()) {
+                // Xóa "case PROMOTION:" khỏi nhóm này
+                case LISTING:
+                case OFFER:
+                    NotificationsFragmentDirections.ActionNotificationsFragmentToProductDetailFragment detailAction =
+                            NotificationsFragmentDirections.actionNotificationsFragmentToProductDetailFragment(notification.getRelatedId());
+                    navController.navigate(detailAction);
+                    break;
+
+                case MESSAGE:
+                    // Cần lấy tên của người gửi từ notification.title hoặc một trường dữ liệu khác
+                    String otherUserName = notification.getTitle().replace("Tin nhắn mới từ ", "");
+
+                    NotificationsFragmentDirections.ActionNotificationsFragmentToChatDetailFragment chatAction =
+                            NotificationsFragmentDirections.actionNotificationsFragmentToChatDetailFragment(notification.getRelatedId(), otherUserName);
+                    navController.navigate(chatAction);
+                    break;
+
+                // Logic cho PROMOTION và SYSTEM bây giờ đã đúng
+                case PROMOTION:
+                case SYSTEM:
+                default:
+                    // Đối với các loại khác, hiển thị dialog là hợp lý
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle(notification.getTitle())
+                            .setMessage(notification.getContent())
+                            .setPositiveButton("Đã hiểu", null)
+                            .show();
+                    break;
+            }
+        } catch (Exception e) {
+            // Bắt các lỗi có thể xảy ra khi điều hướng (ví dụ: action không tồn tại)
+            Log.e(TAG, "Lỗi điều hướng: " + e.getMessage());
+            showError("Đã xảy ra lỗi khi mở thông báo.");
+        }
+    }
+
+    // --- CÁC HÀM HELPER ĐƯỢC VIẾT ĐẦY ĐỦ ---
+
+    private void showNotificationsList() {
+        recyclerNotifications.setVisibility(View.VISIBLE);
+        layoutEmptyState.setVisibility(View.GONE);
+    }
+
+    private void showEmptyState() {
+        recyclerNotifications.setVisibility(View.GONE);
+        layoutEmptyState.setVisibility(View.VISIBLE);
     }
 
     private void togglePopupMenu() {
@@ -164,90 +289,6 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
                 .show();
     }
 
-
-    private void observeViewModel() {
-        notificationsViewModel.getNotifications().observe(getViewLifecycleOwner(), notifications -> {
-            if (notifications != null && !notifications.isEmpty()) {
-                notificationAdapter.setNotifications(notifications);
-                showNotificationsList();
-            } else {
-                showEmptyState();
-            }
-        });
-
-        notificationsViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
-            progressLoading.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-            if (isLoading) {
-                recyclerNotifications.setVisibility(View.GONE);
-                layoutEmptyState.setVisibility(View.GONE);
-            }
-        });
-
-        notificationsViewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
-            if (message != null && !message.isEmpty()) {
-                showError(message);
-                notificationsViewModel.clearErrorMessage();
-            }
-        });
-
-        notificationsViewModel.getUnreadCount().observe(getViewLifecycleOwner(), count -> {
-            Log.d(TAG, "Unread notifications: " + count);
-            // Bạn có thể cập nhật một badge ở đây nếu MainActivity hoặc parent của bạn có một cái
-        });
-    }
-
-    private void showNotificationsList() {
-        recyclerNotifications.setVisibility(View.VISIBLE);
-        layoutEmptyState.setVisibility(View.GONE);
-    }
-
-    private void showEmptyState() {
-        recyclerNotifications.setVisibility(View.GONE);
-        layoutEmptyState.setVisibility(View.VISIBLE);
-    }
-
-    @Override
-    public void onNotificationClick(NotificationItem notification, int position) {
-        if (!notification.isRead()) {
-            notificationsViewModel.markAsRead(notification.getId());
-        }
-        handleNotificationAction(notification);
-    }
-
-    private void handleNotificationAction(NotificationItem notification) {
-        if (notification.getType() != null) { // SỬA: Kiểm tra null cho Enum
-            switch (notification.getType()) { // SỬA: Dùng NotificationType enum
-                case TRADE:
-                    showToast("Điều hướng đến chi tiết giao dịch: " + notification.getActionUrl());
-                    break;
-                case PRICE_ALERT:
-                    showToast("Điều hướng đến biểu đồ giá: " + notification.getActionUrl());
-                    break;
-                case NEWS:
-                    showToast("Mở bài viết tin tức: " + notification.getActionUrl());
-                    break;
-                case SYSTEM:
-                    showToast("Hiển thị thông báo hệ thống: " + notification.getContent());
-                    break;
-                case PROMOTION:
-                    showToast("Mở chi tiết ưu đãi: " + notification.getActionUrl());
-                    break;
-                case LISTING:
-                    showToast("Mở chi tiết danh sách: " + notification.getActionUrl());
-                    break;
-                case MESSAGE:
-                    showToast("Mở cuộc trò chuyện: " + notification.getActionUrl());
-                    break;
-                case OTHER:
-                default:
-                    showToast("Không thể xử lý loại thông báo này.");
-                    break;
-            }
-        } else {
-            showToast("Loại thông báo không xác định.");
-        }
-    }
-
     private void showToast(String message) {
         if (getContext() != null) {
             Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
@@ -263,6 +304,7 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        // Dọn dẹp các tham chiếu đến View để tránh rò rỉ bộ nhớ
         recyclerNotifications = null;
         layoutEmptyState = null;
         progressLoading = null;
@@ -273,5 +315,6 @@ public class NotificationsFragment extends Fragment implements NotificationAdapt
         menuMarkAllRead = null;
         menuClearAll = null;
         menuSettings = null;
+        navController = null;
     }
 }
