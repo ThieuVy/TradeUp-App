@@ -18,6 +18,7 @@ public class Conversation {
     private Date timestamp;
     private int unreadCount;
 
+    private String listingId;
     public Conversation() {
         // Constructor rỗng cho Firebase
     }
@@ -44,6 +45,8 @@ public class Conversation {
     public void setLastMessageSenderId(String lastMessageSenderId) { this.lastMessageSenderId = lastMessageSenderId; }
     public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
     public void setUnreadCount(int unreadCount) { this.unreadCount = unreadCount; }
+    public String getListingId() { return listingId; }
+    public void setListingId(String listingId) { this.listingId = listingId; }
 
     @Override
     public boolean equals(Object o) {

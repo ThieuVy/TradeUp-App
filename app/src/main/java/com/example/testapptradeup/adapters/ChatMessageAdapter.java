@@ -113,17 +113,28 @@ public class ChatMessageAdapter extends ListAdapter<ChatItem, RecyclerView.ViewH
             imageBody = itemView.findViewById(R.id.image_message_body);
         }
 
+        // ===============================================
+        // === THAY ĐỔI QUAN TRỌNG NHẤT NẰM Ở ĐÂY (SENT) ===
+        // ===============================================
         void bind(ChatMessage message) {
+            // Kiểm tra xem tin nhắn có URL hình ảnh không
             if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
-                messageBody.setVisibility(View.GONE);
-                imageBody.setVisibility(View.VISIBLE);
-                Glide.with(itemView.getContext()).load(message.getImageUrl()).placeholder(R.color.background_light).into(imageBody);
+                // Nếu có, đây là tin nhắn hình ảnh
+                messageBody.setVisibility(View.GONE); // Ẩn TextView
+                imageBody.setVisibility(View.VISIBLE); // Hiện ImageView
+                // Dùng Glide để tải ảnh từ URL vào ImageView
+                Glide.with(itemView.getContext())
+                        .load(message.getImageUrl())
+                        .placeholder(R.color.background_light) // Ảnh tạm trong khi tải
+                        .into(imageBody);
             } else {
-                messageBody.setVisibility(View.VISIBLE);
-                imageBody.setVisibility(View.GONE);
+                // Nếu không, đây là tin nhắn văn bản
+                messageBody.setVisibility(View.VISIBLE); // Hiện TextView
+                imageBody.setVisibility(View.GONE); // Ẩn ImageView
                 messageBody.setText(message.getText());
             }
 
+            // Hiển thị thời gian (giữ nguyên)
             if (message.getTimestamp() != null) {
                 messageTime.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(message.getTimestamp()));
             }
@@ -144,11 +155,18 @@ public class ChatMessageAdapter extends ListAdapter<ChatItem, RecyclerView.ViewH
             imageBody = itemView.findViewById(R.id.image_message_body);
         }
 
+        // ===================================================
+        // === THAY ĐỔI QUAN TRỌNG NHẤT NẰM Ở ĐÂY (RECEIVED) ===
+        // ===================================================
         void bind(ChatMessage message) {
+            // Logic tương tự như tin nhắn gửi đi
             if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
                 messageBody.setVisibility(View.GONE);
                 imageBody.setVisibility(View.VISIBLE);
-                Glide.with(itemView.getContext()).load(message.getImageUrl()).placeholder(R.color.background_light).into(imageBody);
+                Glide.with(itemView.getContext())
+                        .load(message.getImageUrl())
+                        .placeholder(R.color.background_light)
+                        .into(imageBody);
             } else {
                 messageBody.setVisibility(View.VISIBLE);
                 imageBody.setVisibility(View.GONE);
@@ -158,6 +176,9 @@ public class ChatMessageAdapter extends ListAdapter<ChatItem, RecyclerView.ViewH
             if (message.getTimestamp() != null) {
                 messageTime.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(message.getTimestamp()));
             }
+
+            // TODO: Cập nhật logic để tải avatar của người gửi nếu cần
+            // Glide.with(itemView.getContext()).load(senderAvatarUrl)...
         }
     }
 

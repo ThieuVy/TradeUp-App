@@ -1,5 +1,7 @@
 package com.example.testapptradeup.models;
 
+import com.google.firebase.firestore.Exclude;
+
 import java.util.Date;
 
 /**
@@ -8,6 +10,7 @@ import java.util.Date;
  */
 public abstract class ChatItem {
     // ID duy nhất cho item, cần cho DiffUtil để hoạt động hiệu quả.
+    @Exclude
     public abstract String getItemId();
 
     // Timestamp của item, dùng để so sánh và quyết định chèn dấu ngày tháng.
