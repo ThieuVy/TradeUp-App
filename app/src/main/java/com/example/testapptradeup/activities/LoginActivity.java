@@ -156,7 +156,7 @@ public class LoginActivity extends AppCompatActivity {
                 .setServerClientId(getString(R.string.default_web_client_id))
                 .build();
         GetCredentialRequest request = new GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
+                .addCredentialOption(googleIdOption )
                 .build();
 
         credentialManager.getCredentialAsync(this, request, null, Executors.newSingleThreadExecutor(),

@@ -112,7 +112,7 @@
     <string name="posted_time_placeholder">Thời gian đăng</string>
     <!-- ======================================== -->
 
-    <string-array name="category_options">
+    <string-array name="category_options_display">
         <item>@string/search_category_all</item>
         <item>@string/category_electronics</item>
         <item>@string/category_laptops</item>
@@ -121,21 +121,32 @@
         <item>@string/category_cars</item>
         <item>@string/category_other</item>
     </string-array>
-    <string-array name="condition_options">
+
+    <!-- Mảng cho TÌNH TRẠNG -->
+    <string-array name="condition_options_display">
         <item>@string/search_condition_all</item>
         <item>@string/condition_new</item>
         <item>@string/condition_like_new</item>
-        <item>@string/condition_good</item>
         <item>@string/condition_used</item>
     </string-array>
-    <string-array name="sort_options">
-        <item>@string/search_sort_relevance</item>
+    <string-array name="condition_options_values" translatable="false">
+        <item />
+        <item>new</item>
+        <item>like_new</item>
+        <item>used</item>
+    </string-array>
+
+    <!-- Mảng cho SẮP XẾP -->
+    <string-array name="sort_options_display">
         <item>@string/search_sort_newest</item>
         <item>@string/search_sort_price_low_high</item>
         <item>@string/search_sort_price_high_low</item>
     </string-array>
-
-
+    <string-array name="sort_options_values" translatable="false">
+        <item>time_desc</item>
+        <item>price_asc</item>
+        <item>price_desc</item>
+    </string-array>
 
     <!-- ===================================================================== -->
     <!-- 6. POSTING (Đăng tin)                                                 -->

@@ -1,7 +1,10 @@
+// File: app/src/main/java/com/example/testapptradeup/models/SearchResult.java
 package com.example.testapptradeup.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.text.format.DateUtils;
+
 import com.google.firebase.firestore.IgnoreExtraProperties;
 
 // Lớp này đại diện cho MỘT KẾT QUẢ TÌM KIẾM
@@ -24,18 +27,33 @@ public class SearchResult implements Parcelable {
     // Constructor rỗng cần thiết cho Firebase
     public SearchResult() {}
 
-    // Constructor để chuyển đổi từ Listing (ví dụ)
-    // Bạn cần hoàn thiện logic này nếu sử dụng
+    // =====================================================================
+    // === SỬA LỖI Ở ĐÂY: HOÀN THIỆN CONSTRUCTOR NÀY ===
+    // =====================================================================
     public SearchResult(Listing listing, boolean isFavorite) {
-        // Gán các giá trị từ listing vào đây
-        // this.id = listing.getId();
-        // this.title = listing.getTitle();
-        // ...
+        this.id = listing.getId();
+        this.title = listing.getTitle();
+        this.price = listing.getFormattedPrice(); // Dùng hàm có sẵn để định dạng giá
+        this.condition = listing.getConditionText(); // Dùng hàm có sẵn để lấy text tình trạng
+        this.location = listing.getLocation();
+        this.imageUrl = listing.getPrimaryImageUrl();
+        this.latitude = listing.getLatitude();
+        this.longitude = listing.getLongitude();
+        this.category = listing.getCategory();
         this.isFavorite = isFavorite;
+
+        // Xử lý hiển thị thời gian tương đối
+        if (listing.getTimePosted() != null) {
+            this.postedTime = DateUtils.getRelativeTimeSpanString(
+                    listing.getTimePosted().getTime(),
+                    System.currentTimeMillis(),
+                    DateUtils.MINUTE_IN_MILLIS).toString();
+        } else {
+            this.postedTime = "";
+        }
     }
 
-    // --- Getters and Setters ---
-    // (Giữ nguyên tất cả các getter và setter của bạn cho các trường trên)
+    // --- Getters and Setters (Giữ nguyên) ---
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     public String getTitle() { return title; }
@@ -61,8 +79,7 @@ public class SearchResult implements Parcelable {
     public boolean isFavorite() { return isFavorite; }
     public void setFavorite(boolean favorite) { isFavorite = favorite; }
 
-
-    // --- Parcelable Implementation ---
+    // --- Parcelable Implementation (Giữ nguyên) ---
     protected SearchResult(Parcel in) {
         id = in.readString();
         title = in.readString();

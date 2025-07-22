@@ -40,6 +40,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.testapptradeup.R;
 import com.example.testapptradeup.adapters.SearchResultsAdapter;
+import com.example.testapptradeup.models.Category;
 import com.example.testapptradeup.models.SearchParams;
 import com.example.testapptradeup.models.SearchResult;
 import com.example.testapptradeup.viewmodels.SearchViewModel;
@@ -161,11 +162,13 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.OnP
 
         // Setup Adapters cho các ô AutoComplete
         if (getContext() != null) {
-            ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.category_options));
+            ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.category_options_display));
             categoryFilter.setAdapter(categoryAdapter);
-            ArrayAdapter<String> conditionAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.condition_options));
+
+            ArrayAdapter<String> conditionAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.condition_options_display));
             conditionFilter.setAdapter(conditionAdapter);
-            ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.sort_options));
+
+            ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.sort_options_display));
             sortFilter.setAdapter(sortAdapter);
         }
 
@@ -263,12 +266,13 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.OnP
         }
 
         // (Bạn có thể thêm các kiểm tra tương tự cho conditionFilter và sortFilter nếu cần)
-        String conditionText = mapValueToDisplayText(params.getCondition(), R.array.condition_options);
+        String conditionText = mapValueToDisplayText(params.getCondition(), R.array.condition_options_display, R.array.condition_options_values);
         if (!conditionFilter.getText().toString().equals(conditionText)) {
             conditionFilter.setText(conditionText, false);
         }
 
-        String sortText = mapValueToDisplayText(params.getSortBy(), R.array.sort_options);
+        // --- SỬA DÒNG NÀY ---
+        String sortText = mapValueToDisplayText(params.getSortBy(), R.array.sort_options_display, R.array.sort_options_values);
         if (!sortFilter.getText().toString().equals(sortText)) {
             sortFilter.setText(sortText, false);
         }
@@ -298,11 +302,16 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.OnP
         SearchParams params = new SearchParams();
         params.setQuery(searchInput.getText().toString().trim());
 
-        String category = categoryFilter.getText().toString();
-        if (!category.equals(getString(R.string.search_category_all))) {
-            params.setCategory(category);
+        // --- SỬA LỖI CHO DANH MỤC ---
+        String selectedCategoryName = categoryFilter.getText().toString();
+        // Chỉ áp dụng bộ lọc nếu người dùng không chọn "Tất cả danh mục"
+        if (!selectedCategoryName.equals(getString(R.string.search_category_all)) && !selectedCategoryName.isEmpty()) {
+            // "Phiên dịch" tên tiếng Việt thành ID hệ thống (ví dụ: "Đồ điện tử" -> "electronics")
+            String categoryId = Category.getCategoryIdByName(selectedCategoryName);
+            params.setCategory(categoryId);
         }
 
+        // Xử lý giá (giữ nguyên)
         try {
             if (!TextUtils.isEmpty(minPriceInput.getText())) params.setMinPrice(Double.parseDouble(minPriceInput.getText().toString()));
             if (!TextUtils.isEmpty(maxPriceInput.getText())) params.setMaxPrice(Double.parseDouble(maxPriceInput.getText().toString()));
@@ -310,12 +319,38 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.OnP
             Log.e("SearchFragment", "Invalid price format", e);
         }
 
-        String condition = conditionFilter.getText().toString();
-        if (!condition.equals(getString(R.string.search_condition_all))) {
-            params.setCondition(mapDisplayToValue(condition, R.array.condition_options));
+        // --- SỬA LỖI CHO TÌNH TRẠNG ---
+        String selectedConditionName = conditionFilter.getText().toString();
+        if (!selectedConditionName.equals(getString(R.string.search_condition_all)) && !selectedConditionName.isEmpty()) {
+            // "Phiên dịch" tên tiếng Việt thành ID hệ thống (ví dụ: "Như mới" -> "like_new")
+            String conditionValue = mapDisplayToValue(selectedConditionName, R.array.condition_options_display, R.array.condition_options_values);
+            params.setCondition(conditionValue);
         }
 
-        // Logic tương tự cho Sắp xếp
+        // --- SỬA LỖI CHO SẮP XẾP ---
+        String selectedSortName = sortFilter.getText().toString();
+        if (!selectedSortName.isEmpty()) {
+            String sortByValue = mapDisplayToValue(selectedSortName, R.array.sort_options_display, R.array.sort_options_values);
+            // Logic sắp xếp cần tách trường và hướng
+            if (sortByValue != null) {
+                switch (sortByValue) {
+                    case "price_asc":
+                        params.setSortBy("price");
+                        params.setSortAscending(true);
+                        break;
+                    case "price_desc":
+                        params.setSortBy("price");
+                        params.setSortAscending(false);
+                        break;
+                    case "time_desc":
+                    default:
+                        params.setSortBy("timePosted");
+                        params.setSortAscending(false);
+                        break;
+                }
+            }
+        }
+
 
         if (currentLocation != null) {
             params.setUserLocation(currentLocation);
@@ -405,27 +440,33 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.OnP
     }
 
     // Hàm tiện ích để ánh xạ giữa giá trị lưu trữ và giá trị hiển thị
-    private String mapDisplayToValue(String displayText, int stringArrayResId) {
-        String[] displayTexts = getResources().getStringArray(stringArrayResId);
-        // Giả sử các giá trị tương ứng là "new", "like_new", "used"
-        String[] values = {"", "new", "like_new", "used"}; // "" cho "Mọi tình trạng"
+    private String mapDisplayToValue(String displayText, int displayArrayResId, int valueArrayResId) {
+        String[] displayTexts = getResources().getStringArray(displayArrayResId);
+        String[] values = getResources().getStringArray(valueArrayResId);
         for (int i = 0; i < displayTexts.length; i++) {
             if (displayTexts[i].equals(displayText)) {
-                return values[i];
+                // Đảm bảo không truy cập ngoài phạm vi của mảng values
+                if (i < values.length) {
+                    return values[i];
+                }
             }
         }
-        return null; // hoặc giá trị mặc định
+        return null; // Trả về null nếu không tìm thấy
     }
 
-    private String mapValueToDisplayText(String value, int stringArrayResId) {
-        String[] displayTexts = getResources().getStringArray(stringArrayResId);
-        String[] values = {"", "new", "like_new", "used"};
-        if (value == null) return displayTexts[0];
+    private String mapValueToDisplayText(String value, int displayArrayResId, int valueArrayResId) {
+        String[] displayTexts = getResources().getStringArray(displayArrayResId);
+        String[] values = getResources().getStringArray(valueArrayResId);
+        if (value == null || value.isEmpty()) {
+            return displayTexts.length > 0 ? displayTexts[0] : ""; // Trả về giá trị đầu tiên (vd: "Mọi tình trạng")
+        }
         for (int i = 0; i < values.length; i++) {
             if (values[i].equals(value)) {
-                return displayTexts[i];
+                if (i < displayTexts.length) {
+                    return displayTexts[i];
+                }
             }
         }
-        return displayTexts[0]; // Trả về giá trị mặc định "Mọi tình trạng"
+        return displayTexts.length > 0 ? displayTexts[0] : ""; // Mặc định nếu không tìm thấy
     }
 }

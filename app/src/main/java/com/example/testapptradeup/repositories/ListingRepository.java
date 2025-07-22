@@ -94,7 +94,7 @@ public class ListingRepository {
     private void performStandardQuery(SearchParams params, @Nullable DocumentSnapshot lastVisible, MutableLiveData<PagedResult<Listing>> resultLiveData) {
         Query query = db.collection("listings").whereEqualTo("status", "available");
 
-        // (Code query cũ giữ nguyên)
+        // 1. ÁP DỤNG CÁC BỘ LỌC CÓ CẤU TRÚC (GIỮ NGUYÊN)
         if (params.getCategory() != null && !params.getCategory().isEmpty()) {
             query = query.whereEqualTo("category", params.getCategory());
         }
@@ -107,22 +107,13 @@ public class ListingRepository {
         if (params.getMaxPrice() != null) {
             query = query.whereLessThanOrEqualTo("price", params.getMaxPrice());
         }
-        if (params.getQuery() != null && !params.getQuery().isEmpty()) {
-            query = query.orderBy("title").startAt(params.getQuery()).endAt(params.getQuery() + '\uf8ff');
-        }
 
+        // 2. XỬ LÝ SẮP XẾP (GIỮ NGUYÊN)
         if (params.getSortBy() != null && !params.getSortBy().isEmpty()) {
-            // Firestore yêu cầu trường sắp xếp phải là trường đầu tiên trong các điều kiện bất đẳng thức (nếu có).
-            // Ở đây, chúng ta đang lọc theo khoảng giá (`>=` và `<=`) trên trường "price".
-            // Do đó, nếu sắp xếp theo trường khác "price", truy vấn sẽ thất bại.
-            if (params.hasPriceFilter() && !params.getSortBy().equals("price")) {
-                Log.w(TAG, "Không thể sắp xếp theo trường khác khi đang lọc theo khoảng giá. Bỏ qua sắp xếp.");
-            } else {
-                Query.Direction direction = params.isSortAscending() ? Query.Direction.ASCENDING : Query.Direction.DESCENDING;
-                query = query.orderBy(params.getSortBy(), direction);
-            }
-        } else if (params.getQuery() == null || params.getQuery().isEmpty()) {
-            // Nếu không có từ khóa tìm kiếm và không có tùy chọn sắp xếp, mặc định sắp xếp theo mới nhất
+            Query.Direction direction = params.isSortAscending() ? Query.Direction.ASCENDING : Query.Direction.DESCENDING;
+            query = query.orderBy(params.getSortBy(), direction);
+        } else {
+            // Sắp xếp mặc định luôn là theo thời gian mới nhất
             query = query.orderBy("timePosted", Query.Direction.DESCENDING);
         }
 
@@ -130,10 +121,12 @@ public class ListingRepository {
             query = query.startAfter(lastVisible);
         }
 
+        // 3. THỰC HIỆN TRUY VẤN
         query.limit(PAGE_SIZE).get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Listing> listings = new ArrayList<>();
                     DocumentSnapshot newLastVisible = null;
+
                     if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
                         newLastVisible = queryDocumentSnapshots.getDocuments().get(queryDocumentSnapshots.size() - 1);
                         for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
@@ -142,12 +135,29 @@ public class ListingRepository {
                             listings.add(listing);
                         }
                     }
-                    // Gọi constructor 3 tham số cho trường hợp thành công
+
+                    // 4. BƯỚC LỌC TỪ KHÓA BẰNG CODE (CLIENT-SIDE) - ĐÂY LÀ THAY ĐỔI QUAN TRỌNG
+                    if (params.getQuery() != null && !params.getQuery().isEmpty()) {
+                        // Chuyển từ khóa tìm kiếm sang chữ thường để tìm kiếm không phân biệt hoa/thường
+                        String searchQuery = params.getQuery().toLowerCase();
+
+                        // Tạo một danh sách mới để chứa kết quả đã lọc
+                        List<Listing> filteredList = new ArrayList<>();
+                        for (Listing listing : listings) {
+                            // Chuyển tiêu đề sản phẩm sang chữ thường và kiểm tra xem nó có chứa từ khóa không
+                            if (listing.getTitle() != null && listing.getTitle().toLowerCase().contains(searchQuery)) {
+                                filteredList.add(listing);
+                            }
+                        }
+                        // Gán lại danh sách listings bằng danh sách đã lọc
+                        listings = filteredList;
+                    }
+
+                    // 5. TRẢ KẾT QUẢ VỀ CHO VIEWMODEL
                     resultLiveData.setValue(new PagedResult<>(listings, newLastVisible, null));
                 })
                 .addOnFailureListener(e -> {
                     Log.e("ListingRepository", "Lỗi truy vấn Firestore: " + e.getMessage(), e);
-                    // Gọi constructor 3 tham số cho trường hợp thất bại
                     resultLiveData.setValue(new PagedResult<>(null, null, e));
                 });
     }

@@ -61,7 +61,12 @@ public class AdminReportAdapter extends ListAdapter<Report, AdminReportAdapter.R
 
         @SuppressLint("SetTextI18n")
         public void bind(final Report report, final OnReportActionListener listener) {
-            textReportType.setText(report.getType().toUpperCase());
+            // Kiểm tra null cho type trước khi sử dụng
+            if (report.getType() != null) {
+                textReportType.setText(report.getType().toUpperCase());
+            } else {
+                textReportType.setText("KHÔNG XÁC ĐỊNH");
+            }
 
             if (report.getTimestamp() != null) {
                 CharSequence relativeTime = DateUtils.getRelativeTimeSpanString(
@@ -69,14 +74,36 @@ public class AdminReportAdapter extends ListAdapter<Report, AdminReportAdapter.R
                         System.currentTimeMillis(),
                         DateUtils.MINUTE_IN_MILLIS);
                 textReportTime.setText(relativeTime);
+            } else {
+                textReportTime.setText("");
             }
 
-            textReporter.setText("Người báo cáo: " + report.getReporterId());
-            textReported.setText("Đối tượng: " + (report.getReportedUserId() != null ? report.getReportedUserId() : report.getReportedListingId()));
-            textReason.setText(report.getReason());
+            // Hiển thị thông tin một cách an toàn
+            String reporterInfo = "Người báo cáo: " + (report.getReporterId() != null ? report.getReporterId() : "N/A");
+            textReporter.setText(reporterInfo);
+
+            // Xác định đối tượng bị báo cáo
+            String reportedObject = "N/A";
+            if (report.getReportedUserId() != null) {
+                reportedObject = "Người dùng: " + report.getReportedUserId();
+            } else if (report.getReportedListingId() != null) {
+                reportedObject = "Tin đăng: " + report.getReportedListingId();
+            } else if (report.getChatId() != null) {
+                reportedObject = "Trò chuyện: " + report.getChatId();
+            }
+            textReported.setText("Đối tượng: " + reportedObject);
+
+            textReason.setText(report.getReason() != null ? report.getReason() : "Không có lý do.");
 
             btnDismiss.setOnClickListener(v -> listener.onDismiss(report));
             btnSuspend.setOnClickListener(v -> listener.onSuspend(report));
+
+            // Ẩn/hiện nút "Treo tài khoản" nếu báo cáo không phải về người dùng
+            if (report.getReportedUserId() == null || report.getReportedUserId().isEmpty()) {
+                btnSuspend.setVisibility(View.GONE);
+            } else {
+                btnSuspend.setVisibility(View.VISIBLE);
+            }
         }
     }
 
