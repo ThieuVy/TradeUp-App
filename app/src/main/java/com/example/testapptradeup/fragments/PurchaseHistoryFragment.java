@@ -68,17 +68,40 @@ public class PurchaseHistoryFragment extends Fragment implements TransactionHist
 
     @SuppressLint("SetTextI18n")
     private void observeViewModel() {
-        progressBar.setVisibility(View.VISIBLE);
-        recyclerView.setVisibility(View.GONE);
-        emptyStateText.setVisibility(View.GONE);
+        // 1. Lắng nghe trạng thái Loading
+        viewModel.isLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+            if (isLoading) {
+                recyclerView.setVisibility(View.GONE);
+                emptyStateText.setVisibility(View.GONE);
+            }
+        });
 
+        // 2. Lắng nghe thông báo lỗi
+        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty()) {
+                recyclerView.setVisibility(View.GONE);
+                emptyStateText.setVisibility(View.VISIBLE);
+                emptyStateText.setText(error); // Hiển thị lỗi
+            }
+        });
+
+        // 3. Lắng nghe danh sách giao dịch
         viewModel.getMyPurchases().observe(getViewLifecycleOwner(), transactions -> {
-            progressBar.setVisibility(View.GONE);
+            // Chỉ xử lý danh sách khi không loading và không có lỗi
+            if (viewModel.isLoading().getValue() != null && viewModel.isLoading().getValue()) {
+                return; // Đang loading, không làm gì cả
+            }
+            if (viewModel.getErrorMessage().getValue() != null && !viewModel.getErrorMessage().getValue().isEmpty()) {
+                return; // Đang có lỗi, không làm gì cả
+            }
+
             if (transactions != null && !transactions.isEmpty()) {
                 adapter.submitList(transactions);
                 recyclerView.setVisibility(View.VISIBLE);
                 emptyStateText.setVisibility(View.GONE);
             } else {
+                // Đây là trường hợp đã tải xong, không lỗi, nhưng danh sách rỗng
                 recyclerView.setVisibility(View.GONE);
                 emptyStateText.setVisibility(View.VISIBLE);
                 emptyStateText.setText("Bạn chưa mua sản phẩm nào.");
