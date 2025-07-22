@@ -81,6 +81,7 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.OnP
     private Location currentLocation;
     private ActivityResultLauncher<String> locationPermissionLauncher;
     private boolean isFiltersVisible = false;
+    private TextWatcher searchInputWatcher;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -169,30 +170,30 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.OnP
         }
 
         // Setup Listeners
-        searchInput.addTextChangedListener(new TextWatcher() {
+        searchInputWatcher = new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // Hủy bỏ runnable cũ mỗi khi người dùng gõ
                 if (searchRunnable != null) {
                     handler.removeCallbacks(searchRunnable);
                 }
+                // Hiển thị/ẩn nút clear
+                clearSearch.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
             }
 
             @Override
             public void afterTextChanged(Editable s) {
-                // Tạo runnable mới và lên lịch thực thi sau một khoảng trễ
                 searchRunnable = () -> {
-                    if (isAdded()) { // Luôn kiểm tra fragment còn tồn tại
+                    if (isAdded()) {
                         viewModel.startNewSearch(collectSearchParamsFromUi());
                     }
                 };
                 handler.postDelayed(searchRunnable, DEBOUNCE_DELAY_MS);
             }
-        });
-
+        };
+        searchInput.addTextChangedListener(searchInputWatcher);
         clearSearch.setOnClickListener(v -> searchInput.setText(""));
         btnBackSearch.setOnClickListener(v -> navController.popBackStack());
         applyFiltersButton.setOnClickListener(v -> {
@@ -232,13 +233,45 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.OnP
 
     @SuppressLint("SetTextI18n")
     private void updateUiFromParams(SearchParams params) {
-        if (params == null) return;
-        searchInput.setText(params.getQuery());
-        categoryFilter.setText(params.getCategory() != null ? params.getCategory() : getString(R.string.search_category_all), false);
-        minPriceInput.setText(params.getMinPrice() != null ? String.valueOf(params.getMinPrice()) : "");
-        maxPriceInput.setText(params.getMaxPrice() != null ? String.valueOf(params.getMaxPrice()) : "");
-        conditionFilter.setText(mapValueToDisplayText(params.getCondition(), R.array.condition_options), false);
-        sortFilter.setText(mapValueToDisplayText(params.getSortBy(), R.array.sort_options), false); // Giả sử bạn có logic ánh xạ tương tự
+        if (params == null || getContext() == null) return;
+
+        // --- PHÁ VỠ VÒNG LẶP CHO Ô TÌM KIẾM ---
+        // Chỉ cập nhật text nếu nó khác với những gì đang hiển thị
+        if (!searchInput.getText().toString().equals(params.getQuery())) {
+            // Tạm thời gỡ bỏ watcher để tránh nó bị kích hoạt lại
+            searchInput.removeTextChangedListener(searchInputWatcher);
+            searchInput.setText(params.getQuery());
+            // Gắn lại watcher sau khi đã set text xong
+            searchInput.addTextChangedListener(searchInputWatcher);
+        }
+
+        // --- LÀM TƯƠNG TỰ CHO CÁC TRƯỜNG LỌC KHÁC ---
+
+        String categoryText = params.getCategory() != null ? params.getCategory() : getString(R.string.search_category_all);
+        if (!categoryFilter.getText().toString().equals(categoryText)) {
+            categoryFilter.setText(categoryText, false);
+        }
+
+        String minPriceText = params.getMinPrice() != null ? String.valueOf(params.getMinPrice().intValue()) : "";
+        if (!minPriceInput.getText().toString().equals(minPriceText)) {
+            minPriceInput.setText(minPriceText);
+        }
+
+        String maxPriceText = params.getMaxPrice() != null ? String.valueOf(params.getMaxPrice().intValue()) : "";
+        if (!maxPriceInput.getText().toString().equals(maxPriceText)) {
+            maxPriceInput.setText(maxPriceText);
+        }
+
+        // (Bạn có thể thêm các kiểm tra tương tự cho conditionFilter và sortFilter nếu cần)
+        String conditionText = mapValueToDisplayText(params.getCondition(), R.array.condition_options);
+        if (!conditionFilter.getText().toString().equals(conditionText)) {
+            conditionFilter.setText(conditionText, false);
+        }
+
+        String sortText = mapValueToDisplayText(params.getSortBy(), R.array.sort_options);
+        if (!sortFilter.getText().toString().equals(sortText)) {
+            sortFilter.setText(sortText, false);
+        }
     }
 
     private void updateUiForState(SearchViewModel.UiState state) {

@@ -63,6 +63,9 @@ public class ProfileFragment extends Fragment {
 
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private FrameLayout frameProfileImage;
+    private TextView adminToolsHeader;
+    private LinearLayout menuAdminPanel;
+
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -131,6 +134,8 @@ public class ProfileFragment extends Fragment {
         recyclerViewReviews = view.findViewById(R.id.recycler_view_reviews);
         emptyReviewsText = view.findViewById(R.id.empty_reviews_text);
         frameProfileImage = view.findViewById(R.id.frame_profile_image);
+        adminToolsHeader = view.findViewById(R.id.admin_tools_header);
+        menuAdminPanel = view.findViewById(R.id.menu_admin_panel);
     }
 
     private void setupRecyclerView() {
@@ -167,6 +172,9 @@ public class ProfileFragment extends Fragment {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             imagePickerLauncher.launch(intent);
         });
+        menuAdminPanel.setOnClickListener(v ->
+                navController.navigate(R.id.action_profile_to_adminPanel)
+        );
     }
 
     @SuppressLint("SetTextI18n")
@@ -188,6 +196,14 @@ public class ProfileFragment extends Fragment {
         mainViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
                 updateUI(user);
+                // HIỂN THỊ CÁC MỤC ADMIN NẾU LÀ ADMIN
+                if (user.isAdmin()) {
+                    adminToolsHeader.setVisibility(View.VISIBLE);
+                    menuAdminPanel.setVisibility(View.VISIBLE);
+                } else {
+                    adminToolsHeader.setVisibility(View.GONE);
+                    menuAdminPanel.setVisibility(View.GONE);
+                }
             } else {
                 clearUI();
             }
@@ -206,9 +222,7 @@ public class ProfileFragment extends Fragment {
                 Toast.makeText(getContext(), "Lỗi: " + error, Toast.LENGTH_LONG).show();
             }
         });
-        profileViewModel.isLoading().observe(getViewLifecycleOwner(), isLoading -> {
-            profileImage.setAlpha(isLoading ? 0.5f : 1.0f);
-        });
+        profileViewModel.isLoading().observe(getViewLifecycleOwner(), isLoading -> profileImage.setAlpha(isLoading ? 0.5f : 1.0f));
         profileViewModel.getUpdateImageResult().observe(getViewLifecycleOwner(), result -> {
             if (result == null) return;
 

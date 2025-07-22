@@ -34,6 +34,8 @@ public class User implements Parcelable {
     private int completedSalesCount;
     private List<Review> reviews;
     private String fcmToken;
+    @Exclude
+    private boolean isAdmin = false;
 
     public User() {
         // Constructor rỗng cần thiết cho Firebase
@@ -85,6 +87,10 @@ public class User implements Parcelable {
     public void setReviews(List<Review> reviews) { this.reviews = reviews; }
     public String getFcmToken() { return fcmToken; }
     public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+    @Exclude
+    public boolean isAdmin() { return isAdmin; }
+    @Exclude
+    public void setAdmin(boolean admin) { isAdmin = admin; }
 
     protected User(Parcel in) {
         id = in.readString();

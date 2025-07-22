@@ -133,6 +133,9 @@
         <action
             android:id="@+id/action_profile_to_paymentHistory"
             app:destination="@id/paymentHistoryFragment" />
+        <action
+            android:id="@+id/action_profile_to_adminPanel"
+            app:destination="@id/adminPanelFragment" />
 
     </fragment>
 
@@ -426,4 +429,27 @@
         android:label="Lịch sử thanh toán"
         tools:layout="@layout/fragment_payment_history" />
 
+    <fragment
+        android:id="@+id/adminPanelFragment"
+        android:name="com.example.testapptradeup.fragments.admin.AdminPanelFragment"
+        android:label="Bảng điều khiển Admin"
+        tools:layout="@layout/fragment_admin_panel">
+        <action
+            android:id="@+id/action_adminPanelFragment_to_reviewModerationFragment"
+            app:destination="@id/reviewModerationFragment" />
+        <action
+            android:id="@+id/action_adminPanelFragment_to_reportListFragment"
+            app:destination="@id/reportListFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/reviewModerationFragment"
+        android:name="com.example.testapptradeup.fragments.admin.ReviewModerationFragment"
+        android:label="Duyệt Đánh giá"
+        tools:layout="@layout/fragment_review_moderation" />
+    <fragment
+        android:id="@+id/reportListFragment"
+        android:name="com.example.testapptradeup.fragments.admin.ReportListFragment"
+        android:label="Xử lý Báo cáo"
+        tools:layout="@layout/fragment_report_list" />
 </navigation>

@@ -348,6 +348,33 @@
                 tools:ignore="ContentDescription" />
         </LinearLayout>
 
+        <TextView
+            style="@style/ProfileSectionHeader"
+            android:text="Công cụ Quản trị"
+            android:id="@+id/admin_tools_header"
+            android:visibility="gone"
+            tools:visibility="visible"
+            tools:ignore="HardcodedText" />
+
+        <LinearLayout
+            style="@style/ProfileMenuItem"
+            android:id="@+id/menu_admin_panel"
+            android:visibility="gone"
+            tools:visibility="visible">
+            <ImageView
+                style="@style/ProfileMenuIcon"
+                android:src="@drawable/ic_admin_panel"
+                app:tint="@color/warning"
+                tools:ignore="ContentDescription" />
+            <TextView
+                style="@style/ProfileMenuText"
+                android:text="Bảng điều khiển Admin"
+                tools:ignore="HardcodedText" />
+            <ImageView
+                style="@style/ProfileMenuChevron"
+                tools:ignore="ContentDescription" />
+        </LinearLayout>
+
         <!-- SECTION 5: RATINGS & REVIEWS -->
         <!-- BỌC PHẦN NÀY TRONG MỘT LINEARLAYOUT VÀ ĐẶT ID -->
         <LinearLayout

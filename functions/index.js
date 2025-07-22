@@ -9,16 +9,16 @@ admin.initializeApp();
 // ========================================================
 // HÀM HỖ TRỢ & BẢO MẬT
 // ========================================================
-const verifyAdmin = async (context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "Yêu cầu cần được xác thực.");
-    }
-    const user = await admin.auth().getUser(context.auth.uid);
-    if (user.customClaims && user.customClaims.admin === true) {
-        return true;
-    }
-    throw new functions.https.HttpsError("permission-denied", "Chỉ quản trị viên mới có thể thực hiện hành động này.");
-};
+//const verifyAdmin = async (context) => {
+//    if (!context.auth) {
+//        throw new functions.https.HttpsError("unauthenticated", "Yêu cầu cần được xác thực.");
+//    }
+//    const user = await admin.auth().getUser(context.auth.uid);
+//    if (user.customClaims && user.customClaims.admin === true) {
+//        return true;
+//    }
+//    throw new functions.https.HttpsError("permission-denied", "Chỉ quản trị viên mới có thể thực hiện hành động này.");
+//};
 
 const getOrCreateCustomer = async (userId) => {
     const userRef = admin.firestore().collection("users").doc(userId);
@@ -60,31 +60,65 @@ const getOrCreateCustomer = async (userId) => {
  *
  * Việc để chức năng này hoạt động có thể tạo ra lỗ hổng bảo mật nghiêm trọng.
  */
-/*
-exports.setAdminClaim = functions.https.onCall(async (data, context) => {
-    // Tạm thời comment ra để đảm bảo an toàn.
-    // Mở ra khi cần cấp quyền cho admin mới và deploy lại.
-    // Sau khi dùng xong, comment lại và deploy lần nữa.
+//exports.setAdminClaim = functions.https.onCall(async (data, context) => {
+//    // Tạm thời comment ra để đảm bảo an toàn.
+//    // Mở ra khi cần cấp quyền cho admin mới và deploy lại.
+//    // Sau khi dùng xong, comment lại và deploy lần nữa.
+//
+//    // Bước 1: Xác thực người gọi phải là admin (nếu muốn admin hiện tại cấp quyền cho admin mới)
+//    // Hoặc bỏ qua bước này cho lần cấp quyền đầu tiên.
+//    // await verifyAdmin(context); // TẠM THỜI COMMENT DÒNG NÀY LẠI
+//
+//    const uid = data.uid;
+//    if (typeof uid !== "string" || uid.length === 0) {
+//        throw new functions.https.HttpsError("invalid-argument", "UID không hợp lệ hoặc bị thiếu.");
+//    }
+//
+//    try {
+//        await admin.auth().setCustomUserClaims(uid, { admin: true });
+//        console.log(`Cấp quyền admin thành công cho UID: ${uid}`);
+//        return { message: `Thành công! Người dùng ${uid} đã được cấp quyền admin.` };
+//    } catch (error) {
+//        console.error("Lỗi khi gán quyền admin cho UID:", uid, error);
+//        throw new functions.https.HttpsError("internal", "Không thể gán quyền admin.");
+//    }
+//});
 
-    // Bước 1: Xác thực người gọi phải là admin (nếu muốn admin hiện tại cấp quyền cho admin mới)
-    // Hoặc bỏ qua bước này cho lần cấp quyền đầu tiên.
+const verifyAdmin = async (context) => {
+    // Hàm này đã có sẵn trong file của bạn, dùng để kiểm tra người gọi
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Yêu cầu cần được xác thực.");
+    }
+    const user = await admin.auth().getUser(context.auth.uid);
+    if (user.customClaims && user.customClaims.admin === true) {
+        return true;
+    }
+    throw new functions.https.HttpsError("permission-denied", "Chỉ quản trị viên mới có thể thực hiện hành động này.");
+};
+
+/**
+ * Cloud Function: grantAdminRole
+ * Cho phép một Admin hiện tại cấp quyền Admin cho một người dùng khác.
+ */
+exports.grantAdminRole = functions.https.onCall(async (data, context) => {
+    // Bước 1: Luôn luôn xác thực người gọi PHẢI LÀ ADMIN
     await verifyAdmin(context);
 
-    const uid = data.uid;
-    if (typeof uid !== "string" || uid.length === 0) {
-        throw new functions.https.HttpsError("invalid-argument", "UID không hợp lệ hoặc bị thiếu.");
+    const targetUid = data.uid;
+    if (typeof targetUid !== "string" || targetUid.length === 0) {
+        throw new functions.https.HttpsError("invalid-argument", "UID của người dùng mục tiêu không hợp lệ.");
     }
 
     try {
-        await admin.auth().setCustomUserClaims(uid, { admin: true });
-        console.log(`Cấp quyền admin thành công cho UID: ${uid}`);
-        return { message: `Thành công! Người dùng ${uid} đã được cấp quyền admin.` };
+        // Bước 2: Gán custom claim cho người dùng mục tiêu
+        await admin.auth().setCustomUserClaims(targetUid, { admin: true });
+        console.log(`Admin ${context.auth.uid} đã cấp quyền admin cho UID: ${targetUid}`);
+        return { success: true, message: `Đã cấp quyền Admin thành công!` };
     } catch (error) {
-        console.error("Lỗi khi gán quyền admin cho UID:", uid, error);
-        throw new functions.https.HttpsError("internal", "Không thể gán quyền admin.");
+        console.error("Lỗi khi gán quyền admin cho UID:", targetUid, error);
+        throw new functions.https.HttpsError("internal", "Không thể gán quyền admin. Vui lòng thử lại sau.");
     }
 });
-*/
 
 /**
  * Cloud Function: moderateReview

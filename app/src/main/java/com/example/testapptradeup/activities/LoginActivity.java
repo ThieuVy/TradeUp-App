@@ -273,27 +273,67 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void loadAndNavigateUser(String userId) {
-        db.collection("users").document(userId).get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        User user = documentSnapshot.toObject(User.class);
-                        if (user != null) {
-                            user.setId(userId);
-                            prefsHelper.saveCurrentUser(user);
-                            Log.d(TAG, "Dữ liệu người dùng cho UID đã được tải: " + userId);
-                        } else {
-                            createFallbackUserAndSave(userId, "Đối tượng người dùng từ Firestore là null");
-                        }
-                    } else {
-                        createFallbackUserAndSave(userId, "Không tìm thấy tài liệu Firestore");
-                    }
-                    navigateToMainActivity();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Lỗi khi tải dữ liệu người dùng: " + e.getMessage(), e);
-                    Toast.makeText(LoginActivity.this, "Lỗi khi tải dữ liệu người dùng.", Toast.LENGTH_SHORT).show();
-                    navigateToMainActivity();
-                });
+        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+        if (firebaseUser == null) {
+            // Trường hợp không mong muốn, người dùng không tồn tại sau khi đăng nhập thành công
+            showLoading(false);
+            Toast.makeText(LoginActivity.this, "Lỗi xác thực người dùng.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // BƯỚC 1: YÊU CẦU LÀM MỚI TOKEN
+        // Tham số 'true' là cực kỳ quan trọng. Nó buộc Firebase SDK phải lấy một token mới nhất
+        // từ server, thay vì dùng token cũ được lưu trong cache. Điều này đảm bảo rằng nếu
+        // người dùng vừa được cấp quyền Admin, token mới sẽ chứa thông tin đó.
+        firebaseUser.getIdToken(true).addOnCompleteListener(tokenTask -> {
+            if (tokenTask.isSuccessful()) {
+                // BƯỚC 2: SAU KHI CÓ TOKEN MỚI, TIẾP TỤC TẢI DỮ LIỆU HỒ SƠ TỪ FIRESTORE
+                db.collection("users").document(userId).get()
+                        .addOnSuccessListener(documentSnapshot -> {
+                            if (documentSnapshot.exists()) {
+                                User user = documentSnapshot.toObject(User.class);
+                                if (user != null) {
+                                    // BƯỚC 3: KIỂM TRA CUSTOM CLAIM TỪ TOKEN
+                                    // tokenTask.getResult().getClaims() trả về một Map chứa tất cả các custom claims.
+                                    // Chúng ta chỉ cần kiểm tra xem key "admin" (mà chúng ta đã đặt trong Cloud Function)
+                                    // có tồn tại trong Map này hay không.
+                                    boolean isAdmin = tokenTask.getResult().getClaims().containsKey("admin");
+
+                                    // Gán trạng thái admin vào đối tượng User trong bộ nhớ
+                                    user.setAdmin(isAdmin);
+                                    user.setId(userId);
+
+                                    // BƯỚC 4: LƯU TRẠNG THÁI VÀ CHUYỂN HƯỚNG
+                                    // Lưu toàn bộ đối tượng User (bao gồm cả trạng thái admin) vào SharedPreferences.
+                                    // Các màn hình khác trong ứng dụng sẽ đọc từ đây để biết người dùng có phải admin không.
+                                    prefsHelper.saveCurrentUser(user);
+                                    navigateToMainActivity();
+                                } else {
+                                    // Xử lý trường hợp dữ liệu Firestore bị lỗi
+                                    createFallbackUserAndSave(userId, "Đối tượng người dùng từ Firestore là null");
+                                    navigateToMainActivity();
+                                }
+                            } else {
+                                // Xử lý trường hợp hiếm gặp: có tài khoản Auth nhưng không có document trong Firestore
+                                createFallbackUserAndSave(userId, "Không tìm thấy tài liệu Firestore");
+                                navigateToMainActivity();
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            // Xử lý lỗi khi không thể tải dữ liệu từ Firestore
+                            Log.e(TAG, "Lỗi khi tải dữ liệu người dùng: " + e.getMessage(), e);
+                            Toast.makeText(LoginActivity.this, "Lỗi khi tải dữ liệu người dùng.", Toast.LENGTH_SHORT).show();
+                            navigateToMainActivity(); // Vẫn cho vào app với dữ liệu tạm
+                        });
+
+            } else {
+                // Xử lý lỗi khi không thể làm mới token
+                showLoading(false);
+                Log.e(TAG, "Không thể làm mới token xác thực: ", tokenTask.getException());
+                Toast.makeText(LoginActivity.this, "Lỗi xác thực. Vui lòng thử đăng nhập lại.", Toast.LENGTH_SHORT).show();
+                mAuth.signOut(); // Đăng xuất người dùng để đảm bảo an toàn
+            }
+        });
     }
 
     private void createFallbackUserAndSave(String userId, String reason) {
@@ -323,9 +363,7 @@ public class LoginActivity extends AppCompatActivity {
             // 2. === BƯỚC THÊM VÀO: Cố gắng lưu người dùng này lên Firestore ===
             db.collection("users").document(userId)
                     .set(fallbackUser)
-                    .addOnSuccessListener(aVoid -> {
-                        Log.i(TAG, "Tự sửa lỗi thành công: Đã tạo document Firestore cho người dùng: " + userId);
-                    })
+                    .addOnSuccessListener(aVoid -> Log.i(TAG, "Tự sửa lỗi thành công: Đã tạo document Firestore cho người dùng: " + userId))
                     .addOnFailureListener(e -> {
                         Log.e(TAG, "Tự sửa lỗi thất bại: Không thể tạo document Firestore.", e);
                         // Dù thất bại, ứng dụng vẫn tiếp tục với dữ liệu cục bộ

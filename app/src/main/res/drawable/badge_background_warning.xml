@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <solid android:color="#FFF59D" /> <!-- Màu vàng nhạt cảnh báo -->
+
+    <corners android:radius="12dp" /> <!-- Bo tròn -->
+
+    <padding
+        android:left="4dp"
+        android:top="2dp"
+        android:right="4dp"
+        android:bottom="2dp" />
+</shape>

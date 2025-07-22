@@ -27,10 +27,13 @@ import com.example.testapptradeup.R;
 import com.example.testapptradeup.adapters.ProductGridAdapter;
 import com.example.testapptradeup.adapters.PublicReviewAdapter;
 import com.example.testapptradeup.models.User;
+import com.example.testapptradeup.viewmodels.MainViewModel;
 import com.example.testapptradeup.viewmodels.PublicProfileViewModel;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.Exclude;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.functions.FirebaseFunctions;
 
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
@@ -57,12 +60,15 @@ public class PublicProfileFragment extends Fragment {
     private RecyclerView recyclerReviews;
     private ProductGridAdapter listingsAdapter;
     private PublicReviewAdapter reviewAdapter;
+    private MainViewModel mainViewModel; // Thêm ViewModel chung
+    private Button btnMakeAdmin; // Thêm tham chiếu cho nút mới
 
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(this).get(PublicProfileViewModel.class);
+        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class); // Khởi tạo
         if (getArguments() != null) {
             userId = PublicProfileFragmentArgs.fromBundle(getArguments()).getUserId();
         }
@@ -111,6 +117,7 @@ public class PublicProfileFragment extends Fragment {
         btnViewAllListings = view.findViewById(R.id.btn_view_all_listings);
         btnViewAllReviews = view.findViewById(R.id.btn_view_all_reviews);
         btnMoreOptions = view.findViewById(R.id.btn_more_options);
+        btnMakeAdmin = view.findViewById(R.id.btn_make_admin);
     }
 
     private void setupRecyclerViews() {
@@ -134,6 +141,7 @@ public class PublicProfileFragment extends Fragment {
         recyclerReviews.setNestedScrollingEnabled(false);
         reviewAdapter = new PublicReviewAdapter();
         recyclerReviews.setAdapter(reviewAdapter);
+        btnMakeAdmin.setOnClickListener(v -> showGrantAdminConfirmationDialog());
     }
 
     private void setupClickListeners() {
@@ -178,6 +186,14 @@ public class PublicProfileFragment extends Fragment {
     }
 
     private void observeViewModel() {
+        mainViewModel.getCurrentUser().observe(getViewLifecycleOwner(), currentUser -> {
+            if (currentUser != null && currentUser.isAdmin()) {
+                // Nếu người xem là admin VÀ họ không xem hồ sơ của chính mình
+                if (userId != null && !userId.equals(currentUser.getId())) {
+                    btnMakeAdmin.setVisibility(View.VISIBLE);
+                }
+            }
+        });
         viewModel.getUserProfile().observe(getViewLifecycleOwner(), this::updateProfileUI);
 
         // Observer này chỉ nhận TỐI ĐA 4 tin đăng để hiển thị
@@ -297,5 +313,32 @@ public class PublicProfileFragment extends Fragment {
                 .addOnFailureListener(e ->
                         Toast.makeText(getContext(), "Gửi báo cáo thất bại. Vui lòng thử lại.", Toast.LENGTH_SHORT).show()
                 );
+    }
+    private void showGrantAdminConfirmationDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Xác nhận Cấp quyền")
+                .setMessage("Bạn có chắc chắn muốn cấp quyền Quản trị viên cho người dùng này không? Hành động này không thể dễ dàng hoàn tác.")
+                .setPositiveButton("Đồng ý", (dialog, which) -> grantAdminRole())
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void grantAdminRole() {
+        Toast.makeText(getContext(), "Đang xử lý...", Toast.LENGTH_SHORT).show();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("uid", userId); // userId là ID của người đang được xem hồ sơ
+
+        FirebaseFunctions.getInstance()
+                .getHttpsCallable("grantAdminRole")
+                .call(data)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(getContext(), "Cấp quyền Admin thành công!", Toast.LENGTH_LONG).show();
+                    } else {
+                        String errorMessage = task.getException() != null ? task.getException().getMessage() : "Lỗi không xác định.";
+                        Toast.makeText(getContext(), "Lỗi: " + errorMessage, Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 }

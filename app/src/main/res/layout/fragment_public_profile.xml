@@ -170,6 +170,19 @@
                     app:cornerRadius="24dp"
                     tools:ignore="VisualLintButtonSize" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_make_admin"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Cấp quyền Admin"
+                    android:textColor="@color/warning"
+                    android:visibility="gone"
+                    app:strokeColor="@color/warning"
+                    tools:ignore="HardcodedText,TextContrastCheck"
+                    tools:visibility="visible" />
+
             </LinearLayout>
 
             <View
@@ -279,7 +292,7 @@
                         android:text="@string/view_all"
                         android:textColor="?attr/colorPrimary"
                         android:textSize="14sp"
-                        tools:ignore="DuplicateSpeakableTextCheck,TouchTargetSizeCheck"
+                        tools:ignore="DuplicateSpeakableTextCheck,RelativeOverlap,TouchTargetSizeCheck"
                         tools:visibility="visible" />
                 </RelativeLayout>
 
