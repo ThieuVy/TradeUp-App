@@ -89,7 +89,7 @@ public class PurchaseHistoryFragment extends Fragment implements TransactionHist
         // 3. Lắng nghe danh sách giao dịch
         viewModel.getMyPurchases().observe(getViewLifecycleOwner(), transactions -> {
             // Chỉ xử lý danh sách khi không loading và không có lỗi
-            if (viewModel.isLoading().getValue() != null && viewModel.isLoading().getValue()) {
+            if (viewModel.isLoading().getValue() != null && Boolean.TRUE.equals(viewModel.isLoading().getValue())) {
                 return; // Đang loading, không làm gì cả
             }
             if (viewModel.getErrorMessage().getValue() != null && !viewModel.getErrorMessage().getValue().isEmpty()) {
